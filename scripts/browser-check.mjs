@@ -84,6 +84,19 @@ try {
     await delay(100);
   }
   assert.ok(ready, 'page ready');
+  const portableTools = await evaluate(`(async()=>{
+    const {createToolHost}=await import('/src/tools.js');
+    const {crossingDemo,START,SUBJECT,PREDICATE}=await import('/src/crossing-demo.js');
+    const demo=crossingDemo();demo.receive();demo.receive();demo.receive();
+    const host=createToolHost(demo.ledger);
+    return {count:host.list().length,result:host.call('lalo_reading',{
+      subject:SUBJECT,predicate:PREDICATE,rule:'unanimous-boolean/v1',knownAt:demo.latest,validAt:START,limit:1})};
+  })()`);
+  assert.equal(portableTools.count, 6);
+  assert.equal(portableTools.result.data.reading.state, 'contested');
+  assert.equal(portableTools.result.data.reading.premiseCount, 3);
+  assert.equal(portableTools.result.data.items.length, 1);
+  console.log('PASS: portable model tools run in the browser and preserve complete inference across evidence pages');
   const state = () => evaluate('document.getElementById("state").textContent');
   async function waitIdle() {
     for (let i = 0; i < 100; i++) {
