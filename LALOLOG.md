@@ -55,7 +55,11 @@ complete inference with partial evidence, shared visual/tool results, schema
 errors, protocol lifecycle, malformed/oversized frames and real subprocess
 stdin/stdout with EOF shutdown. The browser gate additionally imports the
 portable tools and checks a three-premise conflict through a one-row page.
-Hosted verification is pending.
+Code `3fe9cdc` passed both jobs in hosted runs
+[38815893665](https://github.com/ariannamethod/LALO/actions/runs/38815893665)
+and [38815890147](https://github.com/ariannamethod/LALO/actions/runs/38815890147),
+on Node v24.14.0 and Chrome 155.0.8059.39. The portable tool check and both
+existing visual-world scenarios passed.
 
 A separate MCP subprocess opened the earlier live USGS journal and returned
 all six known subjects from its 48 receipts. The source observations remain
