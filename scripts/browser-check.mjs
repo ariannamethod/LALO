@@ -80,14 +80,14 @@ try {
   await call('Page.navigate', { url: `http://127.0.0.1:${server.address().port}/` });
   let ready = false;
   for (let i = 0; i < 60; i++) {
-    if (await evaluate('document.documentElement.dataset.ready === "true"')) { ready = true; break; }
+    if (await evaluate('document.documentElement?.dataset.ready === "true"')) { ready = true; break; }
     await delay(100);
   }
   assert.ok(ready, 'page ready');
   const state = () => evaluate('document.getElementById("state").textContent');
   async function waitIdle() {
     for (let i = 0; i < 100; i++) {
-      if (await evaluate('document.documentElement.dataset.ready === "true" && document.documentElement.dataset.busy === "false"')) return;
+      if (await evaluate('document.documentElement?.dataset.ready === "true" && document.documentElement.dataset.busy === "false"')) return;
       await delay(50);
     }
     throw new Error('world did not finish its transaction');

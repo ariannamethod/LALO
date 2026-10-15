@@ -57,7 +57,17 @@ companion facts, UTF-8 split across chunks, response budgets and timeout.
 The browser gate adds synthetic intercepted HTTP for the real source UI:
 on-demand fetching, repeated polls, both clocks, old metadata, null magnitude,
 reload, failed save/feed, actual file export/import, phone width and isolated
-corrupt journals. Hosted browser verification is pending for this entry.
+corrupt journals. The first PR run
+[38813855864](https://github.com/ariannamethod/LALO/actions/runs/38813855864)
+passed both jobs on Node v24.14.0 and Chrome 155.0.8059.39. Desktop and
+390-pixel screenshots were inspected; canvas labels are clamped inside the
+field at narrow widths. The parallel push run 38813852005 exposed a gate
+startup race: its ready probe accessed `documentElement` before it existed.
+The probe now waits through that state. Final rerun pending.
+
+A live CLI poll using the shared transport added three events to the earlier
+saved journal: 48 receipts across six events. Source validation and all six
+magnitude projections succeeded. Live observations remain outside the repo.
 
 ## 2026-10-16 — local continuity and the first external source
 

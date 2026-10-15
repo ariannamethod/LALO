@@ -88,7 +88,10 @@ export function paint(ctx, { width, height, view, selected, pulse = 0, previous,
     ctx.globalAlpha = node.fact.id === selected ? .9 : .25;
     ctx.beginPath(); ctx.arc(node.x, node.y, 10 + (node.fact.id === selected ? pulse * 9 : 0), 0, Math.PI * 2); ctx.stroke();
     ctx.globalAlpha = active ? .8 : .45; ctx.font = '11px Georgia';
-    ctx.fillText(node.label || node.fact.id, node.x, node.y - 17);
+    const label = node.label || node.fact.id, maxLabelWidth = Math.max(1, width - 16);
+    const half = Math.min(maxLabelWidth, ctx.measureText(label).width) / 2;
+    const labelX = Math.max(half + 8, Math.min(width - half - 8, node.x));
+    ctx.fillText(label, labelX, node.y - 17, maxLabelWidth);
   }
   ctx.globalAlpha = 1; ctx.textAlign = 'start';
   return nodes;
