@@ -38,10 +38,10 @@ export function paint(ctx, { width, height, view, selected, pulse = 0, previous,
   const ease = 1 - (1 - progress) ** 3;
   const radius = origin.radius + (target.radius - origin.radius) * ease;
   const pressure = origin.pressure + (target.pressure - origin.pressure) * ease;
-  const nodes = view.records.map(({ fact, state }, index) => {
+  const nodes = view.records.map(({ fact, state, label }, index) => {
     const angle = -2.5 + index * 2.399963229728653;
     const ring = unit * (1.25 + (index % 3) * .25);
-    return { fact, state, x: cx + Math.cos(angle) * ring,
+    return { fact, state, label, x: cx + Math.cos(angle) * ring,
       y: cy + Math.sin(angle) * ring * .82 };
   });
   for (const edge of view.corrections) {
@@ -72,7 +72,7 @@ export function paint(ctx, { width, height, view, selected, pulse = 0, previous,
     ctx.stroke();
   });
   ctx.textAlign = 'center'; ctx.globalAlpha = .8; ctx.fillStyle = COLORS.ink;
-  ctx.font = 'italic 18px Georgia'; ctx.fillText('north crossing', cx, cy - 4);
+  ctx.font = 'italic 18px Georgia'; ctx.fillText((view.title || 'north crossing').slice(0, 32), cx, cy - 4, unit * 2.2);
   ctx.font = '10px sans-serif'; ctx.globalAlpha = .6;
   ctx.fillText(view.current.state.toUpperCase(), cx, cy + 17);
   for (const node of nodes) {
@@ -88,7 +88,10 @@ export function paint(ctx, { width, height, view, selected, pulse = 0, previous,
     ctx.globalAlpha = node.fact.id === selected ? .9 : .25;
     ctx.beginPath(); ctx.arc(node.x, node.y, 10 + (node.fact.id === selected ? pulse * 9 : 0), 0, Math.PI * 2); ctx.stroke();
     ctx.globalAlpha = active ? .8 : .45; ctx.font = '11px Georgia';
-    ctx.fillText(node.fact.id, node.x, node.y - 17);
+    const label = node.label || node.fact.id, maxLabelWidth = Math.max(1, width - 16);
+    const half = Math.min(maxLabelWidth, ctx.measureText(label).width) / 2;
+    const labelX = Math.max(half + 8, Math.min(width - half - 8, node.x));
+    ctx.fillText(label, labelX, node.y - 17, maxLabelWidth);
   }
   ctx.globalAlpha = 1; ctx.textAlign = 'start';
   return nodes;

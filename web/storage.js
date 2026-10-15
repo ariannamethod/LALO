@@ -1,5 +1,6 @@
 // A compare-and-swap transaction prevents two tabs from replacing each other's receipts.
-export function worldStore(factory, { name = 'lalo-worlds-v1', key = 'crossing-v1' } = {}) {
+export function worldStore(factory, { name = 'lalo-worlds-v1', key = 'crossing-v1', maxBytes = 128_000 } = {}) {
+  if (!Number.isSafeInteger(maxBytes) || maxBytes < 1) throw new RangeError('invalid saved-world byte budget');
   function connect() {
     return new Promise((resolve, reject) => {
       if (!factory) { reject(new Error('Local storage is unavailable')); return; }
@@ -39,7 +40,7 @@ export function worldStore(factory, { name = 'lalo-worlds-v1', key = 'crossing-v
   return {
     load: () => transact('readonly'),
     save(journal, expectedRevision) {
-      if (typeof journal !== 'string' || journal.length > 128_000)
+      if (typeof journal !== 'string' || journal.length > maxBytes || new TextEncoder().encode(journal).byteLength > maxBytes)
         return Promise.reject(new RangeError('saved world exceeds its text budget'));
       if (!Number.isSafeInteger(expectedRevision) || expectedRevision < 0 || expectedRevision >= Number.MAX_SAFE_INTEGER)
         return Promise.reject(new RangeError('invalid saved-world revision'));
