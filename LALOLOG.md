@@ -63,6 +63,12 @@ Browser verification now also covers saved-world reload, continued user
 lineage, injected save failure, concurrent revision checks, and preservation
 of a corrupt snapshot. The gate remains offline.
 
+Hosted run [38810118438](https://github.com/ariannamethod/LALO/actions/runs/38810118438)
+passed both jobs on Node v24.14.0 and Chrome 155.0.8059.39. The browser gate
+passed reload, resumed lineage, injected quota failure, two concurrent writes,
+and corrupt-snapshot preservation as well as the existing visual interactions.
+The pull-request run 38810123545 also passed.
+
 ## 2026-10-15 — a crossing, three witnesses, a visible history
 
 LALO now has its first visual observation loop. The WOLFE descendant will itself
