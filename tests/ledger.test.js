@@ -114,3 +114,19 @@ test('query clocks and storage budgets are explicit', () => {
   assert.throws(() => ledger.asOf({ validAt: 100 }), TypeError);
   assert.throws(() => ledger.asOf({ validAt: NaN, knownAt: 120 }), TypeError);
 });
+
+test('missing validity ends cannot silently turn incomplete observations into permanent claims', () => {
+  for (const omitted of [true, false]) {
+    const ledger = new FactLedger();
+    ledger.add(fact());
+    const incomplete = fact({ id: 'b', recordedAt: 300, validTo: undefined, supersedes: 'a' });
+    if (omitted) delete incomplete.validTo;
+    assert.throws(() => ledger.add(incomplete), /validTo/);
+    assert.equal(ledger.size, 1);
+    assert.deepEqual(values(ledger.asOf({ validAt: 150, knownAt: 400 })), [2.9]);
+    assert.deepEqual(ledger.asOf({ validAt: 500, knownAt: 400 }), []);
+    // Failed ingestion must not advance the receipt clock or claim the ID.
+    ledger.add(fact({ id: 'b', validTo: null, recordedAt: 121, supersedes: 'a' }));
+    assert.equal(ledger.asOf({ validAt: 500, knownAt: 400 }).length, 1);
+  }
+});

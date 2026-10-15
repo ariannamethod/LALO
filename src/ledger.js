@@ -53,7 +53,7 @@ export class FactLedger {
       value: scalar(input.value),
       source: text(input.source, 'source', 4096),
       validFrom: time(input.validFrom, 'validFrom'),
-      validTo: input.validTo == null ? null : time(input.validTo, 'validTo'),
+      validTo: input.validTo === null ? null : time(input.validTo, 'validTo'),
       recordedAt: time(input.recordedAt, 'recordedAt'),
       supersedes: input.supersedes == null ? null : text(input.supersedes, 'supersedes'),
     });

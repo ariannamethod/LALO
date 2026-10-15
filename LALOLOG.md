@@ -3,6 +3,30 @@
 The engineering record. New entries first. README keeps the pulse; this file
 keeps the measurements, decisions, sources and scars.
 
+## 2026-10-15 — missing is not forever
+
+The Codex connector's [review of PR #1](https://github.com/ariannamethod/LALO/pull/1#discussion_r4288025393)
+found a real validation defect: `validTo == null` accepted both explicit `null`
+and a missing/undefined endpoint. An incomplete source record therefore became
+an assertion with an unbounded world interval.
+
+Only explicit `validTo: null` now opens the upper bound. An omitted or undefined
+endpoint fails timestamp validation before any journal mutation. Optional
+`supersedes` behavior is unchanged.
+
+The regression covers both forms of missing endpoint on a correction. It checks
+that rejection preserves the predecessor, future-time answers, record count,
+receipt clock and reusable ID, then accepts an explicit-null correction.
+
+Verification on Node v24.19.0, Linux x86_64:
+
+- Before the fix, `node --test tests/ledger.test.js`: 10 passed, the new test
+  failed with "Missing expected exception."
+- After the fix, `node --test tests/*.test.js`: 11 passed, zero failures or skips.
+- `node examples/earthquake.js`: the earlier view is 2.9, the corrected view is
+  3.4, and lineage contains both revisions.
+- `git diff --check` passed. No packages added.
+
 ## 2026-10-15 — the first organ: a two-clock fact journal
 
 ### Decision and scope
