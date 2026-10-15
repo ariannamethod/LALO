@@ -1,0 +1,12 @@
+{
+  "name": "lalo",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "LALO Analyzes Lineage & Ontology",
+  "exports": "./src/ledger.js",
+  "scripts": {
+    "test": "node --test tests/*.test.js",
+    "demo": "node examples/earthquake.js"
+  }
+}
