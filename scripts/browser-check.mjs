@@ -91,6 +91,7 @@ try {
   await click('receive'); await click('receive'); assert.equal(await state(), 'contradicted');
   await evaluate('document.querySelector("[data-id=a2]").click()');
   assert.match(await evaluate('document.getElementById("inspector").textContent'), /a1 → a2/);
+  assert.equal(await evaluate('document.getElementById("inspector").getBoundingClientRect().bottom <= document.querySelector("aside").getBoundingClientRect().bottom'), true, 'selected lineage is visible without scrolling the sidebar');
   await shot('desktop-revised');
   await evaluate('const k=document.getElementById("knowledge");k.value=Number(k.min)+120000;k.dispatchEvent(new Event("input"))');
   assert.equal(await state(), 'supported');

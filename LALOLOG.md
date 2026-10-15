@@ -65,6 +65,13 @@ Local installed Chrome launch failed at ProcessSingleton with
 1280 × 1000 and 390 × 844 layouts, receipt selection, corrections, both clocks,
 interface observations and touch hit-testing, and retains screenshots.
 
+Hosted run [38807631828](https://github.com/ariannamethod/LALO/actions/runs/38807631828)
+passed on Node v24.14.0 and Chrome 155.0.8059.39, Linux x86_64. Desktop and
+phone screenshots were downloaded and inspected. Inspection prompted one
+layout adjustment: move the selected receipt details above the receipt list
+so desktop users can see lineage without scrolling the sidebar. The browser
+gate now checks that visibility explicitly.
+
 ## 2026-10-15 — missing is not forever
 
 The Codex connector's [review of PR #1](https://github.com/ariannamethod/LALO/pull/1#discussion_r4288025393)
