@@ -2,6 +2,7 @@
 import { FactLedger } from '../src/ledger.js';
 import { encodeJournal, decodeJournal } from '../src/journal.js';
 import { ingestUSGS, USGS_FEED } from '../src/sources/usgs.js';
+import { fetchUSGS } from '../src/sources/usgs-http.js';
 
 const args = process.argv.slice(2), options = {};
 for (let i = 0; i < args.length; i += 2) {
@@ -27,24 +28,9 @@ async function boundedFile(path) {
     return bytes.subarray(0, bytesRead).toString('utf8');
   } finally { await handle.close(); }
 }
-async function fetchFeed() {
-  const controller = new AbortController(), timer = setTimeout(() => controller.abort(), 15_000);
-  try {
-    const response = await fetch(USGS_FEED, { signal: controller.signal });
-    if (!response.ok) throw new Error(`USGS HTTP ${response.status}`);
-    if (Number(response.headers.get('content-length')) > MAX_BYTES) throw new RangeError('feed exceeds byte budget');
-    const chunks = []; let size = 0;
-    for await (const chunk of response.body) {
-      size += chunk.byteLength;
-      if (size > MAX_BYTES) { controller.abort(); throw new RangeError('feed exceeds byte budget'); }
-      chunks.push(chunk);
-    }
-    return Buffer.concat(chunks).toString('utf8');
-  } finally { clearTimeout(timer); }
-}
 try {
   const previous = options['--prior'] ? decodeJournal(await boundedFile(options['--prior'])) : new FactLedger();
-  const raw = options['--input'] ? await boundedFile(options['--input']) : await fetchFeed();
+  const raw = options['--input'] ? await boundedFile(options['--input']) : await fetchUSGS();
   const receivedAt = Date.now();
   const result = ingestUSGS(previous, JSON.parse(raw), { receivedAt });
   const journal = encodeJournal(result.ledger);

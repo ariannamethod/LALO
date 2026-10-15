@@ -3,6 +3,62 @@
 The engineering record. New entries first. README keeps the pulse; this file
 keeps the measurements, decisions, sources and scars.
 
+## 2026-10-16 — the source journal enters the field
+
+`/web/usgs.html` reads earthquake observations into the visual field. The
+crossing and USGS have separate entry points and IndexedDB keys, sharing the
+journal, transactional storage and canvas renderer. Opening or reloading a
+field performs no source request. Read USGS fetches the past-hour feed once;
+the complete candidate is saved before the displayed world advances.
+
+The CLI and browser now share a bounded HTTP transport: 2 MB, 15 seconds,
+explicit HTTP/body failures, streaming UTF-8 decoding, and omitted credentials.
+The portable ingestion boundary still owns no I/O. A source-header check on
+2026-10-15 returned HTTP 200 and `Access-Control-Allow-Origin: *`; the field
+calls USGS directly without a proxy or an API key.
+
+### Reading and replay
+
+The named rule `magnitude-at-least/v1` asks whether magnitude is at least 3.
+It returns the exact active premise IDs and their intersected interval.
+Explicit null magnitude remains unknown and unsettled. Magnitude receipts
+drive the contour, revisions and selectable nodes; the selected version's
+companion facts expose place, coordinates, depth, event type, source update
+time, origin time, receipt time and a source link.
+
+The knowledge slider steps through receipt times. Its event catalog, metadata,
+nodes, links and contours exclude future receipts. The world selector lists
+known origin instants and their one-millisecond interval ends. A corrected
+origin retires the old assertion across its whole interval. Selecting an old
+version still shows its old coordinates and place. Rewinding preserves the
+selected world instant when it remains among known choices; otherwise it
+follows the latest origin known then. Latest knowledge follows the latest
+known origin explicitly.
+
+Import accepts a complete, canonical USGS adapter journal. Every version is
+validated as eight coherent facts with canonical IDs, source, time and
+predecessors. An existing journal accepts only an exact prefix extension;
+historical receipts cannot be replaced or retimed. Export returns the same
+versioned JSON for CLI `--prior`. Equal imports and repeated polls append
+nothing. Source absence from a rolling feed still preserves earlier events.
+
+The USGS field has 1024 receipt and 2 MB UTF-8 budgets. Save failures leave
+the displayed and stored history intact; corrupt saved data blocks writes
+and preserves its bytes. Both fields retain compare-and-swap revision checks.
+No additional npm packages, model initialization or background polling.
+
+### Verification
+
+Node v24.19.0, Linux x86_64: `node --test tests/*.test.js` passes 28 offline
+tests; `node examples/earthquake.js` passes. New cases cover old metadata,
+origin corrections, unknown magnitude, exact import extension, malformed
+companion facts, UTF-8 split across chunks, response budgets and timeout.
+
+The browser gate adds synthetic intercepted HTTP for the real source UI:
+on-demand fetching, repeated polls, both clocks, old metadata, null magnitude,
+reload, failed save/feed, actual file export/import, phone width and isolated
+corrupt journals. Hosted browser verification is pending for this entry.
+
 ## 2026-10-16 — local continuity and the first external source
 
 ### Persistence

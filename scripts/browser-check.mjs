@@ -6,6 +6,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { once } from 'node:events';
 import { serve } from './serve.mjs';
+import { checkQuakeField } from './quake-browser-check.mjs';
 
 const server = await serve({ port: 0 });
 const profile = await mkdtemp(join(tmpdir(), 'lalo-browser-'));
@@ -93,13 +94,15 @@ try {
   }
   const click = async id => { await evaluate(`document.getElementById(${JSON.stringify(id)}).click()`); await waitIdle(); };
   const reset = async () => { await click('reset'); await click('reset'); };
-  async function reload() {
+  async function loadPage(method, params = {}) {
     const loaded = new Promise((resolve, reject) => {
       const timer = setTimeout(() => reject(new Error('reload timed out')), 10000);
       onLoad = () => { clearTimeout(timer); resolve(); };
     });
-    await call('Page.reload'); await loaded; await waitIdle();
+    await call(method, params); await loaded; await waitIdle();
   }
+  const reload = () => loadPage('Page.reload');
+  const navigate = path => loadPage('Page.navigate', { url: `http://127.0.0.1:${server.address().port}${path}` });
   assert.equal(await state(), 'supported');
   await shot('desktop-initial');
   await click('receive'); assert.equal(await state(), 'contested');
@@ -162,8 +165,9 @@ try {
   assert.equal(await evaluate('document.getElementById("receive").disabled'), true);
   assert.equal(await evaluate('document.getElementById("error").hidden'), false);
   assert.equal(await evaluate(`(async()=>{const {worldStore}=await import('/web/storage.js');return (await worldStore(indexedDB).load()).journal})()`), 'broken journal');
-  assert.deepEqual(errors, [], 'no browser exceptions or failed application requests');
   console.log('PASS: history, disagreement, correction lineage, both clocks, user observations, phone layout, touch, reload, save failure, concurrent writes and corrupt snapshot preservation');
+  await checkQuakeField({ socket, call, evaluate, shot, waitIdle, click, reload, navigate, out });
+  assert.deepEqual(errors, [], 'no browser exceptions or failed application requests');
 } finally {
   await writeFile(join(out, 'chrome.log'), log);
   for (const p of pending.values()) clearTimeout(p.timeout);

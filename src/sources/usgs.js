@@ -31,6 +31,31 @@ function event(feature) {
   ] };
 }
 
+// The standalone source field accepts complete adapter journals, including every old version.
+export function validateUSGSJournal(ledger) {
+  const rows = ledger.entries(), heads = new Map();
+  if (rows.length % fields.length) throw new Error('incomplete USGS journal version');
+  for (let offset = 0; offset < rows.length; offset += fields.length) {
+    const group = rows.slice(offset, offset + fields.length), first = group[0];
+    const values = group.map(f => f.value), id = first.subject.slice(5), updated = values[7];
+    const e = event({ type: 'Feature', id, geometry: { type: 'Point', coordinates: values.slice(2, 5) },
+      properties: { mag: values[0], magType: values[1], place: values[5], type: values[6], time: first.validFrom, updated } });
+    const subject = `usgs:${e.id}`, source = `https://earthquake.usgs.gov/earthquakes/eventpage/${e.id}`;
+    const previous = heads.get(subject);
+    if (previous !== undefined && updated <= previous) throw new Error('USGS source versions must advance');
+    for (let i = 0; i < fields.length; i++) {
+      const f = group[i], predicate = fields[i];
+      if (f.subject !== subject || f.source !== source || f.predicate !== predicate
+        || f.id !== `${subject}:${updated}:${predicate}` || f.recordedAt !== first.recordedAt
+        || f.validFrom !== e.time || f.validTo !== e.time + 1
+        || f.supersedes !== (previous === undefined ? null : `${subject}:${previous}:${predicate}`))
+        throw new Error('USGS journal contains an inconsistent event version');
+    }
+    heads.set(subject, updated);
+  }
+  return ledger;
+}
+
 // A whole poll is staged on a new ledger. On failure the caller retains its prior journal.
 export function ingestUSGS(ledger, feed, { receivedAt, capacity = 1024, maxEvents = 500 } = {}) {
   integer(receivedAt, 'receipt time');
