@@ -73,7 +73,20 @@ node scripts/usgs.mjs --prior quakes.json > quakes-next.json
 ```
 
 Each poll keeps receipt time and source revisions. Imports extend saved history;
-they never rewrite it. Next: richer ontology and LALO's tool calling body.
+they never rewrite it.
+
+## call the world
+
+Six tools give models facts, history, lineage and conclusions with receipts.
+The portable JS host and the local MCP server read the same journal:
+
+```sh
+node examples/tool-call.js
+node scripts/mcp.mjs --journal quakes.json
+```
+
+[Tool contract and client setup](docs/TOOLS.md). No SDK install. Next: richer
+ontology and LALO's own tool calling body.
 
 No Python in LALO's runtime, build or tests.
 

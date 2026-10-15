@@ -3,6 +3,74 @@
 The engineering record. New entries first. README keeps the pulse; this file
 keeps the measurements, decisions, sources and scars.
 
+## 2026-10-16 — models get a call boundary
+
+`src/tools.js` exposes six tools: session status, known subjects, active facts,
+receipt history, revision lineage and a rule reading with classified evidence.
+Each host copies one validated journal snapshot. Caller mutation, continued
+ingestion and edits to returned data cannot move its pagination or answers.
+All historical rows and counts obey knownAt; active facts and rules also obey
+validAt. Requesting a future ID produces the same NOT_FOUND as an absent ID.
+
+The visual field and tool host now share `magnitudeHypothesis` alongside the
+existing boolean rule. A conclusion uses all active premises before its
+evidence is paged. Responses retain source, ID, predecessor, role and the
+intersection of premise intervals. Explicit unknown magnitude stays unknown.
+The direct JS example walks a contested reading one premise at a time.
+
+### Interface and transport
+
+Tool arguments are flat primitives with explicit clocks, filters and paging.
+The definitions use WOLFE's accepted schema subset; runtime validation also
+enforces the text budgets stated in their descriptions. No implicit coercion
+or ignored rule parameters. Structured errors identify malformed arguments,
+unknown receipts, invalid premises and exhausted response budgets.
+
+The stdio entry point is `node scripts/mcp.mjs --journal journal.json`.
+`src/mcp.js` handles initialization, ready notification, ping, tool discovery
+and calls for MCP 2025-11-25. It advertises only the fixed tools capability.
+Results include structured JSON and matching serialized text. stdout contains
+protocol messages; diagnostics use stderr. Closing stdin ends the session.
+The journal loads once; a new process loads the next snapshot.
+
+Contracts checked against the official
+[lifecycle](https://modelcontextprotocol.io/specification/2025-11-25/basic/lifecycle),
+[stdio transport](https://modelcontextprotocol.io/specification/2025-11-25/basic/transports)
+and [tools](https://modelcontextprotocol.io/specification/2025-11-25/server/tools)
+specifications. Full usage and response semantics: [TOOLS](docs/TOOLS.md).
+
+Budgets: 1024 records, 2 MB journal, at most 64 rows and 64 KiB per tool result,
+32 KiB per input frame and 256 KiB per output frame. Byte-limited pages stop
+at whole rows and expose continuation offsets. A single row that exceeds the
+chosen host result budget fails explicitly. Oversized input is discarded to
+the next newline before processing resumes. Serial processing and awaited
+stdout writes apply backpressure. Shared bounded file loading now serves
+both the source CLI and MCP process, with strict UTF-8 decoding.
+
+### Verification
+
+Node v24.19.0, Linux x86_64: 37 offline tests pass. Both examples pass. Added
+tests cover historical visibility, fixed snapshots, UTF-8 byte pagination,
+complete inference with partial evidence, shared visual/tool results, schema
+errors, protocol lifecycle, malformed/oversized frames and real subprocess
+stdin/stdout with EOF shutdown. The browser gate additionally imports the
+portable tools and checks a three-premise conflict through a one-row page.
+Code `3fe9cdc` passed both jobs in hosted runs
+[38815893665](https://github.com/ariannamethod/LALO/actions/runs/38815893665)
+and [38815890147](https://github.com/ariannamethod/LALO/actions/runs/38815890147),
+on Node v24.14.0 and Chrome 155.0.8059.39. The portable tool check and both
+existing visual-world scenarios passed.
+
+A separate MCP subprocess opened the earlier live USGS journal and returned
+all six known subjects from its 48 receipts. The source observations remain
+outside the repository.
+
+Compatibility probe against WOLFE `a04d2b7e6488656b715ca6b5b5ef5b1227eea79d`:
+its existing C loader accepted all six generated definitions. With one explicit
+example, “read journal status” returned `lalo_status` with empty arguments.
+The probe binary and example file stay outside this repository. LALO's router
+body is the next integration; this change supplies its executable world tools.
+
 ## 2026-10-16 — the source journal enters the field
 
 `/web/usgs.html` reads earthquake observations into the visual field. The

@@ -15,6 +15,7 @@ jobs:
           node-version: 24.14.0
       - run: node --test tests/*.test.js
       - run: node examples/earthquake.js
+      - run: node examples/tool-call.js
   browser:
     runs-on: ubuntu-latest
     timeout-minutes: 4

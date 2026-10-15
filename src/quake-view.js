@@ -1,7 +1,8 @@
 import { decodeJournal } from './journal.js';
 import { validateUSGSJournal } from './sources/usgs.js';
+import { magnitudeHypothesis, MAGNITUDE_RULE } from './hypothesis.js';
 
-export const QUAKE_RULE = 'magnitude-at-least/v1';
+export const QUAKE_RULE = MAGNITUDE_RULE;
 export const QUAKE_BUDGET = Object.freeze({ capacity: 1024, maxBytes: 2_000_000 });
 
 // Imports extend the saved history exactly. Neither receipt clocks nor old rows move.
@@ -36,23 +37,7 @@ export function quakeCatalog(ledger, { knownAt }) {
 }
 
 export function quakeView(ledger, { subject, validAt, knownAt, threshold = 3 }) {
-  if (typeof threshold !== 'number' || !Number.isFinite(threshold)) throw new TypeError('threshold must be finite');
-  const query = { subject, predicate: 'magnitude', validAt, knownAt };
-  function reading(at) {
-    const claims = ledger.asOf({ ...query, knownAt: at });
-    if (claims.some(f => f.value !== null && (typeof f.value !== 'number' || !Number.isFinite(f.value))))
-      throw new TypeError('magnitude-at-least requires numeric or explicit null premises');
-    const supporting = claims.filter(f => f.value !== null && f.value >= threshold);
-    const opposing = claims.filter(f => f.value !== null && f.value < threshold);
-    const unknown = claims.filter(f => f.value === null);
-    const state = supporting.length && opposing.length ? 'contested'
-      : !claims.length || unknown.length ? 'unsettled' : supporting.length ? 'supported' : 'contradicted';
-    return { rule: QUAKE_RULE, subject, predicate: 'magnitude', threshold, validAt, knownAt: at,
-      state, supporting, opposing, unknown, premises: claims.map(f => f.id),
-      validFrom: claims.length ? Math.max(...claims.map(f => f.validFrom)) : null,
-      validTo: claims.reduce((end, f) => f.validTo === null ? end
-        : end === null ? f.validTo : Math.min(end, f.validTo), null) };
-  }
+  const reading = at => magnitudeHypothesis(ledger, { subject, validAt, knownAt: at, threshold });
   const current = reading(knownAt);
   const history = ledger.entries().filter(f => f.subject === subject && f.predicate === 'magnitude' && f.recordedAt <= knownAt);
   const active = new Set(current.premises), replaced = new Set(history.map(f => f.supersedes));
