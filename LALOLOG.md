@@ -63,7 +63,9 @@ passed both jobs on Node v24.14.0 and Chrome 155.0.8059.39. Desktop and
 390-pixel screenshots were inspected; canvas labels are clamped inside the
 field at narrow widths. The parallel push run 38813852005 exposed a gate
 startup race: its ready probe accessed `documentElement` before it existed.
-The probe now waits through that state. Final rerun pending.
+The probe now waits through that state. Final code `a5b5c7d` passed both jobs
+in [38814196851](https://github.com/ariannamethod/LALO/actions/runs/38814196851)
+and [38814206631](https://github.com/ariannamethod/LALO/actions/runs/38814206631).
 
 A live CLI poll using the shared transport added three events to the earlier
 saved journal: 48 receipts across six events. Source validation and all six
