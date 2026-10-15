@@ -10,7 +10,8 @@ LALO is growing a small, local world engine: observations, memory, relations,
 and the trail that connects a conclusion to its evidence. Built to earn its
 place on a phone.
 
-The first organ is alive: a **zero-dependency JavaScript fact journal**.
+The first organs are alive: a **zero-dependency JavaScript fact journal**
+and a visual field that reads it.
 It remembers what happened, when we learned it, and which assertion corrected
 which. Ask the same question with yesterday's knowledge. Get yesterday's answer.
 
@@ -19,7 +20,12 @@ which. Ask the same question with yesterday's knowledge. Get yesterday's answer.
 ```sh
 node examples/earthquake.js
 node --test tests/*.test.js
+node scripts/serve.mjs
 ```
+
+Open `http://127.0.0.1:3000`. Receive reports about a crossing. Watch the
+hypothesis fracture. Follow a witness. Rewind what was known. Add your own
+observation. Every revision leaves a mark.
 
 No install step. The demo uses synthetic earthquake observations: magnitude
 2.9, then a correction to 3.4. Both versions keep their source and history.
@@ -47,13 +53,15 @@ history does not quietly disappear to make a counter look healthy.
   future integration.
 - **NoTorch** supplies numerical work when an organ needs it: JS first for
   browser distribution, native C where the host calls for it.
-- **WOLFE's descendant** will select tool calls under its own name here.
+- **LALO**, the coming WOLFE descendant, will select tools and act on this world.
 - **The interface participates.** Camera, GPS and visual interaction belong
-  in LALO's future observation/action loop. Netta.Sonar is a coming reference.
+  in LALO's observation/action loop. Rebecca informs its layers and inertia;
+  Netta.Sonar informs the visible trace of action.
 
-Today: journal, historical queries, correction lineage, explicit memory budget.
-Next: persistent storage and a real observation source. Ontology, inference,
-tool routing and the visual body grow against that working spine.
+Today: journal, a boolean hypothesis rule, visual history, interface observations,
+and an explicit memory budget. The crossing is synthetic; the journal lives in
+memory. Next: persistent storage and a real source, then richer ontology and
+LALO's tool calling body.
 
 No Python in LALO's runtime, build or tests.
 

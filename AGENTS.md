@@ -54,5 +54,9 @@ language, ontology and declared position. Preserve its text and meaning.
   The Manifesto was copied verbatim from NoTorch; its source is in LALOLOG.md.
 - Keep generated binaries, model weights, credentials and device observations
   out of ordinary source commits. Commit portable code and synthetic fixtures.
+- The WOLFE descendant is named LALO here. Rebecca and Netta.Sonar have been
+  studied as references: keep visible changes tied to receipts and actions.
+  Browser gate: `node scripts/browser-check.mjs` with an installed Chrome
+  (`CHROME_BIN` overrides the executable). CI retains screenshots as artifacts.
 - Commit messages explain the change and evidence, with a relevant `Quote:`
   and a short `Method:` line. Keep authorship truthful.

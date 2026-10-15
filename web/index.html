@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#121717">
+  <title>LALO — a world with receipts</title>
+  <link rel="stylesheet" href="/web/style.css">
+  <script type="module" src="/web/app.js"></script>
+</head>
+<body>
+  <header>
+    <a class="wordmark" href="/" aria-label="LALO home">LALO<span>LINEAGE & ONTOLOGY</span></a>
+    <div class="edition">FIELD STUDY / 001<span>Synthetic observations · North crossing</span></div>
+    <button id="reset" class="quiet">Begin again</button>
+  </header>
+  <main>
+    <section class="field" aria-label="Hypothesis field">
+      <div class="field-heading"><p class="eyebrow">A WORLD WITH RECEIPTS</p><h1>Every revision<br>leaves a mark.</h1><p class="intro">A crossing. Three sources. A changing account.</p></div>
+      <canvas id="field" aria-label="Evidence and revision map. All observations are also available in the receipt list."></canvas>
+      <div class="field-footer"><span id="field-count"></span><span>Tap a witness to follow its history.</span></div>
+      <div class="legend"><span class="support">● supports</span><span class="opposition">╱ opposes</span><span class="ghost">◌ earlier version</span></div>
+    </section>
+    <aside aria-label="Hypothesis and receipts">
+      <div class="hypothesis"><p class="eyebrow">THE CURRENT READING</p><h2>The crossing<br>is open.</h2><p id="state" class="state" aria-live="polite"></p><p id="basis" class="muted"></p></div>
+      <div class="action-block"><button id="receive" class="primary">Receive next report <span>↗</span></button><p id="next-note" class="small"></p><div class="observation-buttons"><button id="open">I see it open</button><button id="closed">I see it closed</button></div><p class="small">Your observations enter this synthetic world too.</p></div>
+      <div class="receipts-heading"><p class="eyebrow">RECEIPTS</p><span id="receipt-count"></span></div>
+      <ol id="receipts" aria-label="Received observations"></ol>
+      <section id="inspector" aria-label="Selected observation"></section>
+    </aside>
+    <section class="time-panel" aria-label="Time controls">
+      <div><label for="knowledge">WHAT WAS KNOWN <output id="knowledge-time" for="knowledge"></output></label><input id="knowledge" type="range" step="60000"><p>Move through the arrival of evidence.</p></div>
+      <div><label for="world">WHEN IN THE WORLD <output id="world-time" for="world"></output></label><input id="world" type="range" step="60000"><p>Claims cover 10:00–10:20 UTC, 15 Oct 2026.</p></div>
+      <button id="present" class="quiet">Latest knowledge ↗</button>
+    </section>
+  </main>
+  <footer><span>THE WORLD CHANGES. KEEP THE FUCKING RECEIPTS.</span><span id="budget"></span></footer>
+  <p id="error" role="alert" hidden></p>
+  <noscript>This field needs JavaScript to read and draw its journal.</noscript>
+</body>
+</html>
