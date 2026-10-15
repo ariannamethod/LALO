@@ -1,6 +1,8 @@
 import { crossingDemo, START, END, SUBJECT, PREDICATE } from '../src/crossing-demo.js';
 import { worldView } from '../src/hypothesis.js';
 import { paint } from './paint.js';
+import { encodeJournal, decodeJournal } from '../src/journal.js';
+import { worldStore } from './storage.js';
 
 const $ = id => document.getElementById(id);
 const canvas = $('field'), ctx = canvas.getContext('2d');
@@ -9,6 +11,24 @@ const motion = matchMedia('(prefers-reduced-motion: reduce)');
 const time = value => new Date(Number(value)).toISOString().slice(11, 16) + ' UTC';
 let demo, view, selected, nodes = [], width = 1, height = 1, animation = 0;
 let receiptSignature = '';
+let store, revision = 0, busy = true, blocked = false, resetArmed = false;
+const snapshot = model => encodeJournal(model.ledger, { maxBytes: 128_000 });
+function controls() {
+  const locked = busy || blocked || !demo;
+  document.documentElement.dataset.busy = String(busy);
+  $('receive').disabled = locked || !demo.remaining || demo.ledger.size >= 64;
+  $('open').disabled = $('closed').disabled = locked || demo.ledger.size >= 64;
+  $('reset').disabled = locked;
+  knowledge.disabled = world.disabled = $('present').disabled = !demo;
+}
+function failure(error) {
+  $('error').textContent = error.message; $('error').hidden = false;
+}
+function show(model) {
+  demo = model; knowledge.max = demo.latest; knowledge.value = demo.latest;
+  world.value = START + 300_000; selected = demo.ledger.entries().at(-1)?.id;
+  receiptSignature = ''; render();
+}
 knowledge.min = START; world.min = START - 60_000; world.max = END + 60_000;
 function element(tag, text, className) {
   const node = document.createElement(tag); node.textContent = text;
@@ -75,9 +95,8 @@ function render(animate = false) {
   $('world-time').textContent = time(world.value);
   knowledge.setAttribute('aria-valuetext', time(knowledge.value));
   world.setAttribute('aria-valuetext', time(world.value));
-  $('budget').textContent = `${demo.ledger.size} / 64 receipts · memory only`;
-  $('receive').disabled = demo.remaining === 0 || demo.ledger.size >= 64;
-  $('open').disabled = $('closed').disabled = demo.ledger.size >= 64;
+  $('budget').textContent = `${demo.ledger.size} / 64 receipts · saved locally`;
+  controls();
   $('next-note').textContent = demo.remaining ? `${demo.remaining} scripted reports remain.` : 'All scripted reports have arrived. Add your own reading.';
   receipts(); draw();
   if (animate && !motion.matches) {
@@ -89,23 +108,55 @@ function render(animate = false) {
     animation = requestAnimationFrame(frame);
   }
 }
-function receive(action) {
+async function receive(action) {
+  if (busy || blocked) return;
+  resetArmed = false; $('reset').textContent = 'Begin again';
+  busy = true; controls();
   try {
-    const fact = action(); if (!fact) return;
+    const candidate = crossingDemo({ records: demo.ledger.entries() });
+    const fact = action(candidate); if (!fact) return;
+    const saved = await store.save(snapshot(candidate), revision);
+    revision = saved.revision; demo = candidate;
     selected = fact.id; knowledge.max = demo.latest; knowledge.value = demo.latest;
     $('error').hidden = true; render(true);
-  } catch (error) {
-    $('error').textContent = error.message; $('error').hidden = false;
+  } catch (error) { failure(error); }
+  finally { busy = false; controls(); }
+}
+async function reset() {
+  if (busy || blocked) return;
+  if (!resetArmed) {
+    resetArmed = true; $('reset').textContent = 'Confirm new world'; return;
+  }
+  resetArmed = false; $('reset').textContent = 'Begin again'; busy = true; controls();
+  try {
+    const candidate = crossingDemo(); candidate.receive(); candidate.receive();
+    const saved = await store.save(snapshot(candidate), revision);
+    revision = saved.revision; $('error').hidden = true; show(candidate);
+  } catch (error) { failure(error); }
+  finally { busy = false; controls(); }
+}
+async function start() {
+  controls();
+  try {
+    store = worldStore(globalThis.indexedDB);
+    const saved = await store.load();
+    let model;
+    if (saved) {
+      model = crossingDemo({ records: decodeJournal(saved.journal, { capacity: 64, maxBytes: 128_000 }).entries() });
+      revision = saved.revision;
+    } else {
+      model = crossingDemo(); model.receive(); model.receive();
+      revision = (await store.save(snapshot(model), 0)).revision;
+    }
+    show(model);
+  } catch (error) { blocked = true; failure(error); }
+  finally {
+    busy = false; controls(); resize(); document.documentElement.dataset.ready = 'true';
   }
 }
-function reset() {
-  demo = crossingDemo(); demo.receive(); demo.receive();
-  knowledge.max = demo.latest; knowledge.value = demo.latest; world.value = START + 300_000;
-  selected = 'b1'; receiptSignature = ''; $('error').hidden = true; render();
-}
-$('receive').addEventListener('click', () => receive(() => demo.receive()));
-$('open').addEventListener('click', () => receive(() => demo.observe(true)));
-$('closed').addEventListener('click', () => receive(() => demo.observe(false)));
+$('receive').addEventListener('click', () => receive(model => model.receive()));
+$('open').addEventListener('click', () => receive(model => model.observe(true)));
+$('closed').addEventListener('click', () => receive(model => model.observe(false)));
 $('reset').addEventListener('click', reset);
 $('present').addEventListener('click', () => { knowledge.value = demo.latest; render(); });
 for (const slider of [knowledge, world]) slider.addEventListener('input', () => render());
@@ -116,7 +167,6 @@ canvas.addEventListener('click', event => {
     .sort((a, b) => a.distance - b.distance)[0];
   if (closest?.distance <= 24) select(closest.n.fact.id);
 });
-motion.addEventListener('change', () => render());
+motion.addEventListener('change', () => { if (demo) render(); });
 new ResizeObserver(resize).observe(canvas);
-reset(); resize();
-document.documentElement.dataset.ready = 'true';
+start();

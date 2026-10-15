@@ -15,7 +15,7 @@ const chrome = spawn(process.env.CHROME_BIN || 'google-chrome', [
   '--headless=new', '--no-sandbox', '--disable-dev-shm-usage', '--disable-background-networking',
   '--remote-debugging-port=0', `--user-data-dir=${profile}`, 'about:blank',
 ], { stdio: ['ignore', 'ignore', 'pipe'] });
-let log = '', socket, session, serial = 0;
+let log = '', socket, session, serial = 0, onLoad;
 const pending = new Map(), errors = [];
 const delay = ms => new Promise(resolve => setTimeout(resolve, ms));
 function call(method, params = {}, attached = true) {
@@ -52,6 +52,7 @@ try {
   await new Promise((resolve, reject) => { socket.onopen = resolve; socket.onerror = reject; });
   socket.onmessage = event => {
     const message = JSON.parse(event.data);
+    if (message.method === 'Page.loadEventFired') { onLoad?.(); onLoad = null; }
     if (message.method === 'Runtime.exceptionThrown') errors.push(message.params);
     if (message.method === 'Log.entryAdded' && message.params.entry.level === 'error') errors.push(message.params);
     const request = pending.get(message.id);
@@ -83,7 +84,22 @@ try {
   }
   assert.ok(ready, 'page ready');
   const state = () => evaluate('document.getElementById("state").textContent');
-  const click = id => evaluate(`document.getElementById(${JSON.stringify(id)}).click()`);
+  async function waitIdle() {
+    for (let i = 0; i < 100; i++) {
+      if (await evaluate('document.documentElement.dataset.ready === "true" && document.documentElement.dataset.busy === "false"')) return;
+      await delay(50);
+    }
+    throw new Error('world did not finish its transaction');
+  }
+  const click = async id => { await evaluate(`document.getElementById(${JSON.stringify(id)}).click()`); await waitIdle(); };
+  const reset = async () => { await click('reset'); await click('reset'); };
+  async function reload() {
+    const loaded = new Promise((resolve, reject) => {
+      const timer = setTimeout(() => reject(new Error('reload timed out')), 10000);
+      onLoad = () => { clearTimeout(timer); resolve(); };
+    });
+    await call('Page.reload'); await loaded; await waitIdle();
+  }
   assert.equal(await state(), 'supported');
   await shot('desktop-initial');
   await click('receive'); assert.equal(await state(), 'contested');
@@ -100,14 +116,35 @@ try {
   await click('present'); assert.equal(await state(), 'contradicted');
   await evaluate('const w=document.getElementById("world");w.value=w.max;w.dispatchEvent(new Event("input"))');
   assert.equal(await state(), 'unsettled');
-  await click('reset'); await click('closed'); assert.equal(await state(), 'contested');
+  await reset(); await click('closed'); assert.equal(await state(), 'contested');
   assert.match(await evaluate('document.getElementById("inspector").textContent'), /fixture:you/);
   await click('open'); assert.equal(await state(), 'supported');
   assert.match(await evaluate('document.getElementById("inspector").textContent'), /you1 → you2/);
+  const savedIDs = await evaluate('[...document.querySelectorAll(".receipt")].map(b=>b.dataset.id)');
+  await reload();
+  assert.equal(await state(), 'supported');
+  assert.deepEqual(await evaluate('[...document.querySelectorAll(".receipt")].map(b=>b.dataset.id)'), savedIDs);
+  await click('closed');
+  assert.match(await evaluate('document.getElementById("inspector").textContent'), /you1 → you2 → you3/);
+  const beforeFailure = await evaluate('document.getElementById("budget").textContent');
+  await evaluate('window.originalPut=IDBObjectStore.prototype.put; IDBObjectStore.prototype.put=function(){throw new DOMException("Test save failure", "QuotaExceededError")}');
+  await click('open');
+  assert.equal(await evaluate('document.getElementById("budget").textContent'), beforeFailure);
+  assert.match(await evaluate('document.getElementById("error").textContent'), /Test save failure/);
+  await evaluate('IDBObjectStore.prototype.put=window.originalPut');
+  await reload();
+  assert.equal(await evaluate('document.getElementById("budget").textContent'), beforeFailure);
+  const race = await evaluate(`(async()=>{
+    const {worldStore}=await import('/web/storage.js');
+    const a=worldStore(indexedDB,{name:'lalo-storage-gate'}), b=worldStore(indexedDB,{name:'lalo-storage-gate'});
+    const results=await Promise.allSettled([a.save('first',0),b.save('second',0)]);
+    return {states:results.map(r=>r.status).sort(),saved:await a.load()};
+  })()`);
+  assert.deepEqual(race.states, ['fulfilled','rejected']); assert.equal(race.saved.revision, 1);
   // The same UI and canvas are exercised at phone width, including a real touch tap.
   await call('Emulation.setDeviceMetricsOverride', { width: 390, height: 844, deviceScaleFactor: 1, mobile: true });
   await call('Emulation.setTouchEmulationEnabled', { enabled: true });
-  await click('reset'); await click('receive');
+  await reset(); await click('receive');
   await evaluate('new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)))');
   assert.equal(await evaluate('document.documentElement.scrollWidth <= innerWidth'), true, 'no horizontal overflow');
   await shot('phone-contradiction');
@@ -120,8 +157,13 @@ try {
   await delay(100);
   assert.equal(await evaluate('document.querySelector("[data-id=a1]").getAttribute("aria-pressed")'), 'true');
   assert.equal(await evaluate('document.querySelector("[data-id=a1]").getBoundingClientRect().height >= 44'), true);
+  await evaluate(`(async()=>{const {worldStore}=await import('/web/storage.js');const s=worldStore(indexedDB);const old=await s.load();await s.save('broken journal',old.revision)})()`);
+  await reload();
+  assert.equal(await evaluate('document.getElementById("receive").disabled'), true);
+  assert.equal(await evaluate('document.getElementById("error").hidden'), false);
+  assert.equal(await evaluate(`(async()=>{const {worldStore}=await import('/web/storage.js');return (await worldStore(indexedDB).load()).journal})()`), 'broken journal');
   assert.deepEqual(errors, [], 'no browser exceptions or failed application requests');
-  console.log('PASS: history, disagreement, correction lineage, both clocks, user observations, phone layout and touch');
+  console.log('PASS: history, disagreement, correction lineage, both clocks, user observations, phone layout, touch, reload, save failure, concurrent writes and corrupt snapshot preservation');
 } finally {
   await writeFile(join(out, 'chrome.log'), log);
   for (const p of pending.values()) clearTimeout(p.timeout);

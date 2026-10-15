@@ -3,6 +3,66 @@
 The engineering record. New entries first. README keeps the pulse; this file
 keeps the measurements, decisions, sources and scars.
 
+## 2026-10-16 — local continuity and the first external source
+
+### Persistence
+
+`src/journal.js` encodes versioned JSON and restores it through FactLedger's
+validation. Byte and record budgets are caller-owned; unknown versions,
+malformed records and budget overruns fail explicitly. Crossing replay derives
+its script position and user lineage from validated receipts, then continues
+without reusing IDs or resetting the receipt clock.
+
+The browser saves the crossing in IndexedDB. Each action builds a candidate
+world, commits its snapshot in one transaction with an expected revision, and
+only then replaces the displayed world. Conflicting tabs cannot silently
+replace each other's snapshots. Save failure retains the previous world;
+corrupt saved data blocks startup without overwriting it. Reset requires a
+second explicit click and commits through the same revision check. The saved
+world is bounded to 64 receipts and 128 KB of UTF-8 journal text. Reload opens
+at latest knowledge and the scenario's default world time.
+
+### USGS adapter
+
+Source contract: [USGS GeoJSON Summary](https://earthquake.usgs.gov/earthquakes/feed/v1.0/geojson.php).
+`src/sources/usgs.js` is a portable, pure ingestion boundary. The on-demand
+CLI `node scripts/usgs.mjs` fetches the past-hour feed. `--prior` replays an
+existing journal; `--input` accepts a feed file for offline use. The resulting
+journal goes to stdout and poll counts to stderr. Use a new output file for
+each poll, preserving the input journal.
+
+Each event version contributes eight scalar claims: magnitude, magnitude type,
+longitude, latitude, depth, place, event type and source update timestamp.
+Source IDs and update timestamps form stable record IDs. Event time defines
+the one-millisecond world interval; receipt time is measured after the response
+is read. Source update time remains a separate claim. Null magnitude stays
+null. A new source version supersedes each corresponding prior claim, including
+when origin time changes. Identical versions do not duplicate records; older
+versions are counted as stale. Same-version content changes fail explicitly.
+Absence from a later feed does not retract an earlier event.
+
+A poll stages its complete result on a new ledger. Malformed events, duplicate
+event IDs, incomplete prior versions and budget failures leave the caller's
+journal intact. Defaults: 500 feed events, 1024 journal records, 2 MB input,
+15-second HTTP timeout. No external packages or scheduled fetching. The visual
+crossing and the CLI source journal are separate consumers of the same core;
+a live source view follows this ingestion boundary.
+
+### Verification
+
+Node v24.19.0, Linux x86_64: 23 offline tests pass. Added coverage exercises
+snapshot replay and continuation, format and capacity failures, actual source
+revision mechanics using synthetic fixtures, stale and duplicate polls,
+changed origin times, atomic batch failure and explicit unknown magnitude.
+
+An on-demand live USGS request returned three events and produced 24 records.
+A second request returned two unchanged events; the journal still held all 24
+records, with the first poll preserved byte-for-byte. Live observations and
+generated journals remain outside the repository.
+Browser verification now also covers saved-world reload, continued user
+lineage, injected save failure, concurrent revision checks, and preservation
+of a corrupt snapshot. The gate remains offline.
+
 ## 2026-10-15 — a crossing, three witnesses, a visible history
 
 LALO now has its first visual observation loop. The WOLFE descendant will itself

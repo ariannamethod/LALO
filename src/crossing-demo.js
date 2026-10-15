@@ -12,7 +12,7 @@ const script = [
   { id: 'b2', source: 'fixture:walker-b', value: false, supersedes: 'b1' },
 ];
 
-export function crossingDemo({ capacity = 64 } = {}) {
+export function crossingDemo({ capacity = 64, records = [] } = {}) {
   const ledger = new FactLedger({ capacity });
   let next = 0, user = 0, latest = START;
   function append(record) {
@@ -21,7 +21,7 @@ export function crossingDemo({ capacity = 64 } = {}) {
     latest = fact.recordedAt;
     return fact;
   }
-  return {
+  const api = {
     ledger,
     get latest() { return latest; },
     get remaining() { return script.length - next; },
@@ -39,4 +39,13 @@ export function crossingDemo({ capacity = 64 } = {}) {
       return fact;
     },
   };
+  if (!Array.isArray(records) || records.length > capacity) throw new RangeError('invalid crossing history');
+  for (const row of records) {
+    if (!row || typeof row !== 'object') throw new TypeError('invalid crossing record');
+    const expected = row.id === script[next]?.id ? api.receive()
+      : row.id === `you${user + 1}` ? api.observe(row.value) : null;
+    if (!expected || Object.keys(expected).some(key => row[key] !== expected[key]))
+      throw new Error('saved crossing history does not match its scenario');
+  }
+  return api;
 }
