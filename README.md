@@ -25,7 +25,8 @@ node scripts/serve.mjs
 
 Open `http://127.0.0.1:3000`. Receive reports about a crossing. Watch the
 hypothesis fracture. Follow a witness. Rewind what was known. Add your own
-observation. Every revision leaves a mark.
+observation. Every revision leaves a mark. The field saves locally and returns
+after reload. “Begin again” asks for a second click before replacing it.
 
 No install step. The demo uses synthetic earthquake observations: magnitude
 2.9, then a correction to 3.4. Both versions keep their source and history.
@@ -59,9 +60,17 @@ history does not quietly disappear to make a counter look healthy.
   Netta.Sonar informs the visible trace of action.
 
 Today: journal, a boolean hypothesis rule, visual history, interface observations,
-and an explicit memory budget. The crossing is synthetic; the journal lives in
-memory. Next: persistent storage and a real source, then richer ontology and
-LALO's tool calling body.
+and an explicit memory budget. The crossing is synthetic; its journal lives in
+IndexedDB. The USGS adapter reads real observations through the CLI:
+
+```sh
+node scripts/usgs.mjs > quakes.json
+node scripts/usgs.mjs --prior quakes.json > quakes-next.json
+```
+
+Each poll preserves receipt time and source revisions. The visual field still
+uses the crossing; the source adapter emits a replayable journal. Next: bring
+real sources into the field, richer ontology, and LALO's tool calling body.
 
 No Python in LALO's runtime, build or tests.
 
