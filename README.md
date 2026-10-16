@@ -58,7 +58,8 @@ history does not quietly disappear to make a counter look healthy.
   future integration.
 - **NoTorch** supplies numerical work when an organ needs it: JS first for
   browser distribution, native C where the host calls for it.
-- **LALO**, the coming WOLFE descendant, will select tools and act on this world.
+- **LALO**, the WOLFE descendant, selects a tool and reads this world through
+  the same JS host. Its optional C body is alive.
 - **The interface participates.** Camera, GPS and visual interaction belong
   in LALO's observation/action loop. Rebecca informs its layers and inertia;
   Netta.Sonar informs the visible trace of action.
@@ -85,8 +86,17 @@ node examples/tool-call.js
 node scripts/mcp.mjs --journal quakes.json
 ```
 
-[Tool contract and client setup](docs/TOOLS.md). No SDK install. Next: richer
-ontology and LALO's own tool calling body.
+[Tool contract and client setup](docs/TOOLS.md). No SDK install.
+
+Give LALO an intent and explicit arguments. Get the decision, the call and
+the receipts. The optional router needs a C99 compiler:
+
+```sh
+node scripts/build-router.mjs
+node examples/route.js
+```
+
+One warm C field. Six tools. No invented clocks. [Routing contract](docs/ROUTING.md).
 
 No Python in LALO's runtime, build or tests.
 

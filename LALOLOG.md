@@ -3,6 +3,82 @@
 The engineering record. New entries first. README keeps the pulse; this file
 keeps the measurements, decisions, sources and scars.
 
+## 2026-10-16 — LALO selects a tool and follows through
+
+The optional native body now connects intent selection to the six existing
+world tools. `src/route.js` owns a portable dispatch boundary and a versioned
+`lalo/action` trace: explicit request, neural decision, selected call and the
+unchanged tool result. A high routing activation never becomes factual
+reliability. Rule readings retain their premises, source URLs/IDs, revision
+history and both clocks. Evidence paging still uses the complete conclusion.
+
+### The extraction failure that set the boundary
+
+The first probe gave WOLFE the full schemas and argument templates. For
+`read active facts for crossing:north valid at 1000 known at 1300`, selection
+found lalo_facts but could not distinguish the two clock slots. A history
+query sometimes omitted the colon-bearing subject, which would broaden its
+scope. Quoting preserved a UTF-8 subject but did not resolve the clock clash.
+These failures are not papered over with example values or the current time.
+
+Selection heads therefore declare zero arguments. The intent text selects a
+tool; a separate explicit JSON object supplies every clock, filter, ID, rule
+and pagination value. The existing tool host validates that object. Missing
+required arguments fail. No text-derived defaults are inserted. Unknown tool
+names, multiple calls and generated arguments are rejected before execution.
+No-call and ambiguous decisions execute nothing. The public MCP schemas remain
+complete and continue to serve clients that already select their own tools.
+
+The first corpus has 35 English examples plus 12 native name/description
+examples. Six held-out phrasings select and execute all six tools in tests.
+This is a small integration corpus, not a general language benchmark: an
+additional probe, “could you show known subjects”, abstained. The runtime
+preserves such abstentions; it does not force a successful call.
+
+### Body and lifetime
+
+Imported `wolfe.c` and its exact GPL-3.0 license from
+`ariannamethod/wolfe@a04d2b7e6488656b715ca6b5b5ef5b1227eea79d`, unchanged.
+Source hashes and update procedure are in `vendor/wolfe/README.md`. The build
+checks the source hash before compiling C99 with libc/libm. It adds no package
+dependency. NoTorch JS Tensor/matmul and C attention/value APIs were inspected;
+this step retains the upstream numerical body for later parity comparison.
+NoTorch and AML are not yet linked into the routing body.
+
+`scripts/native-router.mjs` creates private temporary selector definitions,
+starts the C batch process lazily and keeps its field warm. One request can be
+in flight. Startup/exit, invalid JSON, oversized output and timeout failures
+stop the worker visibly. Close kills/reaps the process and removes temporary
+files. No correction memory, feedback, training, network or model download is
+enabled. `scripts/route.mjs` reads one journal, processes bounded JSONL requests
+serially, writes traces with backpressure and closes the worker on EOF.
+Traces are caller-owned action records, not newly asserted world facts.
+
+Limits: 2047 UTF-8 intent bytes, 96 native tokens, 32 KiB request, 16 KiB native
+decision, 64 KiB tool result, 192 KiB complete trace, five-second call deadline
+and 4 KiB retained native stderr. The portable core, browser fields and MCP
+server continue to run without a C build. Usage: [ROUTING](docs/ROUTING.md).
+
+### Verification
+
+Linux x86_64, Node v24.19.0, GCC 13.3.0: 41 portable tests and five native
+integration tests pass (46 total). All three examples pass. The native suite
+executes real neural selection and world tools, two-clock rewinds, UTF-8 scope,
+future-ID refusal, complete contested inference with one-row evidence,
+no-call/ambiguous requests, missing explicit clocks, concurrency rejection,
+worker startup/crash/protocol/timeout failures, framing recovery and EOF exit.
+The portable suite also rejects fabricated decisions and checks argument
+ownership across asynchronous selection. `git diff --check` passes.
+
+Local `-O2` executable: 97,928 bytes; pinned C source: 109,866 bytes; intent
+corpus: 2,317 bytes. The native stats probe reports six tools, 47 examples,
+116 vocabulary entries, 96 field dimensions, six iterations and 921,136 bytes
+of model capacity. Model capacity is the engine's own allocation accounting,
+not process RSS. No phone or browser-native performance claim is made.
+The browser gate adds a portable dispatcher check with an explicitly synthetic
+decision; the actual native field is tested separately. Hosted results will
+be recorded after publication.
+
 ## 2026-10-16 — models get a call boundary
 
 `src/tools.js` exposes six tools: session status, known subjects, active facts,

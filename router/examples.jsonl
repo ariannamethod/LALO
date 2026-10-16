@@ -1,0 +1,35 @@
+{"text":"read journal status","tool":"lalo_status","arguments":{}}
+{"text":"show journal status","tool":"lalo_status","arguments":{}}
+{"text":"inspect journal limits","tool":"lalo_status","arguments":{}}
+{"text":"count journal receipts","tool":"lalo_status","arguments":{}}
+{"text":"list known subjects","tool":"lalo_subjects","arguments":{}}
+{"text":"show known subjects","tool":"lalo_subjects","arguments":{}}
+{"text":"which subjects are known","tool":"lalo_subjects","arguments":{}}
+{"text":"find known entities","tool":"lalo_subjects","arguments":{}}
+{"text":"read active facts","tool":"lalo_facts","arguments":{}}
+{"text":"show active facts","tool":"lalo_facts","arguments":{}}
+{"text":"inspect current assertions","tool":"lalo_facts","arguments":{}}
+{"text":"get active observations","tool":"lalo_facts","arguments":{}}
+{"text":"read receipt history","tool":"lalo_history","arguments":{}}
+{"text":"show receipt history","tool":"lalo_history","arguments":{}}
+{"text":"list past assertions","tool":"lalo_history","arguments":{}}
+{"text":"inspect earlier observations","tool":"lalo_history","arguments":{}}
+{"text":"trace revision lineage","tool":"lalo_lineage","arguments":{}}
+{"text":"show revision lineage","tool":"lalo_lineage","arguments":{}}
+{"text":"follow a correction chain","tool":"lalo_lineage","arguments":{}}
+{"text":"inspect predecessor receipts","tool":"lalo_lineage","arguments":{}}
+{"text":"read hypothesis","tool":"lalo_reading","arguments":{}}
+{"text":"show rule reading","tool":"lalo_reading","arguments":{}}
+{"text":"evaluate a conclusion","tool":"lalo_reading","arguments":{}}
+{"text":"check conflicting evidence","tool":"lalo_reading","arguments":{}}
+{"text":"hello","tool":null,"arguments":{}}
+{"text":"thank you","tool":null,"arguments":{}}
+{"text":"tell me a joke","tool":null,"arguments":{}}
+{"text":"what is the weather","tool":null,"arguments":{}}
+{"text":"play music","tool":null,"arguments":{}}
+{"text":"do not read journal status","tool":null,"arguments":{}}
+{"text":"do not list known subjects","tool":null,"arguments":{}}
+{"text":"do not read active facts","tool":null,"arguments":{}}
+{"text":"do not read receipt history","tool":null,"arguments":{}}
+{"text":"do not trace revision lineage","tool":null,"arguments":{}}
+{"text":"do not read hypothesis","tool":null,"arguments":{}}

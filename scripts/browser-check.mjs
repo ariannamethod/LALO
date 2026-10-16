@@ -97,6 +97,19 @@ try {
   assert.equal(portableTools.result.data.reading.premiseCount, 3);
   assert.equal(portableTools.result.data.items.length, 1);
   console.log('PASS: portable model tools run in the browser and preserve complete inference across evidence pages');
+  const portableRoute = await evaluate(`(async()=>{
+    const {createToolHost}=await import('/src/tools.js');
+    const {createRouteSession}=await import('/src/route.js');
+    const {FactLedger}=await import('/src/ledger.js');
+    // A synthetic decision tests the portable dispatcher; the actual C body has its own native gate.
+    const router={route:async()=>({status:'call',calls:[{name:'lalo_status',arguments:{}}],
+      confidence:0.5,reasoning:{mode:'neural',winner:'lalo_status',arguments:[]}})};
+    return createRouteSession(createToolHost(new FactLedger()),router).call({text:'read journal status',arguments:{}});
+  })()`);
+  assert.equal(portableRoute.status, 'executed');
+  assert.equal(portableRoute.call.name, 'lalo_status');
+  assert.equal(portableRoute.call.argumentSource, 'request.arguments');
+  console.log('PASS: portable action dispatcher imports and executes in the browser with a synthetic routing decision');
   const state = () => evaluate('document.getElementById("state").textContent');
   async function waitIdle() {
     for (let i = 0; i < 100; i++) {
