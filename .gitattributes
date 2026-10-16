@@ -1,0 +1,2 @@
+# Preserve the pinned upstream license byte-for-byte, including its final blank line.
+vendor/wolfe/LICENSE whitespace=-blank-at-eof

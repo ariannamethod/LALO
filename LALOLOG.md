@@ -41,7 +41,9 @@ Imported `wolfe.c` and its exact GPL-3.0 license from
 `ariannamethod/wolfe@a04d2b7e6488656b715ca6b5b5ef5b1227eea79d`, unchanged.
 Source hashes and update procedure are in `vendor/wolfe/README.md`. The build
 checks the source hash before compiling C99 with libc/libm. It adds no package
-dependency. NoTorch JS Tensor/matmul and C attention/value APIs were inspected;
+dependency. A path-specific Git whitespace attribute preserves the upstream
+license's final blank line byte-for-byte. NoTorch JS Tensor/matmul and C
+attention/value APIs were inspected;
 this step retains the upstream numerical body for later parity comparison.
 NoTorch and AML are not yet linked into the routing body.
 
@@ -76,8 +78,12 @@ corpus: 2,317 bytes. The native stats probe reports six tools, 47 examples,
 of model capacity. Model capacity is the engine's own allocation accounting,
 not process RSS. No phone or browser-native performance claim is made.
 The browser gate adds a portable dispatcher check with an explicitly synthetic
-decision; the actual native field is tested separately. Hosted results will
-be recorded after publication.
+decision; the actual native field is tested separately. Code `73a8104` passed
+both jobs in hosted runs
+[38836537607](https://github.com/ariannamethod/LALO/actions/runs/38836537607)
+and [38836498624](https://github.com/ariannamethod/LALO/actions/runs/38836498624)
+on Node v24.14.0. The C build, 41 portable and five native tests, three examples,
+browser dispatcher, and both existing visual-world scenarios all passed.
 
 ## 2026-10-16 — models get a call boundary
 
