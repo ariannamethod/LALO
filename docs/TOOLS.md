@@ -100,5 +100,6 @@ node scripts/mcp.mjs --definitions > lalo-tools.json
 
 A router's `{name,arguments}` call feeds directly into `host.call(name,
 arguments)`. `--definitions` is a separate export command, outside an MCP
-session. The WOLFE descendant named LALO will own routing; the world tools and
-MCP transport are the working call boundary today.
+session. LALO's optional native selector now connects to this host through the
+[routing boundary](ROUTING.md). It chooses intent; explicit JSON supplies the
+tool arguments. The MCP client can still choose and call these tools directly.
