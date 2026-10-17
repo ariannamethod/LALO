@@ -1,0 +1,41 @@
+# Independent readback: stdin is absolute path, expected sequence, previous head.
+# stdout: head|original JSON payload. No numbers inside the payload are parsed.
+def take():
+    xs = read_line()
+    assert(list_len(xs) == 1, 'missing input')
+    return list_get(xs, 0)
+
+path = take()
+seq = take()
+prev = take()
+assert(text_equal(text_slice(path, 0, 1), '/'), 'path must be absolute')
+size = file_size(path)
+assert((size > 0) and (size < 201001), 'receipt size budget')
+off = 0
+line = ''
+while off < size:
+    want = size - off
+    if want > 4096:
+        want = 4096
+    part = file_read_slice(path, off, want)
+    assert(text_bytes(part) > 0, 'torn character or shortened receipt')
+    off = off + text_bytes(part)
+    line = text_concat(line, part)
+assert(text_equal(text_slice(line, -1, text_len(line)), '\n'), 'torn receipt')
+line = text_slice(line, 0, -1)
+assert(text_find(line, '\n') == -1, 'multiple receipt lines')
+head = text_hash_sha256(line)
+cut = text_find(line, '|')
+assert(cut > 0, 'missing sequence')
+assert(text_equal(text_slice(line, 0, cut), seq), 'sequence mismatch')
+rest = text_slice(line, cut + 1, text_len(line))
+cut = text_find(rest, '|')
+assert(cut == 64, 'previous head length')
+assert(text_equal(text_slice(rest, 0, cut), prev), 'chain mismatch')
+rest = text_slice(rest, cut + 1, text_len(rest))
+cut = text_find(rest, '|')
+assert(cut == 64, 'payload hash length')
+digest = text_slice(rest, 0, cut)
+payload = text_slice(rest, cut + 1, text_len(rest))
+assert(text_equal(text_hash_sha256(payload), digest), 'payload hash mismatch')
+PRINT text_concat(head, text_concat('|', payload))

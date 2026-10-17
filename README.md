@@ -1,5 +1,7 @@
 # LALO
 
+<img src="assets/lalo.png" alt="LALO: a faceless black-ink identikit with swept hair and a moustache" width="220">
+
 **LALO Analyzes Lineage & Ontology.**
 
 > Read the [Arianna Method Manifesto](ARIANNA_METHOD_MANIFESTO.md) first.
@@ -54,8 +56,7 @@ history does not quietly disappear to make a counter look healthy.
 ## where this goes
 
 - **JavaScript** owns the portable core and visual interface.
-- **AML** is the intended home for programs of behavior; its C runtime is a
-  future integration.
+- **AML** writes and verifies optional action memory through its pinned C runtime.
 - **NoTorch** supplies numerical work when an organ needs it: JS first for
   browser distribution, native C where the host calls for it.
 - **LALO**, the WOLFE descendant, selects a tool and reads this world through
@@ -99,6 +100,17 @@ node scripts/serve.mjs --router
 
 Ask from either visual field. Follow the call into its receipts. Rewind without
 rewriting the answer. One warm C field. Six tools. No invented clocks. [Routing contract](docs/ROUTING.md).
+
+Give him a memory that survives the host:
+
+```sh
+git submodule update --init deps/aml
+node scripts/build-aml.mjs
+node scripts/serve.mjs --router --memory build/action-memory
+```
+
+Intent, decision, result. Saved. Restart and **Recall last saved action**.
+Full means full; the past stays put. [Action memory contract](docs/ACTION_MEMORY.md).
 
 No Python in LALO's runtime, build or tests.
 
