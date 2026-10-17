@@ -100,6 +100,10 @@ export async function checkActionField({ evaluate, call, shot, reload, kind }) {
   assert.equal(await value(`document.getElementById('action-world').dataset.comparison`), 'match');
   let reproduced = await value(`JSON.parse(document.getElementById('world-replay-result').textContent)`);
   assert.deepEqual(reproduced.result, saved.result);
+  const returned = reproduced.result.data.items[0].fact;
+  assert.equal(await value(`document.querySelector('#world-replay-evidence button').dataset.id`), returned.id);
+  await value(`document.querySelector('#world-replay-evidence button').click()`);
+  assert.deepEqual(await value(`JSON.parse(document.querySelector('#world-inspector pre').textContent)`), returned);
   if (saved.result.data.nextOffset !== null) {
     await click('world-replay-next');
     reproduced = await value(`JSON.parse(document.getElementById('world-replay-result').textContent)`);
