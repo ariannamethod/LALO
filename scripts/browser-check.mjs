@@ -72,8 +72,14 @@ try {
   const requestURLs = new Map();
   socket.onmessage = event => {
     const m = JSON.parse(event.data);
-    if (m.method === 'Network.requestWillBeSent') requestURLs.set(m.params.requestId, m.params.request.url);
-    if (m.method === 'Network.loadingFailed') errors.push({ ...m.params, url: requestURLs.get(m.params.requestId) });
+    if (m.method === 'Network.requestWillBeSent') {
+      const request = m.params.request;
+      requestURLs.set(m.params.requestId, { url: request.url, postData: request.url.endsWith('/api/action') ? request.postData : undefined });
+    }
+    if (m.method === 'Network.loadingFailed') {
+      const failure = { ...m.params, ...requestURLs.get(m.params.requestId) };
+      errors.push(failure); console.log('NETWORK FAILURE', JSON.stringify(failure));
+    }
     if (m.method === 'Network.responseReceived' && m.params.response.status >= 400
       && !m.params.response.url.endsWith('/favicon.ico')) errors.push(m.params.response);
     receive(event);
