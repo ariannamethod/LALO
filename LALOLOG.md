@@ -17,7 +17,9 @@ numbers into float32. The portable JS core still has no external dependencies.
 in the preceding entry. `build-aml.mjs` verifies the pin and builds only the C
 runner. Its source and license remain in the submodule. This compiler reports
 an existing allocation-bound warning in `am_tape_backward`; the memory path
-uses text/file/hash intrinsics, not autodiff.
+uses text/file/hash intrinsics, not autodiff. The compiled runner is 318192
+bytes on the named local Linux host; this is an executable-size measurement,
+not a phone performance claim.
 
 Two original AML programs implement staged writes and independent readback.
 Numbered single-line receipts link sequence, previous-line SHA-256, payload
@@ -52,8 +54,14 @@ selector, exercising host restart, millisecond and UTF-8 preservation, broken
 payloads, invalid UTF-8, torn final LF, sequence gaps, missing tails, orphan
 staging, count/byte limits, concurrent publication, unconfirmed sync, missing
 and stalled interpreters, and a successful tool call whose save fails. The
-local Chrome retry still returns `spawn google-chrome ENOENT`; the expanded
-hosted browser gate will exercise both fields' recall and retain screenshots.
+local Chrome retry still returns `spawn google-chrome ENOENT`. Hosted runs of
+code 6735aa5 pass all three jobs (core/native, AML memory, browser):
+[39059566633](https://github.com/ariannamethod/LALO/actions/runs/39059566633) and
+[39059563313](https://github.com/ariannamethod/LALO/actions/runs/39059563313).
+They use Node v24.14.0 and Chrome 155.0.8059.39. Both fields pass real C calls,
+AML persistence, explicit recall after reload, original-result comparison,
+disabled paging/markers for restored traces and the strict network-error gate.
+The 390-pixel recall screenshots were downloaded and visually inspected.
 
 The faceless black-on-white identikit now lives in assets/lalo.png and README.
 Generation mode, reference, actual dimensions and final prompt are recorded in
