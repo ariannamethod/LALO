@@ -3,6 +3,51 @@
 The engineering record. New entries first. README keeps the pulse; this file
 keeps the measurements, decisions, sources and scars.
 
+## 2026-10-17 — the action keeps the world it read
+
+Action memory now retains the complete canonical source journal. Each new v2
+action is staged as a directory containing `receipt` and `world.json`; AML
+verifies the world's streamed SHA-256, then the host publishes both files with
+one directory rename. A committed nonempty slot survives competing publication.
+The loser rereads the chain and its budgets before retrying. Directory and file
+synchronization feed the existing saved/unconfirmed/failed acknowledgment.
+
+Identical worlds share a hard-linked inode. The existing 8 MiB budget now counts
+accepted receipt bytes plus distinct stored world inodes, with the same limit
+of 64 actions. Each world uses the existing 2 MB / 1024-fact tool budget. AML's
+streamed file hash handles journals above its one-MiB text-input window; JS
+performs a bounded read and verifies the exact digest, canonical encoding and
+record count before returning a selected world. Timestamp integers travel
+unchanged. No new dependency or source pin is introduced.
+
+Version 1 receipt files retain their bytes and chain positions. New v2 bundles
+extend the same sequence. Old hosts must stop before the directory is used by
+the new writer. V1 worlds were not stored, so their recall remains a trace and
+fingerprint. Explicit snapshot retrieval accepts a sequence and optional exact
+receipt head; the UI supplies both. CLI: `action-memory.mjs DIRECTORY --snapshot
+SEQUENCE`. Full chain readback and its expected-head check remain available.
+
+Both fields offer **Open original world** beside a saved or recalled v2 action.
+Its separate panel pages through the original receipts and inspects sources,
+clocks and lineage. **Reproduce saved call** uses the recorded tool and explicit
+arguments against a fixed JS host built from that world. Result comparison
+ignores object-key order and reports match/change. Paging alters only the
+evidence offset, preserving the complete reading and both clocks. The stored
+trace remains visible above; the live field and its IndexedDB journal retain
+their current state. Abstention still has a world to inspect and no call to
+reproduce. The new portable boundary is `src/action-replay.js`.
+
+Local verification: Node v24.19.0, GCC 13.3.0, Linux x86_64. All 68 tests pass:
+49 offline, six native router/HTTP, 13 AML memory. The three examples pass.
+New gates cover exact v1 preservation and mixed chains, actual shared inodes,
+missing/corrupted worlds, selected old-world recall after later actions,
+verification/readback above one MiB, and competing different snapshots against
+one byte limit. Replay gates cover frozen input, original clocks, complete
+inference through pages, visibly changed results, abstention and host errors.
+The local Chrome retry returns ENOENT. The hosted browser gate now additionally
+opens and reproduces both fields' original worlds after reload, compares the
+stored result, checks live IndexedDB equality and retains 390-pixel screenshots.
+
 ## 2026-10-17 — Don Eduardo keeps the receipt after the lights go out
 
 Optional action memory is alive. `--router --memory DIRECTORY` persists the

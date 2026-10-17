@@ -72,6 +72,7 @@ export async function checkActionField({ evaluate, call, shot, reload, kind }) {
   await click('action-run');
   assert.match(await value(`document.getElementById('action-status').textContent`), /Request rejected/);
   await click('action-fill');
+  await value(`{const a=document.getElementById('action-args');const v=JSON.parse(a.value);v.limit=1;a.value=JSON.stringify(v,null,2)}`);
   await click('action-run'); await idle();
   const saved = await trace(); assert.equal(saved.memory.state, 'saved');
   await reload();
@@ -86,5 +87,30 @@ export async function checkActionField({ evaluate, call, shot, reload, kind }) {
   await call('Emulation.setDeviceMetricsOverride', { width: 390, height: 844, deviceScaleFactor: 1, mobile: true });
   assert.equal(await value('document.documentElement.scrollWidth <= innerWidth'), true);
   await shot(`${kind}-memory-phone`);
-  console.log(`PASS: ${kind} real C calls, explicit clocks, complete inference, evidence selection, fixed-snapshot paging, stale/late responses, abstention, argument failures, AML readback after reload and phone layout`);
+  // Capture the actual live store; opening/reproducing history must leave it identical.
+  const liveStore = `worldStore(indexedDB${kind === 'usgs' ? ",{key:'usgs-v1',maxBytes:2000000}" : ''})`;
+  const liveBefore = await value(`(async()=>{const {worldStore}=await import('/web/storage.js');return JSON.stringify(await ${liveStore}.load())})()`);
+  assert.notEqual(liveBefore, 'null');
+  await click('action-world-open'); await idle();
+  assert.match(await value(`document.getElementById('action-world-status').textContent`), /Original world opened/);
+  assert.equal(await value(`document.getElementById('action-world').dataset.sequence`), String(saved.memory.sequence));
+  const firstFact = await value(`JSON.parse(document.querySelector('#world-inspector pre').textContent)`);
+  assert.ok(Number.isSafeInteger(firstFact.recordedAt)); assert.equal(typeof firstFact.source, 'string');
+  await click('world-replay');
+  assert.equal(await value(`document.getElementById('action-world').dataset.comparison`), 'match');
+  let reproduced = await value(`JSON.parse(document.getElementById('world-replay-result').textContent)`);
+  assert.deepEqual(reproduced.result, saved.result);
+  if (saved.result.data.nextOffset !== null) {
+    await click('world-replay-next');
+    reproduced = await value(`JSON.parse(document.getElementById('world-replay-result').textContent)`);
+    assert.equal(reproduced.comparison, 'page');
+    assert.equal(reproduced.result.data.reading.premiseCount, saved.result.data.reading.premiseCount);
+    assert.equal(reproduced.call.arguments.knownAt, saved.call.arguments.knownAt);
+    assert.equal(reproduced.call.arguments.validAt, saved.call.arguments.validAt);
+  }
+  const liveAfter = await value(`(async()=>{const {worldStore}=await import('/web/storage.js');return JSON.stringify(await ${liveStore}.load())})()`);
+  assert.equal(liveAfter, liveBefore); assert.deepEqual(await markers(), []);
+  assert.equal(await value('document.documentElement.scrollWidth <= innerWidth'), true);
+  await shot(`${kind}-original-world-phone`);
+  console.log(`PASS: ${kind} real C calls, explicit clocks, complete inference, evidence selection, fixed-snapshot paging, stale/late responses, abstention, argument failures, AML readback, original-world reproduction after reload and phone layout`);
 }
