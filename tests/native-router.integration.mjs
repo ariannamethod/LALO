@@ -116,3 +116,20 @@ test('JSONL route CLI recovers after bad frames, reads a fixed journal and shuts
     assert.deepEqual(traces[4].result.data.items.map(f => f.id), ['a1']);
   } finally { await rm(directory, { recursive: true, force: true }); }
 });
+
+test('real C action bridge reads a submitted world over HTTP and shuts down cleanly', async t => {
+  const { serve } = await import('../scripts/serve.mjs');
+  const server = await serve({ port: 0, router: true });
+  t.after(async () => { await server.closeActions(); await new Promise(r => server.close(r)); });
+  const origin = `http://127.0.0.1:${server.address().port}`;
+  const response = await fetch(`${origin}/api/action`, { method: 'POST',
+    headers: { Origin: origin, 'Content-Type': 'application/json' }, body: JSON.stringify({
+      journal: JSON.parse(encodeJournal(fixture())), request: { text: 'please check the conflicting evidence',
+        arguments: { knownAt: 150, validAt: 10, subject: 'переправа:север', predicate: 'open', rule: 'unanimous-boolean/v1' } },
+    }) });
+  assert.equal(response.status, 200);
+  const trace = await response.json();
+  assert.equal(trace.call.name, 'lalo_reading'); assert.equal(trace.status, 'executed');
+  assert.equal(trace.result.data.reading.state, 'contested');
+  assert.deepEqual(trace.result.data.items.map(row => row.fact.id), ['a1', 'b1']);
+});

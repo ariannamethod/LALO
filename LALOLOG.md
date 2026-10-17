@@ -3,6 +3,60 @@
 The engineering record. New entries first. README keeps the pulse; this file
 keeps the measurements, decisions, sources and scars.
 
+## 2026-10-17 — intent leaves a visible mark
+
+Crossing and USGS now call the optional native LALO body through the local
+host. Each action submits a bounded journal snapshot and explicit arguments;
+the existing route session selects and executes a tool. The UI displays its
+activation, call, complete reading, evidence page and full action JSON. Returned
+canvas receipts get dotted rings and link to the source/lineage inspector.
+
+Time travel keeps the answer's original snapshot. New receipts, a different
+event or either clock moving clear its markers; late responses obey the same
+rule. Explicit argument edits survive world changes. Evidence paging resubmits
+the original journal, intent and arguments with the returned offset, preserving
+the complete inference even after the visible world advances. The latest action
+is session-local and never becomes an observation in the fact journal.
+
+The Node bridge is opt-in through --router, loopback-only, exact-origin JSON
+POST, one in-flight upload/call. Limits: 2.1 MB body, five-second body deadline,
+2 MB / 1024 journal receipts, existing native five-second deadline, 196608-byte
+response, browser twelve-second total deadline. No new npm dependencies or
+eager native initialization. Server shutdown closes the warm selector.
+
+Verification on Node v24.19.0, GCC 13.3.0, Linux x86_64: 45 offline tests and
+six native integration tests pass. The new gates exercise invalid origins and
+uploads, UTF-8 and byte limits, concurrency, fixed-snapshot paging, host errors
+and an actual C → HTTP → fact-reading call. The browser gate now builds the C
+body and exercises both visual fields through real calls, including response
+arrival after a rewind, complete inference through one-row pages, receipt
+selection, abstention, argument errors and 390-pixel layout. Local Chrome launch
+returned ENOENT; hosted browser verification is recorded below when complete.
+
+### AML reference: the next persistent action organ
+
+Inspected SUBLITERATUS at 6d517255b1222c408da70a79b9a54bdb72d4d112. Its second
+pinned submodule is deps/aml from ariannamethod.ai at
+8ebc1b7e9333dcf062fdc32d3e6f935efd6f2595. The actual integration is
+research/operations/vnext/journal.aml and journal_verify.aml, built by make aml
+and checked in its separate CI job. They use file_size/file_read_slice for
+bounded byte reads, file_append_line for appends and text_hash_sha256 for an
+append-only sequence with genesis/resume/close records. The verifier reads
+4096-byte windows and catches broken chains, missing closure and a torn final
+line. Append status distinguishes durable success from a completed write whose
+synchronization was not confirmed; the latter is not retried.
+
+Reference verification on the same Linux host: make aml succeeded; the pinned
+language core passed 550/550 checks and journal_test.sh returned VNEXT_OK 40.
+
+A concrete next use here: an optional AML program persists and independently
+rereads action receipts across host restarts, with the head kept for readback.
+Keep the JS two-clock journal as the source of world facts. Send complete action
+JSON as text to preserve its exact integer timestamps through AML's float32
+runtime; bind its digest and the source snapshot digest into the action record.
+The persistence step needs a working append/resume/readback gate before adding
+the pinned language dependency. No AML code or dependency is added in this step.
+
 ## 2026-10-16 — LALO selects a tool and follows through
 
 The optional native body now connects intent selection to the six existing

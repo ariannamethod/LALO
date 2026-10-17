@@ -120,3 +120,47 @@ network calls are enabled. Its numerical body has not yet moved to NoTorch,
 and the C router has not been compiled to browser WASM or measured on a phone.
 The browser gate checks the portable dispatcher using a synthetic decision;
 the native gate exercises the actual neural field and real tool execution.
+
+## Actions in the visual field
+
+```sh
+node scripts/build-router.mjs
+node scripts/serve.mjs --router
+```
+
+Open `http://127.0.0.1:3000`. Both Crossing and USGS have an action field below
+their time controls. Pick a starting point and press **Use current view** to
+copy its explicit arguments. Review or edit the intent and JSON, then **Call
+LALO**. Moving the world afterward never silently edits that JSON.
+
+The panel shows selection activation, the executed call, rule reading and
+returned receipts, plus the complete `lalo/action` JSON. Dotted outer rings
+mark returned receipts in the current canvas; their buttons open the existing
+source/lineage inspector. Rewinding, changing events or receiving new evidence
+leaves the answer attached to its original snapshot and clears its markers.
+A response arriving after the view moves has the same behavior. An edited
+query with different clocks also has no markers in the current field.
+
+**Next evidence page** sends the original snapshot and intent again with its
+next offset. The unchanged native selector repeats its selection; each page
+still computes the reading from all premises. It does not switch to the new
+world while you page through an earlier answer. The panel holds only the
+latest action, in memory, and labels that lifetime. Action traces never enter
+the fact journal. The full trace exposes predicates not represented by canvas
+nodes too.
+
+The optional `POST /api/action` bridge binds only to `127.0.0.1`. It accepts
+exactly `{journal, request}`; journal is the versioned JSON object, request is
+`{text, arguments}`. It reads no caller-named files. Host and Origin must match
+the actual loopback port; content type is `application/json`. Static serving
+without `--router` retains its old behavior and returns an explicit unavailable
+response for action calls. There is no eager native startup or action polling.
+
+One request is admitted at a time, including body upload. Limits: 2,100,000
+UTF-8 request bytes, five seconds to upload, existing 2 MB / 1024-record journal
+budget, five-second native decision deadline and 196,608-byte trace limit.
+The browser bounds response bytes and the whole call to twelve seconds. Each
+HTTP call constructs its own immutable tool host from the submitted snapshot;
+only the C selector stays warm. Closing the server stops that selector. Calls
+are read-only; malformed uploads, busy state, unavailable C, abstention and
+tool argument failures appear explicitly.

@@ -5,6 +5,7 @@ import { fetchUSGS } from '../src/sources/usgs-http.js';
 import { QUAKE_BUDGET, extendQuakeJournal, quakeCatalog, quakeVersions, quakeView } from '../src/quake-view.js';
 import { worldStore } from './storage.js';
 import { paint } from './paint.js';
+import { actionPanel } from './actions.js';
 
 const $ = id => document.getElementById(id);
 const canvas = $('field'), ctx = canvas.getContext('2d'), knowledge = $('knowledge'), world = $('world');
@@ -12,6 +13,7 @@ const motion = matchMedia('(prefers-reduced-motion: reduce)');
 const store = worldStore(globalThis.indexedDB, { key: 'usgs-v1', maxBytes: QUAKE_BUDGET.maxBytes });
 let ledger = new FactLedger(QUAKE_BUDGET), revision = 0, busy = true, blocked = false;
 let times = [], subject, selected, view, versions = [], nodes = [], width = 1, height = 1, animation = 0;
+let actions, actionIDs = [];
 const when = value => {
   const date = new Date(value);
   return Number.isNaN(date.valueOf()) ? `${value} ms` : date.toISOString().replace('T', ' ').replace('Z', ' UTC');
@@ -27,10 +29,11 @@ function controls() {
   $('export').disabled = busy || blocked || !ledger.size;
   knowledge.disabled = $('present').disabled = busy || !times.length;
   $('event').disabled = world.disabled = busy || !versions.length;
+  actions?.refresh();
 }
 function failure(error) { $('error').textContent = error.message; $('error').hidden = false; }
 function draw(pulse = 0, previous, progress = 1) {
-  if (view) nodes = paint(ctx, { width, height, view, selected, pulse, previous, progress });
+  if (view) nodes = paint(ctx, { width, height, view, selected, pulse, previous, progress, actionIDs });
 }
 function resize() {
   const box = canvas.getBoundingClientRect(), dpr = Math.min(2, devicePixelRatio || 1);
@@ -60,6 +63,7 @@ function select(id) {
   for (const button of $('receipts').querySelectorAll('button'))
     button.setAttribute('aria-pressed', String(button.dataset.id === id));
   inspect(); draw();
+  actions?.refresh();
 }
 function receipts() {
   const list = $('receipts'); list.replaceChildren();
@@ -135,6 +139,14 @@ async function update(action) {
   } catch (error) { failure(error); }
   finally { busy = false; controls(); }
 }
+actions = actionPanel({
+  getContext: () => busy || blocked || !view ? null : ({ journal: encodeJournal(ledger, QUAKE_BUDGET), subject,
+    predicate: 'magnitude', rule: 'magnitude-at-least/v1', ruleArguments: { threshold: 3 },
+    knownAt: times[Number(knowledge.value)] ?? 0, validAt: Number(world.value), selected,
+    visibleIDs: view.records.map(r => r.fact.id) }),
+  select,
+  highlight(ids) { actionIDs = ids; canvas.dataset.actionIds = JSON.stringify(ids); draw(); },
+});
 $('poll').addEventListener('click', () => update(async () => {
   const raw = await fetchUSGS(), receivedAt = Date.now();
   const result = ingestUSGS(ledger, JSON.parse(raw), { receivedAt, capacity: QUAKE_BUDGET.capacity });

@@ -3,6 +3,7 @@ import { worldView } from '../src/hypothesis.js';
 import { paint } from './paint.js';
 import { encodeJournal, decodeJournal } from '../src/journal.js';
 import { worldStore } from './storage.js';
+import { actionPanel } from './actions.js';
 
 const $ = id => document.getElementById(id);
 const canvas = $('field'), ctx = canvas.getContext('2d');
@@ -12,6 +13,7 @@ const time = value => new Date(Number(value)).toISOString().slice(11, 16) + ' UT
 let demo, view, selected, nodes = [], width = 1, height = 1, animation = 0;
 let receiptSignature = '';
 let store, revision = 0, busy = true, blocked = false, resetArmed = false;
+let actions, actionIDs = [];
 const snapshot = model => encodeJournal(model.ledger, { maxBytes: 128_000 });
 function controls() {
   const locked = busy || blocked || !demo;
@@ -20,6 +22,7 @@ function controls() {
   $('open').disabled = $('closed').disabled = locked || demo.ledger.size >= 64;
   $('reset').disabled = locked;
   knowledge.disabled = world.disabled = $('present').disabled = !demo;
+  actions?.refresh();
 }
 function failure(error) {
   $('error').textContent = error.message; $('error').hidden = false;
@@ -36,7 +39,7 @@ function element(tag, text, className) {
   return node;
 }
 function draw(pulse = 0, previous, progress = 1) {
-  if (view) nodes = paint(ctx, { width, height, view, selected, pulse, previous, progress });
+  if (view) nodes = paint(ctx, { width, height, view, selected, pulse, previous, progress, actionIDs });
 }
 function resize() {
   const box = canvas.getBoundingClientRect(), dpr = Math.min(2, devicePixelRatio || 1);
@@ -61,6 +64,7 @@ function select(id) {
   for (const button of $('receipts').querySelectorAll('button'))
     button.setAttribute('aria-pressed', String(button.dataset.id === selected));
   inspect(); draw();
+  actions?.refresh();
 }
 function receipts() {
   const signature = view.records.map(r => `${r.fact.id}:${r.state}`).join('|');
@@ -154,6 +158,14 @@ async function start() {
     busy = false; controls(); resize(); document.documentElement.dataset.ready = 'true';
   }
 }
+actions = actionPanel({
+  getContext: () => !demo || busy || blocked ? null : ({ journal: snapshot(demo), subject: SUBJECT,
+    predicate: PREDICATE, rule: 'unanimous-boolean/v1', ruleArguments: { expected: true },
+    knownAt: Number(knowledge.value), validAt: Number(world.value), selected,
+    visibleIDs: view.records.map(r => r.fact.id) }),
+  select,
+  highlight(ids) { actionIDs = ids; canvas.dataset.actionIds = JSON.stringify(ids); draw(); },
+});
 $('receive').addEventListener('click', () => receive(model => model.receive()));
 $('open').addEventListener('click', () => receive(model => model.observe(true)));
 $('closed').addEventListener('click', () => receive(model => model.observe(false)));

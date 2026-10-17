@@ -6,9 +6,10 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { once } from 'node:events';
 import { serve } from './serve.mjs';
+import { checkActionField } from './action-browser-check.mjs';
 import { checkQuakeField } from './quake-browser-check.mjs';
 
-const server = await serve({ port: 0 });
+const server = await serve({ port: 0, router: true });
 const profile = await mkdtemp(join(tmpdir(), 'lalo-browser-'));
 const out = process.env.BROWSER_ARTIFACTS || 'browser-artifacts';
 await mkdir(out, { recursive: true });
@@ -186,6 +187,7 @@ try {
   await delay(100);
   assert.equal(await evaluate('document.querySelector("[data-id=a1]").getAttribute("aria-pressed")'), 'true');
   assert.equal(await evaluate('document.querySelector("[data-id=a1]").getBoundingClientRect().height >= 44'), true);
+  await checkActionField({ evaluate, call, shot, kind: 'crossing' });
   await evaluate(`(async()=>{const {worldStore}=await import('/web/storage.js');const s=worldStore(indexedDB);const old=await s.load();await s.save('broken journal',old.revision)})()`);
   await reload();
   assert.equal(await evaluate('document.getElementById("receive").disabled'), true);
@@ -202,6 +204,7 @@ try {
   chrome.kill('SIGTERM');
   await Promise.race([closed, delay(2000)]);
   if (chrome.exitCode === null && chrome.signalCode === null) chrome.kill('SIGKILL');
+  await server.closeActions();
   await new Promise(resolve => server.close(resolve));
   await rm(profile, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 });
 }
