@@ -30,9 +30,11 @@ function body(req) {
 export function actionHandler({ enabled = false, routerFactory = createNativeRouter } = {}) {
   let router, busy = false, closed = false;
   function reply(res, status, value) {
+    const content = JSON.stringify(value);
     res.writeHead(status, { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store',
+      'Content-Length': Buffer.byteLength(content),
       ...(status === 200 ? {} : { Connection: 'close' }) });
-    res.end(JSON.stringify(value));
+    res.end(content);
   }
   return {
     async handle(req, res) {

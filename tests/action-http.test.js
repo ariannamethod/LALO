@@ -57,7 +57,9 @@ test('HTTP actions preserve the submitted snapshot, explicit clocks, pagination 
   for (const offset of [0, 1, 2]) {
     const response = await post({ ...payload, request: { ...payload.request, arguments: { ...payload.request.arguments, offset } } });
     assert.equal(response.status, 200);
-    const trace = await response.json();
+    const text = await response.text();
+    assert.equal(Number(response.headers.get('content-length')), Buffer.byteLength(text));
+    const trace = JSON.parse(text);
     assert.equal(trace.status, 'executed');
     assert.equal(trace.result.data.reading.state, 'contested');
     assert.equal(trace.result.data.reading.premiseCount, 3);
