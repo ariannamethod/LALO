@@ -127,22 +127,20 @@ export function actionPanel({ getContext, select, highlight }) {
     try {
       const response = await fetch('/api/action', { method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ journal: JSON.parse(capture.journal), request }), signal: controller.signal, credentials: 'omit' });
-      const reader = response.body.getReader(), decoder = new TextDecoder('utf-8', { fatal: true });
-      let text = '', size = 0, complete = false;
-      try {
-        while (true) {
-          const { value, done } = await reader.read(); if (done) { complete = true; break; }
-          size += value.byteLength;
-          if (size > ROUTE_BUDGET.maxTraceBytes) throw new Error('Action response exceeds its byte budget');
-          text += decoder.decode(value, { stream: true });
-        }
-        text += decoder.decode();
-      } finally { if (!complete) await reader.cancel().catch(() => {}); reader.releaseLock(); }
+      // The local bridge declares exact, uncompressed UTF-8 bytes. Native body reading
+      // keeps the response owned through completion; reject any other framing first.
+      const length = response.headers.get('content-length');
+      if (!length || !/^\d+$/.test(length) || Number(length) > ROUTE_BUDGET.maxTraceBytes
+        || response.headers.has('content-encoding')) throw new Error('Action response has invalid byte framing');
+      const buffer = await response.arrayBuffer();
+      if (buffer.byteLength !== Number(length)) throw new Error('Action response length mismatch');
+      const text = new TextDecoder('utf-8', { fatal: true }).decode(buffer);
       const result = JSON.parse(text);
       if (!response.ok) throw new Error(result.error || `Local host returned HTTP ${response.status}`);
       if (result.format !== 'lalo/action' || result.version !== 1) throw new Error('Unrecognized action format');
       trace = result; show();
     } catch (error) {
+      controller.abort();
       root.dataset.status = 'unavailable'; $('action-status').textContent = `Action unavailable · ${error.name === 'AbortError' ? 'Local call timed out' : error.message}`;
     } finally { clearTimeout(timer); busy = false; refresh(); }
   }
