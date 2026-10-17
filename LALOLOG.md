@@ -48,6 +48,14 @@ The local Chrome retry returns ENOENT. The hosted browser gate now additionally
 opens and reproduces both fields' original worlds after reload, compares the
 stored result, checks live IndexedDB equality and retains 390-pixel screenshots.
 
+Hosted code 6ffe65a passes all three jobs in
+[39063591671](https://github.com/ariannamethod/LALO/actions/runs/39063591671) and
+[39063587866](https://github.com/ariannamethod/LALO/actions/runs/39063587866), on
+Node v24.14.0 and Chrome 155.0.8059.39. Screenshot inspection led to one visual
+refinement: reproduced output now leads with the reading and selectable source
+receipts, with complete JSON under details. The browser gate follows a returned
+fact into the original-world inspector and compares its complete record.
+
 ## 2026-10-17 — Don Eduardo keeps the receipt after the lights go out
 
 Optional action memory is alive. `--router --memory DIRECTORY` persists the
