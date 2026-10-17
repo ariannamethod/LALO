@@ -1,6 +1,9 @@
-# LALO
 
-<img src="assets/lalo.png" alt="LALO: a faceless black-ink identikit with swept hair and a moustache" width="220">
+<p align="center">
+  <img src="assets/lalo.png" alt="LALO" width="220">
+</p>
+
+# LALO
 
 **LALO Analyzes Lineage & Ontology.**
 
