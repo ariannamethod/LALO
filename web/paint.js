@@ -14,7 +14,7 @@ function contour(ctx, cx, cy, radius, pressure, stretch = 1) {
   ctx.closePath();
 }
 
-export function paint(ctx, { width, height, view, selected, pulse = 0, previous, progress = 1 }) {
+export function paint(ctx, { width, height, view, selected, pulse = 0, previous, progress = 1, actionIDs = [] }) {
   ctx.clearRect(0, 0, width, height);
   const cx = width * .5, cy = height * .59;
   const unit = Math.min(width * .29, height * .23);
@@ -92,6 +92,11 @@ export function paint(ctx, { width, height, view, selected, pulse = 0, previous,
     const half = Math.min(maxLabelWidth, ctx.measureText(label).width) / 2;
     const labelX = Math.max(half + 8, Math.min(width - half - 8, node.x));
     ctx.fillText(label, labelX, node.y - 17, maxLabelWidth);
+    if (actionIDs.includes(node.fact.id)) {
+      ctx.globalAlpha = .95; ctx.strokeStyle = COLORS.ink; ctx.lineWidth = 1.5;
+      ctx.setLineDash([2, 3]); ctx.beginPath(); ctx.arc(node.x, node.y, 14, 0, Math.PI * 2); ctx.stroke();
+      ctx.setLineDash([]);
+    }
   }
   ctx.globalAlpha = 1; ctx.textAlign = 'start';
   return nodes;

@@ -94,9 +94,11 @@ the receipts. The optional router needs a C99 compiler:
 ```sh
 node scripts/build-router.mjs
 node examples/route.js
+node scripts/serve.mjs --router
 ```
 
-One warm C field. Six tools. No invented clocks. [Routing contract](docs/ROUTING.md).
+Ask from either visual field. Follow the call into its receipts. Rewind without
+rewriting the answer. One warm C field. Six tools. No invented clocks. [Routing contract](docs/ROUTING.md).
 
 No Python in LALO's runtime, build or tests.
 
