@@ -31,7 +31,21 @@ and an actual C → HTTP → fact-reading call. The browser gate now builds the 
 body and exercises both visual fields through real calls, including response
 arrival after a rewind, complete inference through one-row pages, receipt
 selection, abstention, argument errors and 390-pixel layout. Local Chrome launch
-returned ENOENT; hosted browser verification is recorded below when complete.
+returned ENOENT. Hosted runs of code 0d8f9e6 passed both core and browser jobs:
+[39057273429](https://github.com/ariannamethod/LALO/actions/runs/39057273429) and
+[39057266909](https://github.com/ariannamethod/LALO/actions/runs/39057266909),
+on Node v24.14.0 and Chrome 155.0.8059.39. Desktop and 390-pixel screenshots
+were downloaded and inspected.
+
+Earlier browser runs completed the behavior assertions but intermittently
+reported cancelled /api/action fetches. Removing an explicit completed-reader
+cancel and adding Content-Length alone did not settle that failure. The final
+transport requires exact uncompressed byte framing within the response budget,
+reads the bounded body through fetch's native arrayBuffer completion and checks
+its received length and UTF-8. Both final runs passed the unchanged strict
+network-failure gate. Diagnostic output retains each failed synthetic request.
+Receipt buttons now scroll their source inspector into view, respecting reduced
+motion.
 
 ### AML reference: the next persistent action organ
 
