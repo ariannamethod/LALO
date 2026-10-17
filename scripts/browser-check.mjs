@@ -69,9 +69,11 @@ try {
   // Runtime exceptions and failed module requests fail this gate.
   await call('Network.enable');
   const receive = socket.onmessage;
+  const requestURLs = new Map();
   socket.onmessage = event => {
     const m = JSON.parse(event.data);
-    if (m.method === 'Network.loadingFailed') errors.push(m.params);
+    if (m.method === 'Network.requestWillBeSent') requestURLs.set(m.params.requestId, m.params.request.url);
+    if (m.method === 'Network.loadingFailed') errors.push({ ...m.params, url: requestURLs.get(m.params.requestId) });
     if (m.method === 'Network.responseReceived' && m.params.response.status >= 400
       && !m.params.response.url.endsWith('/favicon.ico')) errors.push(m.params.response);
     receive(event);

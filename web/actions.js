@@ -95,7 +95,10 @@ export function actionPanel({ getContext, select, highlight }) {
         const fact = row.fact || row, li = element('li', '');
         if (typeof fact.id === 'string') {
           const button = element('button', `${fact.id} · ${row.role || fact.predicate} · ${JSON.stringify(fact.value)}`);
-          button.dataset.id = fact.id; button.addEventListener('click', () => select(fact.id));
+          button.dataset.id = fact.id; button.addEventListener('click', () => {
+            select(fact.id); document.getElementById('inspector').scrollIntoView({ block: 'center',
+              behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth' });
+          });
           receiptButtons.push(button); li.append(button, element('p', `${fact.source} · received ${fact.recordedAt}`, 'small'));
         } else li.append(element('p', `${row.subject} · ${row.receipts} receipts`));
         list.append(li);
@@ -125,16 +128,16 @@ export function actionPanel({ getContext, select, highlight }) {
       const response = await fetch('/api/action', { method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ journal: JSON.parse(capture.journal), request }), signal: controller.signal, credentials: 'omit' });
       const reader = response.body.getReader(), decoder = new TextDecoder('utf-8', { fatal: true });
-      let text = '', size = 0;
+      let text = '', size = 0, complete = false;
       try {
         while (true) {
-          const { value, done } = await reader.read(); if (done) break;
+          const { value, done } = await reader.read(); if (done) { complete = true; break; }
           size += value.byteLength;
           if (size > ROUTE_BUDGET.maxTraceBytes) throw new Error('Action response exceeds its byte budget');
           text += decoder.decode(value, { stream: true });
         }
         text += decoder.decode();
-      } finally { await reader.cancel(); reader.releaseLock(); }
+      } finally { if (!complete) await reader.cancel().catch(() => {}); reader.releaseLock(); }
       const result = JSON.parse(text);
       if (!response.ok) throw new Error(result.error || `Local host returned HTTP ${response.status}`);
       if (result.format !== 'lalo/action' || result.version !== 1) throw new Error('Unrecognized action format');
