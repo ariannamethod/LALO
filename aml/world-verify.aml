@@ -1,0 +1,14 @@
+# Stream the complete canonical world file through SHA-256 without parsing its clocks.
+def take():
+    xs = read_line()
+    assert(list_len(xs) == 1, 'missing input')
+    return list_get(xs, 0)
+
+path = take()
+digest = take()
+assert(text_equal(text_slice(path, 0, 1), '/'), 'path must be absolute')
+size = file_size(path)
+assert((size > 0) and (size < 2000001), 'world size budget')
+assert(text_len(digest) == 64, 'world digest length')
+assert(text_equal(file_hash_sha256(path), digest), 'world hash mismatch')
+PRINT digest

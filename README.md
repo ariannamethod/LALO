@@ -110,7 +110,9 @@ node scripts/serve.mjs --router --memory build/action-memory
 ```
 
 Intent, decision, result. Saved. Restart and **Recall last saved action**.
-Full means full; the past stays put. [Action memory contract](docs/ACTION_MEMORY.md).
+**Open original world**. Inspect its receipts. Reproduce the call on the world
+he actually read. Shared snapshots, one memory budget. Full means full; the
+past stays put. [Action memory contract](docs/ACTION_MEMORY.md).
 
 No Python in LALO's runtime, build or tests.
 

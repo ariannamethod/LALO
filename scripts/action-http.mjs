@@ -52,11 +52,9 @@ export function actionHandler({ enabled = false, routerFactory = createNativeRou
         busy = true; ownsSlot = true;
         const input = await body(req);
         if (recall) {
-          if (!input || Array.isArray(input) || typeof input !== 'object' || Object.keys(input).length)
-            throw failure(400, 'Recall expects an empty object');
           if (!memory) throw failure(503, 'Action memory is disabled. Start the host with --router --memory DIRECTORY.');
-          const saved = await memory.read();
-          reply(res, 200, { format: 'lalo/action-recall', version: 1, receipt: saved.receipts.at(-1) || null });
+          const saved = await memory.recall(input);
+          reply(res, 200, { format: 'lalo/action-recall', version: 1, ...saved });
           return;
         }
         if (!input || typeof input !== 'object' || Array.isArray(input)

@@ -1,4 +1,6 @@
 import { routeRequest, ROUTE_BUDGET } from '../src/route.js';
+import { TOOL_BUDGET } from '../src/tools.js';
+import { actionWorld } from './action-world.js';
 
 const intents = {
   reading: ['Read this hypothesis', 'please check the conflicting evidence'],
@@ -15,12 +17,12 @@ const element = (tag, text, className) => {
 };
 const key = context => JSON.stringify([context.journal, context.subject, context.knownAt, context.validAt]);
 const facts = trace => (trace?.result?.data?.items || []).map(row => row.fact || row).filter(row => typeof row.id === 'string');
-async function askHost(path, payload, signal) {
+async function askHost(path, payload, signal, maxBytes = ROUTE_BUDGET.maxTraceBytes + 4096) {
   const response = await fetch(path, { method: 'POST', headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payload), signal, credentials: 'omit' });
   const length = response.headers.get('content-length');
   // A complete action plus its bounded memory envelope; retain exact native body framing.
-  if (!length || !/^\d+$/.test(length) || Number(length) > ROUTE_BUDGET.maxTraceBytes + 4096
+  if (!length || !/^\d+$/.test(length) || Number(length) > maxBytes
     || response.headers.has('content-encoding')) throw new Error('Action response has invalid byte framing');
   const buffer = await response.arrayBuffer();
   if (buffer.byteLength !== Number(length)) throw new Error('Action response length mismatch');
@@ -48,7 +50,10 @@ export function actionPanel({ getContext, select, highlight }) {
     </form>
     <div class="action-output"><p id="action-status" role="status">Choose a starting point, then call.</p>
       <p id="action-scope" class="small"></p><div id="action-trace"></div>
-      <button id="action-next" type="button" hidden>Next evidence page ↗</button></div>`;
+      <button id="action-next" type="button" hidden>Next evidence page ↗</button>
+      <button id="action-world-open" type="button" hidden>Open original world ↗</button>
+      <p id="action-world-status" class="small" role="status"></p></div>
+    <section id="action-world" hidden aria-label="Original world and reproduced call"></section>`;
   document.querySelector('main').append(root);
   const $ = id => root.querySelector(`#${id}`);
   for (const [value, [label]] of Object.entries(intents)) {
@@ -59,6 +64,7 @@ export function actionPanel({ getContext, select, highlight }) {
     const context = getContext();
     $('action-fill').disabled = $('action-run').disabled = busy || !context;
     $('action-next').disabled = $('action-recall').disabled = busy;
+    $('action-world-open').disabled = busy;
     root.dataset.busy = String(busy);
     const same = context && submitted && key(context) === submitted.key;
     const args = trace?.call?.arguments;
@@ -90,6 +96,8 @@ export function actionPanel({ getContext, select, highlight }) {
   }
   function show() {
     const target = $('action-trace'); target.replaceChildren(); receiptButtons = [];
+    $('action-world-open').hidden = !trace?.memory?.snapshot?.bytes;
+    $('action-world').replaceChildren(); $('action-world').hidden = true; $('action-world-status').textContent = '';
     $('action-next').hidden = true;
     if (!trace) return;
     root.dataset.status = trace.status;
@@ -174,10 +182,28 @@ export function actionPanel({ getContext, select, highlight }) {
       $('action-status').textContent = `Memory unavailable · ${error.name === 'AbortError' ? 'Readback timed out' : error.message}`;
     } finally { clearTimeout(timer); busy = false; refresh(); }
   }
+  async function openWorld() {
+    if (busy || !trace?.memory?.snapshot?.bytes) return;
+    $('action-world').replaceChildren(); $('action-world').hidden = true;
+    busy = true; refresh(); $('action-world-status').textContent = 'Opening the original world…';
+    const { sequence, head } = trace.memory;
+    const controller = new AbortController(), timer = setTimeout(() => controller.abort(), 20000);
+    try {
+      const result = await askHost('/api/memory', { sequence, head, snapshot: true }, controller.signal,
+        TOOL_BUDGET.maxBytes + ROUTE_BUDGET.maxTraceBytes + 8192);
+      if (result.format !== 'lalo/action-recall' || result.version !== 1 || !result.journal
+        || result.receipt?.sequence !== sequence || result.receipt.head !== head) throw new Error('Unrecognized original world');
+      actionWorld($('action-world'), result); $('action-world').hidden = false;
+      $('action-world-status').textContent = `Original world opened · action #${sequence}`;
+    } catch (error) {
+      controller.abort(); $('action-world-status').textContent = `Original world unavailable · ${error.name === 'AbortError' ? 'Readback timed out' : error.message}`;
+    } finally { clearTimeout(timer); busy = false; refresh(); }
+  }
   $('action-fill').addEventListener('click', fill);
   $('action-form').addEventListener('submit', event => { event.preventDefault(); void execute(); });
   $('action-next').addEventListener('click', () => void execute(true));
   $('action-recall').addEventListener('click', () => void recall());
+  $('action-world-open').addEventListener('click', () => void openWorld());
   refresh();
   return { refresh };
 }
