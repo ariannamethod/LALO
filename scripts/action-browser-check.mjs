@@ -1,12 +1,12 @@
 import assert from 'node:assert/strict';
 
-export async function checkActionField({ evaluate, call, shot, kind }) {
+export async function checkActionField({ evaluate, call, shot, reload, kind }) {
   const value = expression => evaluate(expression);
   const click = id => value(`document.getElementById('${id}').click()`);
   const trace = () => value(`JSON.parse(document.querySelector('.action-raw pre').textContent)`);
   const markers = () => value(`JSON.parse(document.getElementById('field').dataset.actionIds || '[]')`);
   async function idle() {
-    for (let i = 0; i < 120; i++) {
+    for (let i = 0; i < 200; i++) {
       if (await value(`document.getElementById('actions').dataset.busy === 'false'`)) return;
       await new Promise(r => setTimeout(r, 100));
     }
@@ -18,6 +18,7 @@ export async function checkActionField({ evaluate, call, shot, kind }) {
   await value(`{const a=document.getElementById('action-args');const v=JSON.parse(a.value);v.limit=1;a.value=JSON.stringify(v,null,2)}`);
   await click('action-run'); await idle();
   let result = await trace();
+  assert.equal(result.memory.state, 'saved');
   assert.equal(result.status, 'executed'); assert.equal(result.call.name, 'lalo_reading');
   assert.equal(result.result.data.reading.state, kind === 'crossing' ? 'contested' : 'supported');
   assert.equal(result.result.data.items.length, 1);
@@ -71,5 +72,19 @@ export async function checkActionField({ evaluate, call, shot, kind }) {
   await click('action-run');
   assert.match(await value(`document.getElementById('action-status').textContent`), /Request rejected/);
   await click('action-fill');
-  console.log(`PASS: ${kind} real C calls, explicit clocks, complete inference, evidence selection, fixed-snapshot paging, stale/late responses, abstention, argument failures and phone layout`);
+  await click('action-run'); await idle();
+  const saved = await trace(); assert.equal(saved.memory.state, 'saved');
+  await reload();
+  assert.equal(await value(`document.querySelector('.action-raw') === null`), true, 'reload does not execute or recall automatically');
+  await click('action-recall'); await idle();
+  const restored = await trace();
+  assert.equal(restored.memory.state, 'recalled'); assert.equal(restored.memory.head, saved.memory.head);
+  assert.deepEqual(restored.request, saved.request); assert.deepEqual(restored.result, saved.result);
+  assert.deepEqual(await markers(), []);
+  assert.equal(await value(`document.getElementById('action-next').hidden`), true);
+  assert.match(await value(`document.getElementById('action-scope').textContent`), /Restored action/);
+  await call('Emulation.setDeviceMetricsOverride', { width: 390, height: 844, deviceScaleFactor: 1, mobile: true });
+  assert.equal(await value('document.documentElement.scrollWidth <= innerWidth'), true);
+  await shot(`${kind}-memory-phone`);
+  console.log(`PASS: ${kind} real C calls, explicit clocks, complete inference, evidence selection, fixed-snapshot paging, stale/late responses, abstention, argument failures, AML readback after reload and phone layout`);
 }

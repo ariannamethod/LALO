@@ -1,0 +1,20 @@
+# One staged action receipt. Node publishes this completed inode atomically.
+# stdin: absolute new path, decimal sequence, previous head, complete JSON payload.
+def take():
+    xs = read_line()
+    assert(list_len(xs) == 1, 'missing input')
+    return list_get(xs, 0)
+
+path = take()
+seq = take()
+prev = take()
+payload = take()
+assert(text_equal(text_slice(path, 0, 1), '/'), 'path must be absolute')
+assert(file_exists(path) == 0, 'staging file already exists')
+assert(text_len(prev) == 64, 'previous head length')
+assert(text_bytes(payload) < 200705, 'payload budget')
+line = text_concat(seq, text_concat('|', prev))
+line = text_concat(line, text_concat('|', text_hash_sha256(payload)))
+line = text_concat(line, text_concat('|', payload))
+status = file_append_line(path, line)
+PRINT text_concat(text_fixed(status, 0), text_concat('|', text_hash_sha256(line)))

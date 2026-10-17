@@ -98,7 +98,7 @@ export async function checkQuakeField({ socket, call, evaluate, shot, waitIdle, 
     await evaluate('new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)))');
     assert.equal(await evaluate('document.documentElement.scrollWidth <= innerWidth'), true, 'source field fits phone width');
     await shot('usgs-phone-revised');
-    await checkActionField({ evaluate, call, shot, kind: 'usgs' });
+    await checkActionField({ evaluate, call, shot, reload, kind: 'usgs' });
     assert.equal(await evaluate(`(async()=>{const {worldStore}=await import('/web/storage.js');return (await worldStore(indexedDB).load()).journal})()`), 'broken journal', 'crossing data is independent');
     await evaluate(`(async()=>{const {worldStore}=await import('/web/storage.js');const s=worldStore(indexedDB,{key:'usgs-v1',maxBytes:2000000});const old=await s.load();await s.save('damaged USGS journal',old.revision)})()`);
     await reload(); assert.equal(await evaluate('document.getElementById("poll").disabled'), true);

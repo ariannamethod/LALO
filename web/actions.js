@@ -15,6 +15,19 @@ const element = (tag, text, className) => {
 };
 const key = context => JSON.stringify([context.journal, context.subject, context.knownAt, context.validAt]);
 const facts = trace => (trace?.result?.data?.items || []).map(row => row.fact || row).filter(row => typeof row.id === 'string');
+async function askHost(path, payload, signal) {
+  const response = await fetch(path, { method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload), signal, credentials: 'omit' });
+  const length = response.headers.get('content-length');
+  // A complete action plus its bounded memory envelope; retain exact native body framing.
+  if (!length || !/^\d+$/.test(length) || Number(length) > ROUTE_BUDGET.maxTraceBytes + 4096
+    || response.headers.has('content-encoding')) throw new Error('Action response has invalid byte framing');
+  const buffer = await response.arrayBuffer();
+  if (buffer.byteLength !== Number(length)) throw new Error('Action response length mismatch');
+  const result = JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(buffer));
+  if (!response.ok) throw new Error(result.error || `Local host returned HTTP ${response.status}`);
+  return result;
+}
 
 // One visible action, owned by its submitted snapshot. The next page reuses that snapshot.
 export function actionPanel({ getContext, select, highlight }) {
@@ -22,7 +35,7 @@ export function actionPanel({ getContext, select, highlight }) {
   root.setAttribute('aria-label', 'LALO action field');
   root.innerHTML = `
     <div class="action-heading"><p class="eyebrow">LALO / INTENT → CALL → RECEIPTS</p><h2>Ask. Follow the marks.</h2>
-    <p class="small">Calls read a snapshot of this journal on the local host. The latest action stays here until the next call or reload.</p></div>
+    <p class="small">Calls read a snapshot of this journal on the local host. With host memory enabled, their receipts survive a restart.</p></div>
     <form id="action-form">
       <label for="action-preset">START FROM THIS VIEW</label>
       <div class="action-seed"><select id="action-preset"></select><button id="action-fill" type="button">Use current view ↗</button></div>
@@ -31,6 +44,7 @@ export function actionPanel({ getContext, select, highlight }) {
       <label for="action-args" class="small">Clocks are integer Unix milliseconds. These values stay as you entered them.</label>
       <textarea id="action-args" rows="7" spellcheck="false" maxlength="32768">{}</textarea></details>
       <button id="action-run" class="primary" type="submit">Call LALO ↗</button>
+      <button id="action-recall" type="button">Recall last saved action ↗</button>
     </form>
     <div class="action-output"><p id="action-status" role="status">Choose a starting point, then call.</p>
       <p id="action-scope" class="small"></p><div id="action-trace"></div>
@@ -44,14 +58,16 @@ export function actionPanel({ getContext, select, highlight }) {
   function refresh() {
     const context = getContext();
     $('action-fill').disabled = $('action-run').disabled = busy || !context;
-    $('action-next').disabled = busy;
+    $('action-next').disabled = $('action-recall').disabled = busy;
     root.dataset.busy = String(busy);
     const same = context && submitted && key(context) === submitted.key;
     const args = trace?.call?.arguments;
     const aligned = same && args && (args.knownAt === undefined || args.knownAt === context.knownAt)
       && (args.validAt === undefined || args.validAt === context.validAt)
       && (args.subject === undefined || args.subject === context.subject);
-    $('action-scope').textContent = submitted
+    $('action-scope').textContent = submitted?.restored
+      ? `Restored action #${submitted.sequence} · ${submitted.count} receipts in its original snapshot. This readback adds no observations and does not rerun the call.`
+      : submitted
       ? `${submitted.count} receipts at submission. ${same ? 'Snapshot matches the current view.' : 'View changed — this action keeps its submitted snapshot.'}` : '';
     const visible = new Set(context?.visibleIDs || []);
     const ids = aligned ? facts(trace).map(f => f.id).filter(id => visible.has(id)) : [];
@@ -79,6 +95,12 @@ export function actionPanel({ getContext, select, highlight }) {
     root.dataset.status = trace.status;
     const error = trace.error || trace.result?.error;
     $('action-status').textContent = `${trace.status.replaceAll('_', ' ')}${error ? ` · ${error.code}: ${error.message}` : ''}`;
+    const memory = trace.memory;
+    target.append(element('p', !memory ? 'Action memory is off · this trace lasts until reload.'
+      : memory.state === 'saved' ? `Saved in host memory · action #${memory.sequence}`
+      : memory.state === 'recalled' ? `Read back from host memory · action #${memory.sequence}`
+      : memory.state === 'durability_unconfirmed' ? `Action #${memory.sequence} was written; durable storage was not confirmed. Do not repeat the call to save it.`
+      : `Action was not saved · ${memory.code}: ${memory.message}`, 'small'));
     if (trace.route) target.append(element('p', `Routing activation ${trace.route.activation.toFixed(4)} · ${trace.route.status}`, 'small'));
     if (trace.call) {
       target.append(element('h3', trace.call.name), element('pre', JSON.stringify(trace.call.arguments, null, 2), 'action-call'));
@@ -104,7 +126,7 @@ export function actionPanel({ getContext, select, highlight }) {
         list.append(li);
       }
       target.append(list);
-      $('action-next').hidden = data.nextOffset === null;
+      $('action-next').hidden = submitted?.restored || data.nextOffset === null;
     } else if (data) target.append(element('p', `${data.records} receipts in the submitted journal.`, 'small'));
     const raw = element('details', '', 'action-raw');
     raw.append(element('summary', 'Complete action / decision / receipts'), element('pre', JSON.stringify(trace, null, 2)));
@@ -123,20 +145,9 @@ export function actionPanel({ getContext, select, highlight }) {
     } catch (error) { $('action-status').textContent = `Request rejected · ${error.message}`; return; }
     busy = true; submitted = capture; trace = undefined; show(); refresh();
     root.dataset.status = 'pending'; $('action-status').textContent = 'LALO is reading…';
-    const controller = new AbortController(), timer = setTimeout(() => controller.abort(), 12000);
+    const controller = new AbortController(), timer = setTimeout(() => controller.abort(), 20000);
     try {
-      const response = await fetch('/api/action', { method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ journal: JSON.parse(capture.journal), request }), signal: controller.signal, credentials: 'omit' });
-      // The local bridge declares exact, uncompressed UTF-8 bytes. Native body reading
-      // keeps the response owned through completion; reject any other framing first.
-      const length = response.headers.get('content-length');
-      if (!length || !/^\d+$/.test(length) || Number(length) > ROUTE_BUDGET.maxTraceBytes
-        || response.headers.has('content-encoding')) throw new Error('Action response has invalid byte framing');
-      const buffer = await response.arrayBuffer();
-      if (buffer.byteLength !== Number(length)) throw new Error('Action response length mismatch');
-      const text = new TextDecoder('utf-8', { fatal: true }).decode(buffer);
-      const result = JSON.parse(text);
-      if (!response.ok) throw new Error(result.error || `Local host returned HTTP ${response.status}`);
+      const result = await askHost('/api/action', { journal: JSON.parse(capture.journal), request }, controller.signal);
       if (result.format !== 'lalo/action' || result.version !== 1) throw new Error('Unrecognized action format');
       trace = result; show();
     } catch (error) {
@@ -144,9 +155,29 @@ export function actionPanel({ getContext, select, highlight }) {
       root.dataset.status = 'unavailable'; $('action-status').textContent = `Action unavailable · ${error.name === 'AbortError' ? 'Local call timed out' : error.message}`;
     } finally { clearTimeout(timer); busy = false; refresh(); }
   }
+  async function recall() {
+    if (busy) return;
+    busy = true; submitted = undefined; trace = undefined; show(); refresh();
+    root.dataset.status = 'pending'; $('action-status').textContent = 'Reading host memory…';
+    const controller = new AbortController(), timer = setTimeout(() => controller.abort(), 20000);
+    try {
+      const result = await askHost('/api/memory', {}, controller.signal);
+      if (result.format !== 'lalo/action-recall' || result.version !== 1) throw new Error('Unrecognized recall format');
+      const receipt = result.receipt;
+      if (!receipt) { root.dataset.status = 'empty'; $('action-status').textContent = 'Host memory has no saved actions.'; return; }
+      const { action, ...memory } = receipt;
+      if (action.format !== 'lalo/action' || action.version !== 1) throw new Error('Unrecognized saved action');
+      submitted = { restored: true, sequence: receipt.sequence, count: receipt.snapshot.records };
+      trace = { ...action, memory: { ...memory, state: 'recalled' } }; show();
+    } catch (error) {
+      controller.abort(); root.dataset.status = 'unavailable';
+      $('action-status').textContent = `Memory unavailable · ${error.name === 'AbortError' ? 'Readback timed out' : error.message}`;
+    } finally { clearTimeout(timer); busy = false; refresh(); }
+  }
   $('action-fill').addEventListener('click', fill);
   $('action-form').addEventListener('submit', event => { event.preventDefault(); void execute(); });
   $('action-next').addEventListener('click', () => void execute(true));
+  $('action-recall').addEventListener('click', () => void recall());
   refresh();
   return { refresh };
 }

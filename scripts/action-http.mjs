@@ -1,5 +1,5 @@
 // Optional loopback bridge. Each call owns its submitted journal; only the selector stays warm.
-import { decodeJournal } from '../src/journal.js';
+import { decodeJournal, encodeJournal } from '../src/journal.js';
 import { createToolHost, TOOL_BUDGET } from '../src/tools.js';
 import { createRouteSession, routeRequest, ROUTE_BUDGET } from '../src/route.js';
 import { createNativeRouter } from './native-router.mjs';
@@ -27,7 +27,7 @@ function body(req) {
     req.on('data', data); req.once('end', end); req.once('aborted', aborted); req.once('error', aborted);
   });
 }
-export function actionHandler({ enabled = false, routerFactory = createNativeRouter } = {}) {
+export function actionHandler({ enabled = false, routerFactory = createNativeRouter, memory } = {}) {
   let router, busy = false, closed = false;
   function reply(res, status, value) {
     const content = JSON.stringify(value);
@@ -37,7 +37,7 @@ export function actionHandler({ enabled = false, routerFactory = createNativeRou
     res.end(content);
   }
   return {
-    async handle(req, res) {
+    async handle(req, res, recall = false) {
       let ownsSlot = false;
       try {
         if (!enabled || closed) throw failure(503, 'Local router unavailable. Start the host with --router after building its C body.');
@@ -51,16 +51,32 @@ export function actionHandler({ enabled = false, routerFactory = createNativeRou
           throw failure(413, 'Action exceeds the upload budget');
         busy = true; ownsSlot = true;
         const input = await body(req);
+        if (recall) {
+          if (!input || Array.isArray(input) || typeof input !== 'object' || Object.keys(input).length)
+            throw failure(400, 'Recall expects an empty object');
+          if (!memory) throw failure(503, 'Action memory is disabled. Start the host with --router --memory DIRECTORY.');
+          const saved = await memory.read();
+          reply(res, 200, { format: 'lalo/action-recall', version: 1, receipt: saved.receipts.at(-1) || null });
+          return;
+        }
         if (!input || typeof input !== 'object' || Array.isArray(input)
           || Object.keys(input).length !== 2 || !Object.hasOwn(input, 'journal') || !Object.hasOwn(input, 'request'))
           throw failure(400, 'Expected journal and request');
         const request = routeRequest(input.request);
-        const hostSession = createToolHost(decodeJournal(JSON.stringify(input.journal), TOOL_BUDGET));
+        const ledger = decodeJournal(JSON.stringify(input.journal), TOOL_BUDGET);
+        const hostSession = createToolHost(ledger);
         if (closed || res.destroyed) throw failure(503, 'Action connection closed');
         router ||= Promise.resolve().then(routerFactory);
         const trace = await createRouteSession(hostSession, await router).call(request);
         if (Buffer.byteLength(JSON.stringify(trace)) > ROUTE_BUDGET.maxTraceBytes)
           throw failure(500, 'Action exceeds the response budget');
+        if (memory) {
+          try { trace.memory = await memory.append(trace, encodeJournal(ledger)); }
+          catch (error) {
+            // Execution already happened. A save failure must never disguise or repeat it.
+            trace.memory = { state: 'failed', code: error.code || 'MEMORY_IO', message: String(error.message).slice(0, 400) };
+          }
+        }
         reply(res, 200, trace);
       } catch (error) {
         if (!res.destroyed) reply(res, error.status || 400, { error: String(error.message).slice(0, 400) });

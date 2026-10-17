@@ -3,6 +3,64 @@
 The engineering record. New entries first. README keeps the pulse; this file
 keeps the measurements, decisions, sources and scars.
 
+## 2026-10-17 — Don Eduardo keeps the receipt after the lights go out
+
+Optional action memory is alive. `--router --memory DIRECTORY` persists the
+complete request, decision, call and result through AML, plus a digest/count
+of the canonical source journal and a separate host save timestamp. No action
+becomes a fact merely because it ran. The two observation clocks remain exact
+integer milliseconds: AML transports the JSON as text instead of parsing its
+numbers into float32. The portable JS core still has no external dependencies.
+
+`deps/aml` pins ariannamethod.ai at
+8ebc1b7e9333dcf062fdc32d3e6f935efd6f2595, the SUBLITERATUS revision inspected
+in the preceding entry. `build-aml.mjs` verifies the pin and builds only the C
+runner. Its source and license remain in the submodule. This compiler reports
+an existing allocation-bound warning in `am_tape_backward`; the memory path
+uses text/file/hash intrinsics, not autodiff.
+
+Two original AML programs implement staged writes and independent readback.
+Numbered single-line receipts link sequence, previous-line SHA-256, payload
+SHA-256 and full JSON. Node publishes the completed inode with an exclusive
+hard link and synchronizes the directory. Readers check 4096-byte windows,
+Unicode boundaries, final LF, sequence and both hashes. Competing writers retry
+a taken slot at most three times. Unpublished staging is outside accepted
+history. Written-but-unsynchronized receipts are acknowledged once as
+`durability_unconfirmed`; they are never silently repeated. Host execution
+status survives a save failure, with a separate visible memory error.
+
+Memory has explicit limits: 64 accepted actions, 8 MiB total, 201000 bytes per
+receipt, 200704 payload bytes, and a shared five-second AML deadline per
+operation. A full or damaged chain blocks further saves without erasing it.
+An independently retained head can detect a missing suffix; hashes alone do
+not authenticate the writer or prove that no tail was removed. The original
+world journal remains separate; action memory stores its digest, not a second
+copy of all facts. The complete contract is in docs/ACTION_MEMORY.md.
+
+Both fields now show save acknowledgment and offer explicit last-action recall.
+Recall verifies the chain and reads the stored trace without starting the
+selector or executing a tool. Restored results retain their original scope,
+do not mark the current world, and cannot page without their source journal.
+No automatic recall occurs on reload. Response framing remains exact and
+uncompressed, with 4096 bytes reserved above the action budget for the memory
+envelope; the browser deadline is now 20 seconds.
+
+Local verification: Node v24.19.0, GCC 13.3.0, Linux x86_64. All 59 tests pass
+(45 offline, six existing native, eight new AML integration gates). The three
+earthquake/tool-call/route examples pass. New gates use the real language and
+selector, exercising host restart, millisecond and UTF-8 preservation, broken
+payloads, invalid UTF-8, torn final LF, sequence gaps, missing tails, orphan
+staging, count/byte limits, concurrent publication, unconfirmed sync, missing
+and stalled interpreters, and a successful tool call whose save fails. The
+local Chrome retry still returns `spawn google-chrome ENOENT`; the expanded
+hosted browser gate will exercise both fields' recall and retain screenshots.
+
+The faceless black-on-white identikit now lives in assets/lalo.png and README.
+Generation mode, reference, actual dimensions and final prompt are recorded in
+assets/README.md. Oleg's forthcoming visual idea about bidirectional Time is
+parked in TODO.md without inventing its mechanics. Camera/GPS remain future
+organs. This step gives the action a durable, inspectable history first.
+
 ## 2026-10-17 — intent leaves a visible mark
 
 Crossing and USGS now call the optional native LALO body through the local
