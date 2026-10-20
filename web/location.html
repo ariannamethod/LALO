@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#121717">
+  <title>LALO — device observations</title>
+  <link rel="stylesheet" href="/web/style.css">
+  <script type="module" src="/web/location-app.js"></script>
+</head>
+<body class="location-field">
+  <header>
+    <a class="wordmark" href="/">LALO<span>LINEAGE & ONTOLOGY</span></a>
+    <div class="edition">DEVICE / 003<span>Observed here. Remembered here.</span></div>
+    <nav aria-label="Worlds"><a href="/">Crossing</a><a href="/web/usgs.html">USGS</a><a href="/web/location.html" aria-current="page">Device</a></nav>
+  </header>
+  <div class="source-bar">
+    <button id="locate" class="primary" disabled>Observe my location ↗</button>
+    <button id="export" disabled>Export receipts ↗</button>
+    <p class="small">One location request per click. Your browser asks for permission. Saved in this browser; Call LALO sends the journal to your local action host and its enabled memory.</p>
+    <p id="source-status" class="small" role="status">Loading saved observations…</p>
+  </div>
+  <main>
+    <section class="location-map" aria-label="Location observations">
+      <p class="eyebrow">THE DEVICE ENTERS THE WORLD</p>
+      <h1>A place.<br>An instant. A receipt.</h1>
+      <p id="coordinates" class="coordinates">Waiting for an observation.</p>
+      <p id="accuracy" class="muted"></p>
+      <svg id="field" viewBox="0 0 720 360" role="img" aria-label="Longitude and latitude grid; observations are also listed in receipts">
+        <path d="M0 0H720V360H0Z M180 0V360 M360 0V360 M540 0V360 M0 90H720 M0 180H720 M0 270H720" fill="none" stroke="currentColor" stroke-opacity=".2"/>
+        <g id="points"></g>
+      </svg>
+      <p class="small">Longitude −180° to +180° · latitude +90° to −90°. Browser geolocation provides the coordinates and accuracy.</p>
+    </section>
+    <aside aria-label="Location receipts">
+      <div class="receipts-heading"><p class="eyebrow">OBSERVATIONS</p><span id="receipt-count"></span></div>
+      <ol id="receipts" aria-label="Received locations"></ol>
+      <section id="inspector" aria-label="Selected observation"></section>
+    </aside>
+    <section class="time-panel" aria-label="Time controls">
+      <div><label for="knowledge">WHAT WAS KNOWN <output id="knowledge-time"></output></label><input id="knowledge" type="range" min="0" max="0" step="1"><p>Move through the receipt times.</p></div>
+      <div><label for="world">OBSERVED IN THE WORLD</label><select id="world"></select><p>A location describes its observed instant.</p></div>
+      <button id="present" class="quiet">Latest knowledge ↗</button>
+    </section>
+  </main>
+  <footer><span>THE WORLD CHANGES. KEEP THE FUCKING RECEIPTS.</span><span id="budget"></span></footer>
+  <p id="error" role="alert" hidden></p>
+  <noscript>This field needs JavaScript to read its journal.</noscript>
+</body>
+</html>

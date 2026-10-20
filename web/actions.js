@@ -32,7 +32,7 @@ async function askHost(path, payload, signal, maxBytes = ROUTE_BUDGET.maxTraceBy
 }
 
 // One visible action, owned by its submitted snapshot. The next page reuses that snapshot.
-export function actionPanel({ getContext, select, highlight }) {
+export function actionPanel({ getContext, select, highlight, presets = Object.keys(intents) }) {
   const root = document.createElement('section'); root.className = 'action-panel'; root.id = 'actions';
   root.setAttribute('aria-label', 'LALO action field');
   root.innerHTML = `
@@ -57,6 +57,7 @@ export function actionPanel({ getContext, select, highlight }) {
   document.querySelector('main').append(root);
   const $ = id => root.querySelector(`#${id}`);
   for (const [value, [label]] of Object.entries(intents)) {
+    if (!presets.includes(value)) continue;
     const option = element('option', label); option.value = value; $('action-preset').append(option);
   }
   let busy = false, submitted, trace, receiptButtons = [], marked = '';
