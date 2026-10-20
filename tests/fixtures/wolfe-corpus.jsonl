@@ -1,0 +1,68 @@
+{"text":"read journal status"}
+{"text":"show journal status"}
+{"text":"inspect journal limits"}
+{"text":"count journal receipts"}
+{"text":"list known subjects"}
+{"text":"show known subjects"}
+{"text":"which subjects are known"}
+{"text":"find known entities"}
+{"text":"read active facts"}
+{"text":"show active facts"}
+{"text":"inspect current assertions"}
+{"text":"get active observations"}
+{"text":"read receipt history"}
+{"text":"show receipt history"}
+{"text":"list past assertions"}
+{"text":"inspect earlier observations"}
+{"text":"trace revision lineage"}
+{"text":"show revision lineage"}
+{"text":"follow a correction chain"}
+{"text":"inspect predecessor receipts"}
+{"text":"read hypothesis"}
+{"text":"show rule reading"}
+{"text":"evaluate a conclusion"}
+{"text":"check conflicting evidence"}
+{"text":"hello"}
+{"text":"thank you"}
+{"text":"tell me a joke"}
+{"text":"what is the weather"}
+{"text":"play music"}
+{"text":"do not read journal status"}
+{"text":"do not list known subjects"}
+{"text":"do not read active facts"}
+{"text":"do not read receipt history"}
+{"text":"do not trace revision lineage"}
+{"text":"do not read hypothesis"}
+{"text":"read journal status"}
+{"text":"list known subjects"}
+{"text":"read active facts"}
+{"text":"read receipt history"}
+{"text":"trace revision lineage"}
+{"text":"read hypothesis"}
+{"text":"hello"}
+{"text":"do not read active facts"}
+{"text":"read journal status and list known subjects"}
+{"text":"please check the conflicting evidence"}
+{"text":"read active facts for crossing:north valid at 1000 known at 1300"}
+{"text":"show journal status"}
+{"text":"inspect journal limits"}
+{"text":"what does the journal currently hold"}
+{"text":"which subjects does the journal know about"}
+{"text":"give me the active facts please"}
+{"text":"walk the lineage of that revision"}
+{"text":"what is the current reading of the evidence"}
+{"text":"how many receipts are stored right now"}
+{"text":"tell me about the journal budgets"}
+{"text":"show me everything you know"}
+{"text":"history of receipts for this subject"}
+{"text":"who changed this fact and when"}
+{"text":"is there a contested conclusion"}
+{"text":"summarize the hypothesis for me"}
+{"text":"list every subject you have seen"}
+{"text":"read the facts that are active today"}
+{"text":"trace how this revision came to be"}
+{"text":"check the journal status quickly"}
+{"text":"i would like the receipt history"}
+{"text":"could you read the hypothesis"}
+{"text":"never list the subjects"}
+{"text":"status"}

@@ -1,0 +1,1207 @@
+# WOLFE's selection field in AML: tokenize -> field -> score -> infer -> decision.
+# Ports vendor/wolfe/wolfe.c (sha256 dea0df2c...) for argument-free tools, neural mode,
+# answering with its --reasoning-compact JSON. Input: the tagged lines written by
+# scripts/wolfe-aml-prep.mjs, then one intent per line until EOF. Scores are float32;
+# hashing, norms and dot products run in double inside the field organ.
+# Argument extraction (:1458-1951) is outside this port: with empty schemas extract()
+# always completes, and scope_content() (:1981) cannot quote anything, so both are identities.
+
+WF_ND = 96
+
+def wf_split(source):
+    out = list_new()
+    start = 0
+    cursor = 0
+    size = text_len(source)
+    while cursor < size:
+        if text_codepoint(source, cursor) == 32:
+            list_push(out, text_slice(source, start, cursor))
+            start = cursor + 1
+        cursor = cursor + 1
+    list_push(out, text_slice(source, start, size))
+    return out
+
+WF_FILLER = wf_split("a an the please could would can you i me my we our to of for is are be it this that some with and then now just kindly want need like")
+WF_EXTRA = wf_split("am was were have has had no longer he she they i'd")
+WF_SKIP = wf_split("a an the please just kindly for to of with")
+WF_DESIRE = wf_split("want need like")
+WF_MODAL = wf_split("can could would")
+WF_SELF = wf_split("i i'd")
+WF_NEG = wf_split("not never don't dont")
+WF_LEAD = wf_split("and then also additionally next")
+WF_CONT = wf_split("also additionally then next")
+WF_SMALL = wf_split("zero one two three four five six seven eight nine ten eleven twelve thirteen fourteen fifteen sixteen seventeen eighteen nineteen")
+WF_TENS = wf_split("twenty thirty forty fifty sixty seventy eighty ninety")
+WF_HEX = "0123456789abcdef"
+# First 95 digits of 2^1024 - 2^970: the smallest decimal that strtod rounds to infinity.
+WF_DBL_EDGE = text_concat("17976931348623158079372897140530341507993413271003782693617377898044", "496829276475094664901797758")
+
+# ---------------------------------------------------------------- text
+
+def wf_alnum(c):
+    if c >= 48 and c <= 57:
+        return 1
+    if c >= 65 and c <= 90:
+        return 1
+    if c >= 97 and c <= 122:
+        return 1
+    return 0
+
+def wf_digit(c):
+    if c >= 48 and c <= 57:
+        return 1
+    return 0
+
+def wf_wordch(c):
+    if c >= 128:
+        return 1
+    return wf_alnum(c)
+
+# C-locale tolower: ASCII capitals fold, every other byte stays.
+def wf_lower(word):
+    if text_bytes(word) == text_len(word):
+        return text_lower(word)
+    out = ""
+    i = 0
+    size = text_len(word)
+    while i < size:
+        c = text_codepoint(word, i)
+        if c >= 65 and c <= 90:
+            c = c + 32
+        out = text_concat(out, text_from_codepoint(c))
+        i = i + 1
+    return out
+
+# One codepoint per UTF-8 byte (256 + b), so 3-byte windows compare as WOLFE's memcmp does.
+def wf_byte(b):
+    return text_from_codepoint(256 + b)
+
+def wf_bytes(word):
+    out = ""
+    i = 0
+    size = text_len(word)
+    while i < size:
+        c = text_codepoint(word, i)
+        if c < 128:
+            out = text_concat(out, wf_byte(c))
+        else:
+            if c < 2048:
+                hi = floor(c / 64)
+                out = text_concat(out, text_concat(wf_byte(192 + hi), wf_byte(128 + c - hi * 64)))
+            else:
+                mid = floor(c / 64)
+                if c < 65536:
+                    hi = floor(c / 4096)
+                    out = text_concat(out, wf_byte(224 + hi))
+                else:
+                    top = floor(c / 262144)
+                    hi = floor(c / 4096)
+                    out = text_concat(out, text_concat(wf_byte(240 + top), wf_byte(128 + hi - top * 64)))
+                out = text_concat(out, text_concat(wf_byte(128 + mid - hi * 64), wf_byte(128 + c - mid * 64)))
+        i = i + 1
+    return out
+
+def wf_json(s):
+    out = "\""
+    i = 0
+    size = text_len(s)
+    while i < size:
+        c = text_codepoint(s, i)
+        piece = text_from_codepoint(c)
+        if c == 34:
+            piece = "\\\""
+        if c == 92:
+            piece = "\\\\"
+        if c < 32:
+            piece = text_concat("\\u00", text_concat(text_slice(WF_HEX, floor(c / 16), floor(c / 16) + 1), text_slice(WF_HEX, c - floor(c / 16) * 16, c - floor(c / 16) * 16 + 1)))
+            if c == 10:
+                piece = "\\n"
+            if c == 13:
+                piece = "\\r"
+            if c == 9:
+                piece = "\\t"
+        out = text_concat(out, piece)
+        i = i + 1
+    return text_concat(out, "\"")
+
+# tokenize (:508-547) into the query buffers qw, q_start, q_end, q_slot, q_quoted.
+# Offsets are codepoints; only the characters between tokens are ever inspected.
+def wf_tokenize(source):
+    n = 0
+    quoted = 0
+    size = text_len(source)
+    i = 0
+    while i < size:
+        c = text_codepoint(source, i)
+        begin = i
+        slot = 0
+        found = 0
+        if c == 123 and i + 1 < size:
+            if text_find(text_slice(source, i + 1, size), "}") >= 0:
+                slot = 1
+                found = 1
+                i = i + 1
+                begin = i
+                while text_codepoint(source, i) != 125:
+                    i = i + 1
+        if found == 0:
+            starts = wf_wordch(c)
+            if starts == 0 and i + 1 < size:
+                if c == 45 or c == 43:
+                    starts = wf_digit(text_codepoint(source, i + 1))
+            if starts == 1:
+                found = 1
+                i = i + 1
+                going = 1
+                while going == 1 and i < size:
+                    d = text_codepoint(source, i)
+                    if wf_wordch(d) == 1:
+                        i = i + 1
+                    else:
+                        going = 0
+                        if (d == 46 or d == 39) and i + 1 < size:
+                            if wf_alnum(text_codepoint(source, i + 1)) == 1:
+                                going = 1
+                                i = i + 1
+            else:
+                if c == 34:
+                    toggle = 1
+                    if i > 0:
+                        if text_codepoint(source, i - 1) == 92:
+                            toggle = 0
+                    if toggle == 1:
+                        quoted = 1 - quoted
+                i = i + 1
+        if found == 1:
+            if n >= 96:
+                return -1
+            raw = text_slice(source, begin, i)
+            if text_bytes(raw) >= 96:
+                return -2
+            if n < list_len(qw):
+                list_set(qw, n, wf_lower(raw))
+            else:
+                list_push(qw, wf_lower(raw))
+            q_start[n] = begin
+            q_end[n] = i
+            q_slot[n] = slot
+            q_quoted[n] = quoted
+            n = n + 1
+            if slot == 1 and i < size:
+                if text_codepoint(source, i) == 125:
+                    i = i + 1
+    return n
+
+# ---------------------------------------------------------------- numbers for clause cuts
+
+# strtod (C locale) consumes all of word, without ERANGE, to a finite double.
+def wf_strtod_finite(word):
+    size = text_len(word)
+    i = 0
+    if size > 0:
+        c = text_codepoint(word, 0)
+        if c == 43 or c == 45:
+            i = 1
+    if i >= size:
+        return 0
+    if i + 1 < size:
+        if text_codepoint(word, i) == 48 and text_codepoint(word, i + 1) == 120:
+            return wf_hex_finite(word, i + 2, size)
+    digits = ""
+    point = -1
+    while i < size and point < 0:
+        c = text_codepoint(word, i)
+        if wf_digit(c) == 1:
+            digits = text_concat(digits, text_from_codepoint(c))
+            i = i + 1
+        else:
+            point = text_len(digits)
+    if point < 0:
+        point = text_len(digits)
+    if i < size:
+        if text_codepoint(word, i) == 46:
+            i = i + 1
+            going = 1
+            while going == 1 and i < size:
+                c = text_codepoint(word, i)
+                if wf_digit(c) == 1:
+                    digits = text_concat(digits, text_from_codepoint(c))
+                    i = i + 1
+                else:
+                    going = 0
+    if text_len(digits) == 0:
+        return 0
+    exponent = ""
+    if i < size:
+        if text_codepoint(word, i) != 101:
+            return 0
+        i = i + 1
+        while i < size:
+            c = text_codepoint(word, i)
+            if wf_digit(c) == 0:
+                return 0
+            exponent = text_concat(exponent, text_from_codepoint(c))
+            i = i + 1
+        if text_len(exponent) == 0:
+            return 0
+    lead = 0
+    zero = 1
+    while zero == 1 and lead < text_len(digits):
+        if text_codepoint(digits, lead) == 48:
+            lead = lead + 1
+        else:
+            zero = 0
+    if lead == text_len(digits):
+        return 1
+    significant = text_slice(digits, lead, text_len(digits))
+    power = point - lead + wf_small_decimal(exponent)
+    if power < 309:
+        return 1
+    if power > 309:
+        return 0
+    return wf_below_edge(significant)
+
+# Decimal exponent text as a scalar; anything above six significant digits saturates.
+def wf_small_decimal(text):
+    value = 0
+    i = 0
+    size = text_len(text)
+    while i < size:
+        value = value * 10 + text_codepoint(text, i) - 48
+        if value > 999999:
+            return 999999
+        i = i + 1
+    return value
+
+# significant digits as 0.d1d2... x 10^309 stay below 2^1024 - 2^970.
+def wf_below_edge(significant):
+    i = 0
+    size = text_len(significant)
+    while i < size:
+        a = text_codepoint(significant, i)
+        b = text_codepoint(WF_DBL_EDGE, i)
+        if a < b:
+            return 1
+        if a > b:
+            return 0
+        i = i + 1
+    return 1
+
+def wf_hexval(c):
+    if wf_digit(c) == 1:
+        return c - 48
+    if c >= 97 and c <= 102:
+        return c - 87
+    return -1
+
+# Hexadecimal strtod form: 0x H [. H] [p decimal], finite below 2^1024 - 2^970.
+def wf_hex_finite(word, i, size):
+    nibbles = list_new()
+    whole = 0
+    going = 1
+    while going == 1 and i < size:
+        if wf_hexval(text_codepoint(word, i)) >= 0:
+            list_push(nibbles, text_from_codepoint(text_codepoint(word, i)))
+            whole = whole + 1
+            i = i + 1
+        else:
+            going = 0
+    if i < size:
+        if text_codepoint(word, i) == 46:
+            i = i + 1
+            going = 1
+            while going == 1 and i < size:
+                if wf_hexval(text_codepoint(word, i)) >= 0:
+                    list_push(nibbles, text_from_codepoint(text_codepoint(word, i)))
+                    i = i + 1
+                else:
+                    going = 0
+    if list_len(nibbles) == 0:
+        return 0
+    exponent = ""
+    if i < size:
+        if text_codepoint(word, i) != 112:
+            return 0
+        i = i + 1
+        while i < size:
+            c = text_codepoint(word, i)
+            if wf_digit(c) == 0:
+                return 0
+            exponent = text_concat(exponent, text_from_codepoint(c))
+            i = i + 1
+        if text_len(exponent) == 0:
+            return 0
+    first = 0
+    count = list_len(nibbles)
+    zero = 1
+    while zero == 1 and first < count:
+        if wf_hexval(text_codepoint(list_get(nibbles, first), 0)) == 0:
+            first = first + 1
+        else:
+            zero = 0
+    if first == count:
+        return 1
+    d = wf_hexval(text_codepoint(list_get(nibbles, first), 0))
+    bits = 4
+    if d < 8:
+        bits = 3
+    if d < 4:
+        bits = 2
+    if d < 2:
+        bits = 1
+    power = 4 * (whole - first - 1) + bits + wf_small_decimal(exponent)
+    if power < 1024:
+        return 1
+    if power > 1024:
+        return 0
+    full = 1
+    k = 0
+    while k < bits:
+        full = full * 2
+        k = k + 1
+    if d != full - 1:
+        return 1
+    need = 54 - bits
+    k = first + 1
+    while need > 0:
+        if k >= count:
+            return 1
+        d = wf_hexval(text_codepoint(list_get(nibbles, k), 0))
+        if need >= 4:
+            if d != 15:
+                return 1
+            need = need - 4
+        else:
+            floor_value = 16
+            m = 0
+            while m < need:
+                floor_value = floor_value / 2
+                m = m + 1
+            if d < 16 - floor_value:
+                return 1
+            need = 0
+        k = k + 1
+    return 0
+
+# numeric_atom (:1467) as clause_choice uses it: does this word begin a quantity?
+def wf_numeric(word):
+    if wf_strtod_finite(word) == 1:
+        return 1
+    if list_find(WF_SMALL, word) >= 0 or list_find(WF_TENS, word) >= 0:
+        return 1
+    if text_equal(word, "a") or text_equal(word, "an") or text_equal(word, "half"):
+        return 1
+    return 0
+
+# ---------------------------------------------------------------- relations
+
+# morphology (:1124) over byte strings from wf_bytes.
+def wf_morph(a, b):
+    na = text_len(a)
+    nb = text_len(b)
+    if na < 4 or nb < 4:
+        return 0
+    common = 0
+    i = 0
+    while i + 2 < na:
+        if text_find(b, text_slice(a, i, i + 3)) >= 0:
+            common = common + 1
+        i = i + 1
+    return .35 * common / (na + nb - 4 - common)
+
+# Per intent: token ids, weights and both directions of relation() (:1135) against every
+# corpus token, so the scoring loops only read tables.
+def wf_prepare(n):
+    j = 0
+    while j < n:
+        w = list_get(qw, j)
+        id = -1
+        if map_has(wf_vocab, w):
+            id = map_get(wf_vocab, w)
+        q_id[j] = id
+        fl = 0
+        if list_find(WF_FILLER, w) >= 0:
+            fl = 1
+        q_filler[j] = fl
+        wt = 1
+        if q_slot[j] == 1:
+            wt = 0
+        else:
+            if q_quoted[j] != 0:
+                wt = .015
+            else:
+                if fl == 1:
+                    wt = .12
+                else:
+                    if id >= 0:
+                        wt = wf_idf[id]
+        q_w[j] = wt
+        if j < list_len(qbytes):
+            list_set(qbytes, j, wf_bytes(w))
+        else:
+            list_push(qbytes, wf_bytes(w))
+        j = j + 1
+    v = 0
+    while v < nv:
+        wv = list_get(wf_words, v)
+        bv = list_get(wf_wbytes, v)
+        j = 0
+        while j < n:
+            at = v * 96 + j
+            if text_equal(wv, list_get(qw, j)):
+                wf_leq[at] = 1
+                wf_lqe[at] = 1
+            else:
+                z = 0
+                if q_id[j] >= 0:
+                    z = clamp(field_dot(record_get(wf_vecs, wv), record_get(wf_vecs, list_get(qw, j))), 0, 1)
+                bq = list_get(qbytes, j)
+                wf_leq[at] = max(wf_morph(bv, bq), .32 * z)
+                wf_lqe[at] = max(wf_morph(bq, bv), .32 * z)
+            j = j + 1
+        v = v + 1
+    t = 0
+    while t < ntok:
+        id = et_id[t]
+        j = 0
+        while j < n:
+            r1 = 0
+            r2 = 0
+            if et_slot[t] == 0 and q_slot[j] == 0:
+                if (et_quoted[t] != 0) != (q_quoted[j] != 0):
+                    r1 = .01
+                    r2 = .01
+                else:
+                    r1 = wf_leq[id * 96 + j]
+                    r2 = wf_lqe[id * 96 + j]
+            wf_re[t * 96 + j] = r1
+            wf_rq[t * 96 + j] = r2
+            j = j + 1
+        t = t + 1
+    return n
+
+# ---------------------------------------------------------------- clause features
+
+def wf_any(items, set):
+    i = 0
+    while i < list_len(items):
+        if list_find(set, list_get(items, i)) >= 0:
+            return 1
+        i = i + 1
+    return 0
+
+# negative_clause (:1153) over tokens b..e of a token source.
+def wf_negative(words, quo, slo, b, e):
+    j = b
+    while j < e:
+        if quo[j] == 0 and slo[j] == 0:
+            w = list_get(words, j)
+            only = 0
+            if text_equal(w, "not") and j + 1 < e:
+                if text_equal(list_get(words, j + 1), "only"):
+                    only = 1
+            if only == 0 and list_find(WF_NEG, w) >= 0:
+                return 1
+        j = j + 1
+    return 0
+
+# prefix_words (:1168): the ordered function-word prefix before the first known content word.
+def wf_prefix(words, quo, slo, ids, fil, b, e, out):
+    j = b
+    going = 1
+    while going == 1 and j < e:
+        if quo[j] != 0 or slo[j] != 0:
+            going = 0
+        else:
+            w = list_get(words, j)
+            keep = 1
+            if fil[j] == 0 and list_find(WF_EXTRA, w) < 0:
+                keep = 0
+                if ids[j] >= 0:
+                    going = 0
+            if keep == 1 and list_find(WF_SKIP, w) >= 0:
+                keep = 0
+            if keep == 1 and text_equal(w, "you"):
+                if wf_any(out, WF_DESIRE) == 1:
+                    keep = 0
+            if keep == 1:
+                list_push(out, w)
+        j = j + 1
+    return list_len(out)
+
+def wf_pmatch(a, b):
+    if text_equal(a, b):
+        return 1
+    if list_find(WF_MODAL, a) >= 0 and list_find(WF_MODAL, b) >= 0:
+        return 1
+    if list_find(WF_DESIRE, a) >= 0 and list_find(WF_DESIRE, b) >= 0:
+        return 1
+    if list_find(WF_SELF, a) >= 0 and list_find(WF_SELF, b) >= 0:
+        return 1
+    return 0
+
+# prefix_agreement (:1208).
+def wf_agreement(qp, ep):
+    nq = list_len(qp)
+    if nq == 0:
+        return 1
+    np = list_len(ep)
+    j = 0
+    matched = 0
+    i = 0
+    while i < nq:
+        a = list_get(qp, i)
+        k = j
+        found = 0
+        while found == 0 and k < np:
+            if wf_pmatch(a, list_get(ep, k)) == 1:
+                matched = matched + 1
+                j = k + 1
+                found = 1
+            k = k + 1
+        i = i + 1
+    overlap = matched / max(1, nq + np - matched)
+    return .3 + .7 * overlap * overlap
+
+# ---------------------------------------------------------------- the field
+
+def wf_sigmoid(z):
+    return 1 / (1 + exp(0 - clamp(z, -40, 40)))
+
+# example_scores (:1228) for corpus example i against intent tokens b..e; writes es[0..2].
+def wf_example(i, b, e, neg):
+    off = ex_off[i]
+    stop = off + ex_len[i]
+    matched = 0
+    total = 0
+    qmatch = 0
+    qtotal = 0
+    seq = 0
+    seqtotal = 0
+    att = 0
+    t = off
+    while t < stop:
+        wt = et_w[t]
+        if wt != 0:
+            best = 0
+            j = b
+            while j < e:
+                if wf_re[t * 96 + j] > best:
+                    best = wf_re[t * 96 + j]
+                j = j + 1
+            matched = matched + wt * best
+            total = total + wt
+            att = att + wt * best * best
+        t = t + 1
+    j = b
+    while j < e:
+        wt = q_w[j]
+        if q_id[j] < 0:
+            wt = wt * .1
+        best = 0
+        t = off
+        while t < stop:
+            if wf_rq[t * 96 + j] > best:
+                best = wf_rq[t * 96 + j]
+            t = t + 1
+        qmatch = qmatch + wt * best
+        qtotal = qtotal + wt
+        j = j + 1
+    t = off
+    while t + 1 < stop:
+        w = min(et_w[t], et_w[t + 1])
+        if w > .12:
+            best = 0
+            j = b
+            while j + 1 < e:
+                z = wf_re[t * 96 + j] * wf_re[(t + 1) * 96 + j + 1]
+                if z > best:
+                    best = z
+                j = j + 1
+            seq = seq + w * best
+            seqtotal = seqtotal + w
+        t = t + 1
+    f = 0
+    a = 0
+    if total != 0:
+        f = .78 * matched / total + .22 * qmatch / max(qtotal, 0.000000001)
+        a = .78 * att / total + .22 * qmatch / max(qtotal, 0.000000001)
+    o = 0
+    if seqtotal != 0:
+        o = seq / seqtotal
+    if ex_syn[i] == 1:
+        f = f * .8
+        a = a * .8
+    if neg != ex_neg[i]:
+        f = f * .25
+        a = a * .25
+        o = o * .25
+    es[0] = f
+    es[1] = a
+    es[2] = o
+    return f
+
+# score (:1287), neural mode, for intent tokens b..e; writes c_field, c_evid, c_best, c_neural.
+def wf_score(b, e):
+    i = 0
+    while i <= nt:
+        c_field[i] = 0
+        c_evid[i] = 0
+        c_best[i] = -1
+        drive[i] = 0
+        mass[i] = 0
+        role[i] = 0
+        rolec[i] = 0
+        i = i + 1
+    emb = zeros(WF_ND)
+    j = b
+    while j < e:
+        if q_id[j] >= 0:
+            v = record_get(wf_vecs, list_get(qw, j))
+            part = scale(v, q_w[j])
+            emb = add(emb, part)
+        j = j + 1
+    emb = field_normalize(emb)
+    qp = list_new()
+    wf_prefix(qw, q_quoted, q_slot, q_id, q_filler, b, e, qp)
+    neg = wf_negative(qw, q_quoted, q_slot, b, e)
+    i = 0
+    while i < ne:
+        if ex_syn[i] == 0:
+            k = ex_tool[i]
+            rolec[k] = rolec[k] + 1
+            ag = wf_agreement(qp, list_slice(wf_pw, ex_poff[i], ex_poff[i] + ex_plen[i]))
+            if ag > role[k]:
+                role[k] = ag
+        i = i + 1
+    i = 0
+    while i < nt:
+        if rolec[i] == 0:
+            role[i] = 1
+        i = i + 1
+    role[nt] = 1
+    i = 0
+    while i < ne:
+        wf_example(i, b, e, neg)
+        k = ex_tool[i]
+        f = es[0] * role[k]
+        a = es[1] * role[k]
+        p = es[2] * role[k]
+        n = .9 * a + .1 * p
+        if f > c_field[k]:
+            c_field[k] = f
+        if n > c_evid[k]:
+            c_evid[k] = n
+            c_best[k] = i
+        h = exp(10 * n)
+        drive[k] = drive[k] + h * n
+        mass[k] = mass[k] + h
+        i = i + 1
+    i = 0
+    while i <= nt:
+        attended = 0
+        if mass[i] != 0:
+            attended = drive[i] / mass[i]
+        drive[i] = .88 * c_evid[i] + .12 * attended
+        state[i] = wf_sigmoid(8 * (drive[i] - .53))
+        i = i + 1
+    it = 0
+    while it < 6:
+        mass_state = 0
+        i = 0
+        while i <= nt:
+            mass_state = mass_state + state[i]
+            i = i + 1
+        context = emb
+        i = 0
+        while i <= nt:
+            sig = record_get(wf_sigs, list_get(wf_sigkeys, i))
+            part = scale(sig, .45 * state[i] * state[i] / max(mass_state, 0.000000001))
+            context = add(context, part)
+            i = i + 1
+        context = field_normalize(context)
+        i = 0
+        while i <= nt:
+            attraction = max(0, field_dot(context, record_get(wf_sigs, list_get(wf_sigkeys, i))))
+            competitors = (mass_state - state[i]) / max(1, nt)
+            nxt[i] = wf_sigmoid(7 * (drive[i] - .53) + .8 * state[i] + .22 * attraction - .45 * competitors)
+            i = i + 1
+        i = 0
+        while i <= nt:
+            state[i] = nxt[i]
+            i = i + 1
+        it = it + 1
+    # reliability is 1: no accepted/rejected counters without --state (:1392-1396)
+    i = 0
+    while i <= nt:
+        c_neural[i] = state[i]
+        i = i + 1
+    return b
+
+# rank_candidates (:1952): rk = [winner, second, best, runner].
+def wf_rank():
+    winner = -1
+    second = -1
+    best = -1
+    runner = -1
+    i = 0
+    while i <= nt:
+        v = c_neural[i]
+        if v > best:
+            runner = best
+            second = winner
+            best = v
+            winner = i
+        else:
+            if v > runner:
+                runner = v
+                second = i
+        i = i + 1
+    rk[0] = winner
+    rk[1] = second
+    rk[2] = best
+    rk[3] = runner
+    return winner
+
+# ---------------------------------------------------------------- clauses and decision
+
+# A character from set between tokens a and b; a '.' between two digits is a decimal point.
+def wf_gap(text, a, b, set, decimal):
+    size = text_len(text)
+    k = q_end[a]
+    while k < q_start[b]:
+        c = text_codepoint(text, k)
+        if text_find(set, text_from_codepoint(c)) >= 0:
+            point = 0
+            if decimal == 1 and c == 46 and k > 0 and k + 1 < size:
+                point = wf_digit(text_codepoint(text, k - 1)) * wf_digit(text_codepoint(text, k + 1))
+            if point == 0:
+                return 1
+        k = k + 1
+    return 0
+
+# explicit_continuation (:1971).
+def wf_continues(text, n, i):
+    if i <= 0 or i >= n:
+        return 0
+    if q_quoted[i] != 0:
+        return 0
+    if list_find(WF_CONT, list_get(qw, i)) < 0:
+        return 0
+    return wf_gap(text, i - 1, i, ".;!?", 0)
+
+# clause_choice (:2027): 0 keep the whole field, 1 adopt sv, 2 ambiguous.
+def wf_clauses(text, n, whole, whole_evid):
+    cuts = zeros(98)
+    nc = 1
+    i = 1
+    while i < n:
+        go = 1
+        if q_quoted[i] != 0:
+            go = 0
+        if go == 1 and q_quoted[i - 1] != 0:
+            if wf_continues(text, n, i) == 0:
+                go = 0
+        if go == 1:
+            split = 0
+            w = list_get(qw, i)
+            if text_equal(w, "and") or text_equal(w, "then"):
+                split = 1
+            if split == 1 and text_equal(w, "and") and i + 1 < n:
+                if wf_numeric(list_get(qw, i + 1)) == 1:
+                    split = 0
+            if wf_gap(text, i - 1, i, ".;:", 1) == 1:
+                split = 1
+            if split == 1:
+                cuts[nc] = i
+                nc = nc + 1
+        i = i + 1
+    cuts[nc] = n
+    if nc < 2:
+        return 0
+    chosen = -1
+    positives = 0
+    different = 0
+    c = 0
+    while c < nc:
+        b = cuts[c]
+        e = cuts[c + 1]
+        leading = 1
+        while leading == 1 and b < e:
+            if list_find(WF_LEAD, list_get(qw, b)) >= 0:
+                b = b + 1
+            else:
+                leading = 0
+        if b < e:
+            wf_score(b, e)
+            w = wf_rank()
+            best = rk[2]
+            runner = rk[3]
+            if w >= 0 and w < nt and best > .65 and best - runner > .07 and c_evid[w] > .57:
+                if chosen >= 0 and chosen != w:
+                    different = 1
+                positives = positives + 1
+                chosen = w
+                sv[0] = w
+                sv[1] = best
+                sv[2] = best - runner
+                sv[3] = c_field[w]
+                sv[4] = c_evid[w]
+                sv[5] = c_best[w]
+                sv[6] = b
+                sv[7] = e
+        c = c + 1
+    if positives > 1 and different == 1:
+        return 2
+    if positives >= 1:
+        if chosen == whole and whole_evid[chosen] >= .52:
+            return 0
+        return 1
+    return 0
+
+def wf_error(message):
+    return text_concat("{\"calls\":[],\"status\":\"error\",\"error\":", text_concat(wf_json(message), "}"))
+
+# Compact evidence (:2300-2316): intent words related above .30 to the winner's best example.
+def wf_evidence(ex, b, e):
+    out = ""
+    if ex < 0:
+        return out
+    off = ex_off[ex]
+    stop = off + ex_len[ex]
+    count = 0
+    j = b
+    while j < e and count < 8:
+        strength = 0
+        t = off
+        while t < stop:
+            if wf_rq[t * 96 + j] > strength:
+                strength = wf_rq[t * 96 + j]
+            t = t + 1
+        if strength > .3 and q_filler[j] == 0:
+            if count > 0:
+                out = text_concat(out, ",")
+            out = text_concat(out, wf_json(list_get(qw, j)))
+            count = count + 1
+        j = j + 1
+    return out
+
+# infer (:2087) and the --reasoning-compact serializer (:2294-2333).
+def wf_decide(text):
+    if text_bytes(text) > 2047:
+        return wf_error("batch item requires text under 2048 bytes")
+    n = wf_tokenize(text)
+    if n == -1:
+        return wf_error("text exceeds 96 tokens")
+    if n == -2:
+        return wf_error("token exceeds 95 bytes")
+    wf_prepare(n)
+    wf_score(0, n)
+    winner = wf_rank()
+    second = rk[1]
+    best = rk[2]
+    runner = rk[3]
+    confidence = clamp(best, 0, 1)
+    margin = best - runner
+    field_w = c_field[winner]
+    evid_w = c_evid[winner]
+    example_w = c_best[winner]
+    evid_second = 0
+    if second >= 0:
+        evid_second = c_evid[second]
+    whole_evid = c_evid
+    b = 0
+    e = n
+    status = "call"
+    split = wf_clauses(text, n, winner, whole_evid)
+    if split == 2:
+        status = "ambiguous"
+    else:
+        if split == 1:
+            winner = sv[0]
+            confidence = sv[1]
+            margin = sv[2]
+            field_w = sv[3]
+            evid_w = sv[4]
+            example_w = sv[5]
+            b = sv[6]
+            e = sv[7]
+            best = confidence
+            second = -1
+            runner = 0
+        if e - b == 0 or winner == nt or field_w < .5 or evid_w < .52:
+            status = "no_call"
+        else:
+            if second >= 0 and best - runner < .065 and runner > .52 and evid_w - evid_second < .08:
+                status = "ambiguous"
+    name = "null"
+    if winner >= 0 and winner < nt:
+        name = wf_json(list_get(wf_tool_names, winner))
+    calls = "[]"
+    if text_equal(status, "call"):
+        calls = text_concat("[{\"name\":", text_concat(name, ",\"arguments\":{}}]"))
+    out = text_concat("{\"calls\":", text_concat(calls, text_concat(",\"status\":\"", status)))
+    out = text_concat(out, text_concat("\",\"confidence\":", text_fixed(confidence, 6)))
+    out = text_concat(out, ",\"reasoning\":{\"mode\":\"neural\",\"score_kind\":\"activation, not calibrated probability\",\"winner\":")
+    out = text_concat(out, text_concat(name, text_concat(",\"evidence\":[", wf_evidence(example_w, b, e))))
+    return text_concat(out, text_concat("],\"arguments\":[],\"margin\":", text_concat(text_fixed(margin, 6), "}}")))
+
+# ---------------------------------------------------------------- declaration and field build
+
+def wf_take():
+    xs = read_line()
+    assert(list_len(xs) == 1, "selector declaration ended before END")
+    return list_get(xs, 0)
+
+def wf_payload(line, tag):
+    assert(text_equal(text_slice(line, 0, 2), tag), text_concat("expected declaration tag ", tag))
+    return text_slice(line, 2, text_len(line))
+
+def wf_spaces(name):
+    out = ""
+    i = 0
+    while i < text_len(name):
+        c = text_codepoint(name, i)
+        if c == 95:
+            c = 32
+        out = text_concat(out, text_from_codepoint(c))
+        i = i + 1
+    return out
+
+assert(text_equal(wf_take(), "WOLFE-AML/1"), "expected WOLFE-AML/1 header")
+wf_tool_names = list_new()
+wf_tool_desc = list_new()
+wf_texts = list_new()
+wf_owner = list_new()
+wf_reading = 1
+while wf_reading == 1:
+    wf_line = wf_take()
+    if text_equal(wf_line, "END"):
+        wf_reading = 0
+    else:
+        if text_equal(text_slice(wf_line, 0, 2), "N:"):
+            list_push(wf_tool_names, wf_payload(wf_line, "N:"))
+            list_push(wf_tool_desc, wf_payload(wf_take(), "D:"))
+        else:
+            list_push(wf_owner, wf_payload(wf_line, "X:"))
+            list_push(wf_texts, wf_payload(wf_take(), "T:"))
+nt = list_len(wf_tool_names)
+assert(nt > 0 and nt <= 64, "tool count must be 1..64")
+assert(list_len(wf_texts) > 0, "examples file is empty")
+wf_index = map_new()
+i = 0
+while i < nt:
+    assert(map_has(wf_index, list_get(wf_tool_names, i)) == 0, "duplicate tool name")
+    map_set(wf_index, list_get(wf_tool_names, i), i)
+    i = i + 1
+
+# Corpus examples first, then one synthetic example per tool name and description (:1051-1057).
+wf_syn_owner = list_new()
+i = 0
+while i < nt:
+    list_push(wf_texts, wf_spaces(list_get(wf_tool_names, i)))
+    list_push(wf_syn_owner, list_get(wf_tool_names, i))
+    if text_len(list_get(wf_tool_desc, i)) > 0:
+        list_push(wf_texts, list_get(wf_tool_desc, i))
+        list_push(wf_syn_owner, list_get(wf_tool_names, i))
+    i = i + 1
+nuser = list_len(wf_owner)
+ne = list_len(wf_texts)
+assert(ne <= 2048, "example limit: 2048")
+wf_capacity = 1
+i = 0
+while i < ne:
+    assert(text_bytes(list_get(wf_texts, i)) < 2048, "example text too long")
+    wf_capacity = wf_capacity + text_bytes(list_get(wf_texts, i))
+    i = i + 1
+ex_tool = zeros(ne)
+ex_syn = zeros(ne)
+ex_off = zeros(ne)
+ex_len = zeros(ne)
+ex_neg = zeros(ne)
+ex_poff = zeros(ne)
+ex_plen = zeros(ne)
+et_word = list_new()
+et_id = zeros(wf_capacity)
+et_quoted = zeros(wf_capacity)
+et_slot = zeros(wf_capacity)
+et_filler = zeros(wf_capacity)
+et_w = zeros(wf_capacity)
+qw = list_new()
+qbytes = list_new()
+q_start = zeros(96)
+q_end = zeros(96)
+q_slot = zeros(96)
+q_quoted = zeros(96)
+q_id = zeros(96)
+q_filler = zeros(96)
+q_w = zeros(96)
+ntok = 0
+i = 0
+while i < ne:
+    if i < nuser:
+        wf_name = list_get(wf_owner, i)
+        ex_tool[i] = nt
+        if text_len(wf_name) > 0:
+            assert(map_has(wf_index, wf_name), "example names unknown tool")
+            ex_tool[i] = map_get(wf_index, wf_name)
+    else:
+        ex_tool[i] = map_get(wf_index, list_get(wf_syn_owner, i - nuser))
+        ex_syn[i] = 1
+    wf_n = wf_tokenize(list_get(wf_texts, i))
+    assert(wf_n >= 0, "invalid example text or resource limit")
+    ex_off[i] = ntok
+    ex_len[i] = wf_n
+    j = 0
+    while j < wf_n:
+        list_push(et_word, list_get(qw, j))
+        et_quoted[ntok] = q_quoted[j]
+        et_slot[ntok] = q_slot[j]
+        if list_find(WF_FILLER, list_get(qw, j)) >= 0:
+            et_filler[ntok] = 1
+        ntok = ntok + 1
+        j = j + 1
+    i = i + 1
+assert(ntok > 0 and ntok < 10000, "corpus token count must be 1..9999")
+
+# Vocabulary, document frequency and idf (:1058-1072).
+wf_vocab = map_new()
+wf_words = list_new()
+wf_df = zeros(ntok)
+nv = 0
+i = 0
+while i < ne:
+    j = ex_off[i]
+    while j < ex_off[i] + ex_len[i]:
+        et_id[j] = -1
+        if et_slot[j] == 0:
+            wf_w = list_get(et_word, j)
+            if map_has(wf_vocab, wf_w) == 0:
+                map_set(wf_vocab, wf_w, nv)
+                list_push(wf_words, wf_w)
+                nv = nv + 1
+            et_id[j] = map_get(wf_vocab, wf_w)
+            wf_seen = 0
+            k = ex_off[i]
+            while k < j:
+                if et_id[k] == et_id[j]:
+                    wf_seen = 1
+                k = k + 1
+            if wf_seen == 0:
+                wf_df[et_id[j]] = wf_df[et_id[j]] + 1
+        j = j + 1
+    i = i + 1
+assert(nv > 0 and nv <= 1024, "wolfe.aml keeps 1..1024 field words in one record")
+wf_idf = zeros(nv)
+wf_vecs = record_new()
+wf_wbytes = list_new()
+v = 0
+while v < nv:
+    wf_w = list_get(wf_words, v)
+    wf_idf[v] = 1 + log((ne + 1) / (wf_df[v] + 1))
+    record_set(wf_vecs, wf_w, field_project(zeros(WF_ND), wf_w, 1))
+    list_push(wf_wbytes, wf_bytes(wf_w))
+    v = v + 1
+
+# Hebbian context (:1075-1082): co-present corpus tokens project into each other's vectors.
+i = 0
+while i < ne:
+    wf_o = ex_off[i]
+    j = 0
+    while j < ex_len[i]:
+        if et_id[wf_o + j] >= 0:
+            wf_w = list_get(et_word, wf_o + j)
+            wf_root = sqrt(wf_df[et_id[wf_o + j]])
+            k = 0
+            while k < ex_len[i]:
+                if k != j and et_id[wf_o + k] >= 0 and et_filler[wf_o + k] == 0:
+                    wf_s = .3 * (1 / (1 + abs(j - k))) / wf_root
+                    record_set(wf_vecs, wf_w, field_project(record_get(wf_vecs, wf_w), list_get(et_word, wf_o + k), wf_s))
+                k = k + 1
+        j = j + 1
+    i = i + 1
+v = 0
+while v < nv:
+    record_set(wf_vecs, list_get(wf_words, v), field_normalize(record_get(wf_vecs, list_get(wf_words, v))))
+    v = v + 1
+
+# Token weights (:986), clause polarity and role prefixes of the corpus examples.
+t = 0
+while t < ntok:
+    if et_slot[t] == 0:
+        et_w[t] = wf_idf[et_id[t]]
+        if et_filler[t] == 1:
+            et_w[t] = .12
+        if et_quoted[t] != 0:
+            et_w[t] = .015
+    t = t + 1
+wf_pw = list_new()
+i = 0
+while i < ne:
+    ex_neg[i] = wf_negative(et_word, et_quoted, et_slot, ex_off[i], ex_off[i] + ex_len[i])
+    ex_poff[i] = list_len(wf_pw)
+    if ex_syn[i] == 0:
+        wf_own = list_new()
+        wf_prefix(et_word, et_quoted, et_slot, et_id, et_filler, ex_off[i], ex_off[i] + ex_len[i], wf_own)
+        k = 0
+        while k < list_len(wf_own):
+            list_push(wf_pw, list_get(wf_own, k))
+            k = k + 1
+    ex_plen[i] = list_len(wf_pw) - ex_poff[i]
+    i = i + 1
+
+# Tool signatures (:1084-1092), the null tool included at index nt.
+wf_sigs = record_new()
+wf_sigkeys = list_new()
+i = 0
+while i <= nt:
+    list_push(wf_sigkeys, text_fixed(i, 0))
+    record_set(wf_sigs, text_fixed(i, 0), zeros(WF_ND))
+    i = i + 1
+i = 0
+while i < ne:
+    wf_key = list_get(wf_sigkeys, ex_tool[i])
+    wf_acc = record_get(wf_sigs, wf_key)
+    t = ex_off[i]
+    while t < ex_off[i] + ex_len[i]:
+        if et_id[t] >= 0:
+            wf_v = record_get(wf_vecs, list_get(et_word, t))
+            wf_part = scale(wf_v, et_w[t])
+            wf_acc = add(wf_acc, wf_part)
+        t = t + 1
+    record_set(wf_sigs, wf_key, wf_acc)
+    i = i + 1
+i = 0
+while i <= nt:
+    record_set(wf_sigs, list_get(wf_sigkeys, i), field_normalize(record_get(wf_sigs, list_get(wf_sigkeys, i))))
+    i = i + 1
+
+c_field = zeros(nt + 1)
+c_evid = zeros(nt + 1)
+c_best = zeros(nt + 1)
+c_neural = zeros(nt + 1)
+drive = zeros(nt + 1)
+mass = zeros(nt + 1)
+state = zeros(nt + 1)
+nxt = zeros(nt + 1)
+role = zeros(nt + 1)
+rolec = zeros(nt + 1)
+es = zeros(3)
+rk = zeros(4)
+sv = zeros(8)
+wf_leq = zeros(nv * 96)
+wf_lqe = zeros(nv * 96)
+wf_re = zeros(ntok * 96)
+wf_rq = zeros(ntok * 96)
+
+# One decision line per intent line; nested loops keep each under AML's 10,000-iteration bound.
+wf_alive = 1
+while wf_alive == 1:
+    wf_round = 0
+    while wf_alive == 1 and wf_round < 9999:
+        wf_in = read_line()
+        if list_len(wf_in) == 0:
+            wf_alive = 0
+        else:
+            PRINT wf_decide(list_get(wf_in, 0))
+        wf_round = wf_round + 1
