@@ -69,7 +69,7 @@ history does not quietly disappear to make a counter look healthy.
   Netta.Sonar informs the visible trace of action.
 
 Today: two-clock journals, boolean and magnitude rules, visual history,
-interface observations, and explicit memory budgets. Both fields save in
+interface observations, and explicit memory budgets. The fields save in
 IndexedDB. USGS also runs through the CLI:
 
 ```sh
@@ -85,6 +85,12 @@ browser request permission, and keep latitude, longitude and accuracy with
 the measurement and receipt times. Rewind, reload, export, or ask Don to read
 the same journal. With action memory enabled, recall and reproduce that call.
 256 observations, 512 kB, saved in this browser. No background location watcher.
+
+Open **Camera**, grant permission, then **Keep this frame**. The camera stops.
+The JPEG stays with its source, capture time and receipt time. Rewind or reload
+to see it again; action memory retains the image in the original world.
+Up to 32 frames within 1.5 MB, each at most 640 pixels and 48 KiB. This step
+preserves images; it does not identify what they depict.
 
 ## call the world
 
@@ -107,7 +113,7 @@ node examples/route.js
 node scripts/serve.mjs --router
 ```
 
-Ask from either visual field. Follow the call into its receipts. Rewind without
+Ask from any visual field. Follow the call into its receipts. Rewind without
 rewriting the answer. One warm C field. Six tools. No invented clocks. [Routing contract](docs/ROUTING.md).
 
 Give him a memory that survives the host:

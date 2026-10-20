@@ -1,6 +1,7 @@
 import { decodeJournal } from '../src/journal.js';
 import { TOOL_BUDGET } from '../src/tools.js';
 import { createActionReplay } from '../src/action-replay.js';
+import { cameraFrames, CAMERA_SOURCE } from '../src/sources/camera.js';
 
 const element = (tag, text, className) => {
   const node = document.createElement(tag); node.textContent = text;
@@ -9,8 +10,9 @@ const element = (tag, text, className) => {
 };
 
 // An original world is a separate read-only surface. It never opens the live store.
-export function actionWorld(root, { receipt, journal }) {
+export async function actionWorld(root, { receipt, journal }) {
   const ledger = decodeJournal(JSON.stringify(journal), TOOL_BUDGET), records = ledger.entries();
+  const images = await cameraFrames({ entries: () => records.filter(f => f.source === CAMERA_SOURCE) });
   const replay = createActionReplay(ledger, receipt.action);
   root.replaceChildren(); root.className = 'action-world'; root.dataset.sequence = receipt.sequence;
   root.append(element('p', `ORIGINAL WORLD / ACTION ${receipt.sequence}`, 'eyebrow'), element('h3', 'The world he read.'),
@@ -26,6 +28,12 @@ export function actionWorld(root, { receipt, journal }) {
   function inspect(id) {
     const fact = records.find(f => f.id === id); if (!fact) return;
     selected = id; inspector.replaceChildren(element('h4', fact.id), element('pre', JSON.stringify(fact, null, 2)));
+    const frame = images.find(f => f.records.some(r => r.id === id));
+    if (frame) {
+      const image = document.createElement('img'); image.className = 'world-photo';
+      image.alt = `Retained camera frame from ${new Date(frame.capturedAt).toISOString()}`;
+      image.src = `data:image/jpeg;base64,${frame.jpeg}`; inspector.prepend(image);
+    }
     inspector.append(element('p', `Lineage: ${ledger.lineage(id).map(f => f.id).join(' → ')}`, 'small'));
     for (const button of list.querySelectorAll('button')) button.setAttribute('aria-pressed', String(button.dataset.id === id));
   }
@@ -64,7 +72,7 @@ export function actionWorld(root, { receipt, journal }) {
       for (const row of data.items) {
         const fact = row.fact || row, li = element('li', '');
         if (typeof fact.id === 'string') {
-          const button = element('button', `${fact.id} · ${row.role || fact.predicate} · ${JSON.stringify(fact.value)}`);
+          const button = element('button', `${fact.id} · ${row.role || fact.predicate} · ${fact.predicate.startsWith('camera.jpeg.') ? 'Image data' : JSON.stringify(fact.value)}`);
           button.dataset.id = fact.id; button.addEventListener('click', () => inspect(fact.id));
           li.append(button, element('p', `${fact.source} · received ${fact.recordedAt}`, 'small'));
         } else li.append(element('p', `${row.subject} · ${row.receipts} receipts`, 'small'));

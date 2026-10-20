@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#121717">
+  <title>LALO — camera observations</title>
+  <link rel="stylesheet" href="/web/style.css">
+  <script type="module" src="/web/camera-app.js"></script>
+</head>
+<body class="camera-field location-field">
+  <header>
+    <a class="wordmark" href="/">LALO<span>LINEAGE & ONTOLOGY</span></a>
+    <div class="edition">CAMERA / 004<span>The frame stays with the moment.</span></div>
+    <nav aria-label="Worlds"><a href="/">Crossing</a><a href="/web/usgs.html">USGS</a><a href="/web/location.html">Device</a><a href="/web/camera.html" aria-current="page">Camera</a></nav>
+  </header>
+  <div class="source-bar">
+    <button id="camera-start" class="primary" disabled>Open camera ↗</button>
+    <button id="camera-capture" disabled>Keep this frame ↗</button>
+    <button id="camera-stop" disabled>Stop camera</button>
+    <button id="export" disabled>Export receipts ↗</button>
+    <p class="small">Open the camera, then choose a frame. The camera stops after capture. Images stay in this browser; Call LALO sends the journal to your local action host and its enabled memory.</p>
+    <p id="source-status" class="small" role="status">Loading saved observations…</p>
+  </div>
+  <main>
+    <section class="camera-view" aria-label="Camera and retained frame">
+      <p class="eyebrow">THE DEVICE ENTERS THE WORLD</p><h1>Keep what<br>was there.</h1>
+      <video id="preview" muted playsinline hidden aria-label="Live camera preview"></video>
+      <figure id="frame" hidden><img id="photo" alt="Selected saved camera observation"><figcaption id="frame-caption"></figcaption></figure>
+      <p id="empty" class="muted">The camera starts only when you ask.</p>
+    </section>
+    <aside aria-label="Camera receipts">
+      <div class="receipts-heading"><p class="eyebrow">OBSERVATIONS</p><span id="receipt-count"></span></div>
+      <ol id="receipts" aria-label="Received camera frames"></ol>
+      <section id="inspector" aria-label="Selected observation"></section>
+    </aside>
+    <section class="time-panel" aria-label="Time controls">
+      <div><label for="knowledge">WHAT WAS KNOWN <output id="knowledge-time"></output></label><input id="knowledge" type="range" min="0" max="0" step="1"><p>Move through the receipt times.</p></div>
+      <div><label for="world">CAPTURED IN THE WORLD</label><select id="world"></select><p>Open the frame from that instant.</p></div>
+      <button id="present" class="quiet">Latest knowledge ↗</button>
+    </section>
+  </main>
+  <footer><span>THE WORLD CHANGES. KEEP THE FUCKING RECEIPTS.</span><span id="budget"></span></footer>
+  <p id="error" role="alert" hidden></p>
+  <noscript>This field needs JavaScript to read its journal.</noscript>
+</body>
+</html>

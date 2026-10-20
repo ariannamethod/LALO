@@ -3,6 +3,37 @@
 The engineering record. New entries first. README keeps the pulse; this file
 keeps the measurements, decisions, sources and scars.
 
+## 2026-10-20 — the camera keeps its frame in the world
+
+Camera opens only on a click and captures only on a second click. Capture,
+Stop, page hide and visibility loss stop its video tracks. Permission has a
+15-second deadline; a late grant is stopped without becoming an observation.
+Capture scales a JPEG to at most 640 pixels / 48 KiB. Source `browser:camera`
+and subject `device:this-browser` accompany separate capture and receipt clocks.
+The observed interval is one millisecond; later captures append independent
+groups. This is image retention, without semantic image interpretation.
+
+The portable adapter stores dimensions, SHA-256 and bounded base64 chunks as
+ordinary scalar receipts. Full image bytes therefore travel with the existing
+journal, tool pagination and AML original-world snapshots. Loading validates
+group structure, JPEG framing and digest; browser capture owns image encoding.
+The budget is 32 frames / 1.5 MB with no eviction. IndexedDB publishes a complete
+candidate before the UI advances. Damaged storage blocks writes; save failure
+retains the previous frame and still stops the camera.
+
+The Camera field adds selection, receipt-time rewind, reload and JSON export.
+The original-world panel reconstructs the retained image from its own journal.
+Local Node v24.19.0 / GCC 13.3.0 / Linux x86_64: 62 core and 19 native/AML tests
+pass, along with all three examples. Seven new camera tests cover byte
+round-trip through paged tools and replay, late observations, malformed groups,
+budgets, denied/late permissions and capture bounds. Browser verification uses
+Chrome's synthetic video device with real permission control, JPEG codec,
+IndexedDB, C routing and AML memory. Physical-phone measurements remain in TODO.
+
+Hosted run [39453932639](https://github.com/ariannamethod/LALO/actions/runs/39453932639),
+code `12f409ab`, passes all three jobs on Node v24.14.0 / Chrome 155.0.8059.39.
+Desktop and 390-pixel screenshots were downloaded and visually inspected.
+
 ## 2026-10-20 — the device gives Don a place and an instant
 
 The Device field requests one browser geolocation fix on an explicit click.
