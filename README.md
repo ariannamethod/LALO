@@ -80,6 +80,12 @@ node scripts/usgs.mjs --prior quakes.json > quakes-next.json
 Each poll keeps receipt time and source revisions. Imports extend saved history;
 they never rewrite it.
 
+Open **Device** for a one-shot location observation. Ask explicitly, let the
+browser request permission, and keep latitude, longitude and accuracy with
+the measurement and receipt times. Rewind, reload, export, or ask Don to read
+the same journal. With action memory enabled, recall and reproduce that call.
+256 observations, 512 kB, saved in this browser. No background location watcher.
+
 ## call the world
 
 Six tools give models facts, history, lineage and conclusions with receipts.

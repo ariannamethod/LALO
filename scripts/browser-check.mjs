@@ -8,6 +8,7 @@ import { once } from 'node:events';
 import { serve } from './serve.mjs';
 import { checkActionField } from './action-browser-check.mjs';
 import { checkQuakeField } from './quake-browser-check.mjs';
+import { checkLocationField } from './location-browser-check.mjs';
 
 const profile = await mkdtemp(join(tmpdir(), 'lalo-browser-'));
 const server = await serve({ port: 0, router: true, memoryDirectory: join(profile, 'action-memory') });
@@ -203,6 +204,7 @@ try {
   assert.equal(await evaluate(`(async()=>{const {worldStore}=await import('/web/storage.js');return (await worldStore(indexedDB).load()).journal})()`), 'broken journal');
   console.log('PASS: history, disagreement, correction lineage, both clocks, user observations, phone layout, touch, reload, save failure, concurrent writes and corrupt snapshot preservation');
   await checkQuakeField({ socket, call, evaluate, shot, waitIdle, click, reload, navigate, out });
+  await checkLocationField({ call, evaluate, shot, click, reload, navigate });
   assert.deepEqual(errors, [], 'no browser exceptions or failed application requests');
 } finally {
   await writeFile(join(out, 'chrome.log'), log);

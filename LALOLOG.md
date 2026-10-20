@@ -3,6 +3,44 @@
 The engineering record. New entries first. README keeps the pulse; this file
 keeps the measurements, decisions, sources and scars.
 
+## 2026-10-20 — the device gives Don a place and an instant
+
+The Device field requests one browser geolocation fix on an explicit click.
+It appends latitude, longitude and horizontal accuracy as three linked-by-ID
+scalar receipts. Source is `browser:geolocation`, subject `device:this-browser`.
+The browser's measurement timestamp and the callback receipt timestamp remain
+separate integer milliseconds. Each sample covers its one-millisecond observed
+instant. Later and repeated fixes append independent groups; earlier movement
+remains readable. No polling, watcher, map provider or external tile request.
+
+The portable adapter validates complete groups, coordinates, accuracy and
+timestamps. It builds a candidate journal before publication. The existing
+IndexedDB compare-and-swap save publishes all three receipts before the UI
+advances. Storage failure retains the previous displayed and persisted world;
+damaged history blocks new observations. Budget: 256 samples / 768 receipts,
+512000 bytes. The location request has a 15-second deadline including the
+permission wait; late callbacks cannot add observations.
+
+The field supports receipt-time rewind, selection by observed instant, local
+reload and JSON export. The existing action panel accepts a subset of presets
+so this world starts with active facts. Its unchanged C routing and AML action
+memory boundaries support saved location calls and original-world replay.
+
+Local Node v24.19.0 / GCC 13.3.0 / Linux x86_64: the initial core run passes
+55 tests, including six new location gates; 19 native/AML integration tests
+and all three examples also pass. C router and pinned AML build.
+Local Chrome installation failed: package-manager identity operations are
+unavailable, and the browser download returned an invalid archive. The hosted
+browser gate exercises real browser permissions with explicitly synthetic CDP
+coordinates, storage failure, rewind, reload, C calls, AML recall/replay and
+390-pixel layout.
+
+Hosted run [39449809165](https://github.com/ariannamethod/LALO/actions/runs/39449809165),
+code `3d0e60ac`, passes all three jobs on Node v24.14.0 and Chrome
+155.0.8059.39. The first browser attempt hit the existing 15-second Chrome
+startup deadline before opening the application; its retry passed unchanged.
+Desktop and 390-pixel screenshots were downloaded and visually inspected.
+
 ## 2026-10-17 — the action keeps the world it read
 
 Action memory now retains the complete canonical source journal. Each new v2
