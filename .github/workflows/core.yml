@@ -16,6 +16,7 @@ jobs:
       - run: node --test tests/*.test.js
       - run: node examples/earthquake.js
       - run: node examples/tool-call.js
+      - run: node examples/background.js
       - run: node scripts/build-router.mjs
       - run: node --test tests/native-router.integration.mjs
       - run: node examples/route.js
