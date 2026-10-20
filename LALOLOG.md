@@ -30,6 +30,10 @@ budgets, denied/late permissions and capture bounds. Browser verification uses
 Chrome's synthetic video device with real permission control, JPEG codec,
 IndexedDB, C routing and AML memory. Physical-phone measurements remain in TODO.
 
+Hosted run [39453932639](https://github.com/ariannamethod/LALO/actions/runs/39453932639),
+code `12f409ab`, passes all three jobs on Node v24.14.0 / Chrome 155.0.8059.39.
+Desktop and 390-pixel screenshots were downloaded and visually inspected.
+
 ## 2026-10-20 — the device gives Don a place and an instant
 
 The Device field requests one browser geolocation fix on an explicit click.
