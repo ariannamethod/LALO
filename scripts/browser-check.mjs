@@ -9,6 +9,7 @@ import { serve } from './serve.mjs';
 import { checkActionField } from './action-browser-check.mjs';
 import { checkQuakeField } from './quake-browser-check.mjs';
 import { checkLocationField } from './location-browser-check.mjs';
+import { checkCameraField } from './camera-browser-check.mjs';
 
 const profile = await mkdtemp(join(tmpdir(), 'lalo-browser-'));
 const server = await serve({ port: 0, router: true, memoryDirectory: join(profile, 'action-memory') });
@@ -16,6 +17,7 @@ const out = process.env.BROWSER_ARTIFACTS || 'browser-artifacts';
 await mkdir(out, { recursive: true });
 const chrome = spawn(process.env.CHROME_BIN || 'google-chrome', [
   '--headless=new', '--no-sandbox', '--disable-dev-shm-usage', '--disable-background-networking',
+  '--use-fake-device-for-media-stream',
   '--remote-debugging-port=0', `--user-data-dir=${profile}`, 'about:blank',
 ], { stdio: ['ignore', 'ignore', 'pipe'] });
 let log = '', socket, session, serial = 0, onLoad;
@@ -205,6 +207,7 @@ try {
   console.log('PASS: history, disagreement, correction lineage, both clocks, user observations, phone layout, touch, reload, save failure, concurrent writes and corrupt snapshot preservation');
   await checkQuakeField({ socket, call, evaluate, shot, waitIdle, click, reload, navigate, out });
   await checkLocationField({ call, evaluate, shot, click, reload, navigate });
+  await checkCameraField({ call, evaluate, shot, click, reload, navigate });
   assert.deepEqual(errors, [], 'no browser exceptions or failed application requests');
 } finally {
   await writeFile(join(out, 'chrome.log'), log);

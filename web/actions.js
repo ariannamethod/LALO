@@ -125,7 +125,7 @@ export function actionPanel({ getContext, select, highlight, presets = Object.ke
       for (const row of data.items) {
         const fact = row.fact || row, li = element('li', '');
         if (typeof fact.id === 'string') {
-          const button = element('button', `${fact.id} · ${row.role || fact.predicate} · ${JSON.stringify(fact.value)}`);
+          const button = element('button', `${fact.id} · ${row.role || fact.predicate} · ${fact.predicate.startsWith('camera.jpeg.') ? 'Image data' : JSON.stringify(fact.value)}`);
           button.dataset.id = fact.id; button.addEventListener('click', () => {
             select(fact.id); document.getElementById('inspector').scrollIntoView({ block: 'center',
               behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth' });
@@ -194,7 +194,7 @@ export function actionPanel({ getContext, select, highlight, presets = Object.ke
         TOOL_BUDGET.maxBytes + ROUTE_BUDGET.maxTraceBytes + 8192);
       if (result.format !== 'lalo/action-recall' || result.version !== 1 || !result.journal
         || result.receipt?.sequence !== sequence || result.receipt.head !== head) throw new Error('Unrecognized original world');
-      actionWorld($('action-world'), result); $('action-world').hidden = false;
+      await actionWorld($('action-world'), result); $('action-world').hidden = false;
       $('action-world-status').textContent = `Original world opened · action #${sequence}`;
     } catch (error) {
       controller.abort(); $('action-world-status').textContent = `Original world unavailable · ${error.name === 'AbortError' ? 'Readback timed out' : error.message}`;
