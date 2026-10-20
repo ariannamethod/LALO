@@ -33,7 +33,13 @@ Local Chrome installation failed: package-manager identity operations are
 unavailable, and the browser download returned an invalid archive. The hosted
 browser gate exercises real browser permissions with explicitly synthetic CDP
 coordinates, storage failure, rewind, reload, C calls, AML recall/replay and
-390-pixel layout. Its run result is recorded after execution below.
+390-pixel layout.
+
+Hosted run [39449809165](https://github.com/ariannamethod/LALO/actions/runs/39449809165),
+code `3d0e60ac`, passes all three jobs on Node v24.14.0 and Chrome
+155.0.8059.39. The first browser attempt hit the existing 15-second Chrome
+startup deadline before opening the application; its retry passed unchanged.
+Desktop and 390-pixel screenshots were downloaded and visually inspected.
 
 ## 2026-10-17 — the action keeps the world it read
 
