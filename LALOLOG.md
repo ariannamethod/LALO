@@ -72,6 +72,69 @@ code `3d0e60ac`, passes all three jobs on Node v24.14.0 and Chrome
 startup deadline before opening the application; its retry passed unchanged.
 Desktop and 390-pixel screenshots were downloaded and visually inspected.
 
+## 2026-10-20 — observations arrive outside the context window
+
+The first event background receives bounded USGS batches independently of model
+calls. `createBackground` keeps source observations and explicit `agent:*`
+signals in the existing two-clock FactLedger, under one 1024-record / 2000000-byte
+budget. USGS validation runs on the ordered source projection: complete versions,
+event/source identity, companion fields, source updates and predecessor links.
+Every mutation stages and validates a complete candidate before replacing the
+world. A batch has at most 64 events. Exhaustion rejects the complete operation;
+accepted history remains intact. Duplicate/stale source updates report counts.
+
+The separate `usgs-attention-receipt/v1` policy resolves source revisions at the
+knowledge cutoff, then filters origin times. Active, explicitly supplied
+`attention_subject` signals rank matching events before receipt order and a
+stable subject tie-break. Other scalar signals remain sourced state evidence.
+The agent is a subject in the same world and can record its chosen focus through
+this boundary. Acquisition of model-internal signals remains an open interface;
+the prototype receives host/agent observations with explicit source and clocks.
+
+Context is a fresh bounded projection: default eight complete event versions and
+32768 UTF-8 bytes, including request, state evidence, policy, reasons and omission
+counts. Callers replace the previous context. History stays outside that context
+and remains readable by the existing tools. A correction moving an event outside
+the requested window removes it without reviving its older version. Replay uses
+the original request and policy and reports match/changed for the complete result.
+
+`background.mjs ingest` consumes newline-delimited events without network access,
+persists each accepted frame before EOF and permits independent local selection
+readers. An exclusive lock serializes writers. A synced bounded staging file is
+renamed over the journal, followed by directory sync; acknowledgments distinguish
+saved/unconfirmed persistence. Invalid or torn frames stop with a visible error.
+Interrupted lock/staging files require inspection and are never silently adopted
+or deleted. `poll` explicitly requests one bounded fetch through the existing
+USGS HTTP transport. No startup poll, scheduler or background network loop was
+added. Persistent acquisition can be driven by an external producer independently
+of any context reader.
+
+Optional `select --memory` uses the existing AML v2 action/world storage, shared
+snapshots, chain, streamed SHA-256 and canonical readback. A local selection action
+has `request.kind = background-context`, a null route/call and its result. Its CLI
+replay selects the saved sequence/head and opens that exact world; the six-tool
+native router and routed-action replay retain their existing contracts. Failed
+memory writes return the selected context with a separate failure acknowledgment.
+No new dependency, source pin or memory format was introduced.
+
+Verification: Node v24.19.0, GCC 13.3.0, Linux x86_64. All 77 tests pass: 57 offline
+(`node --test tests/*.test.js`), six native (`node scripts/build-router.mjs` then
+`node --test tests/native-router.integration.mjs`), 14 real AML (`node
+scripts/build-aml.mjs` then `node --test tests/action-memory.integration.mjs`).
+Eight new offline tests cover independent readers before input EOF, restart,
+exclusive writers, broken/torn/oversized input, retained staging, source validation,
+atomic record/byte limits, old and moved event times, state at both clocks, null
+magnitude, deterministic ranking, complete-event UTF-8 limits and replay. The new
+AML gate saves two worlds through the CLI, replays the first by sequence/head and
+rejects its damaged snapshot. The pinned AML build repeats its existing
+`am_tape_backward` allocation-bound compiler warning.
+
+All four examples pass. The synthetic frame producer → persistent receiver →
+selection → replay commands from docs/BACKGROUND.md also run locally. The new
+example is in the existing core CI job. `git diff --check` passes. Local browser
+gate (`node scripts/browser-check.mjs`) fails to launch with `spawn google-chrome
+ENOENT`; no browser executable is installed. This change adds no visual surface.
+
 ## 2026-10-17 — the action keeps the world it read
 
 Action memory now retains the complete canonical source journal. Each new v2
