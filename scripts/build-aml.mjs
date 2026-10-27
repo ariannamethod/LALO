@@ -1,7 +1,7 @@
 import { execFileSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 const root = fileURLToPath(new URL('../deps/aml/', import.meta.url));
-const pin = '8ebc1b7e9333dcf062fdc32d3e6f935efd6f2595';
+const pin = 'b932a09b7d38e2a9de9bbbcbb46cf568ae306411';
 let head;
 try { head = execFileSync('git', ['-C', root, 'rev-parse', 'HEAD'], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] }).trim(); }
 catch { throw new Error('Initialize the pinned language first: git submodule update --init deps/aml'); }

@@ -3,6 +3,88 @@
 The engineering record. New entries first. README keeps the pulse; this file
 keeps the measurements, decisions, sources and scars.
 
+## 2026-10-27 — pin the merged field organ and reopen the WOLFE gate
+
+`deps/aml` and the independent guard in `scripts/build-aml.mjs` now both pin
+`b932a09b7d38e2a9de9bbbcbb46cf568ae306411`, the merge of AML #47. The previous
+pin was `8ebc1b7e9333dcf062fdc32d3e6f935efd6f2595`. This brings the three field
+intrinsics and the merged scalar-math behavior into the actual LALO build.
+The existing CI memory job now runs `scripts/wolfe-diff.mjs` after building
+both bodies and checking action memory. Production routing continues through
+the unchanged C body; this change adds no router switch.
+
+Fresh verification on Linux x86_64, Node v24.22.1, GCC 13.3.0, from LALO
+`661d8b5a160c9f1875f19088f4871ce48f14e00f`:
+
+- `node scripts/build-aml.mjs`: exit 0. A temporary checkout of the old AML
+  commit was rejected with exit 1 and the new expected SHA; the merged pin
+  was restored and rebuilt successfully.
+- `node scripts/build-router.mjs` then `node scripts/wolfe-diff.mjs`: exit 0,
+  **68/68**, evidence equal 68/68, 64/68 byte-identical lines. Maximum absolute
+  confidence and margin differences both `1e-6`, within `1e-4`. Both processes
+  exited 0 and returned 68 lines. One local sample: C 30 ms, AML 2506 ms.
+  These are measurements of the merged dependency in this session.
+- Negative control: a temporary copy changing only `a = .78 * att / total`
+  to `.80` failed with exit 1: 67 confidence and 67 margin mismatches,
+  `VERDICT FAIL 1/68`, maximum differences 0.0207 and 0.0159. The checked-in
+  AML program was untouched.
+- `node --test tests/*.test.js`: **75/75**, zero failures or skips. The
+  previously recorded action-http flake did not occur in this run.
+- `node --test tests/action-memory.integration.mjs tests/native-router.integration.mjs`:
+  **20/20**, zero failures or skips (14 real-AML memory, six native router).
+  Covers legacy v1 receipt preservation, extending the same chain with v2
+  worlds, exact UTF-8/integer clocks, restart and original-world replay,
+  damaged snapshots, concurrent writers, budgets and missing/stalled AML.
+- All four examples exited 0: `earthquake.js`, `tool-call.js`, `background.js`
+  and `route.js` under `examples/`.
+- `make -C deps/aml test-field test-scalar-math test`: exit 0; 3333 field
+  C/runtime checks, golden fixture and 24 refused programs across five
+  execution paths; 877 scalar-math checks and 39 invalid fixtures across five
+  paths; core **550/550**.
+- `git diff --check`: pass. C source SHA-256 remains
+  `dea0df2c4f81d64543b927e3f6e4d1a23bdf585500230a135f24a73f20529fda`.
+
+### Haiku Parliament on this AML revision
+
+Checked against `haiku.aml` at `da750619bf781f505c8242928fb4db07b46c0945`
+and its recorded scalar NoTorch baseline
+`e84262669b2e349c6436ed0422028107b3d166b3`. Both real 21,308,576-byte
+`weights/haiku1.gguf` and `weights/haiku2.gguf` were present. These are external
+verification checkouts, with no new LALO dependencies or Haiku source edits.
+With `AML_ROOT` naming LALO's absolute `deps/aml` path and `NOTORCH_ROOT`
+naming that NoTorch checkout, the commands were:
+
+```sh
+make -C "$NOTORCH_ROOT" lib BLAS_FLAGS= BLAS_LIBS= X86_SIMD=0 ARM_SIMD=0
+make -C "$AML_ROOT" notorch NOTORCH_ROOT="$NOTORCH_ROOT"
+make -C "$AML_ROOT" test-parliament NOTORCH_ROOT="$NOTORCH_ROOT"
+make -C /path/to/haiku.aml test-parliament test-parliament-contact \
+  AML_ROOT="$AML_ROOT" NOTORCH_ROOT="$NOTORCH_ROOT"
+```
+
+All exited 0. AML's bridge passed 656 checks plus native/compiler value and
+backend-refusal gates. Haiku's vote, life and memory fixtures agreed between
+interpreter and compiled execution; validation preserved owners after rejected
+calls and thirteen malformed states, and verified exact checkpoint/reward/Oja
+continuation with independent source namespaces. Contact fixtures passed real
+PEN7 mixture/prototype encounters in both execution paths and exact restart;
+replay, seven rejected calls and ten corrupt private states preserved owners.
+
+A separate temporary probe imported `src/parliament.aml`, constructed origin
+and boundary with `field_project` and `field_normalize`, checked the unit norm
+with `field_dot`, then created a parliament and voted without changing its
+owner. Both `runner/aml-notorch` and the `amlc --scalar` executable printed
+`HAIKU_PARLIAMENT_FIELD_OK`. The exact FIELD.md example also built and ran with
+output identical to the interpreter. Both generated executables use amlc's
+runtime-backed `am_exec_source` path. The first compiler probe stopped because
+`AML_PREFIX` was unset; rerunning with a temporary prefix containing the built
+AML, bridge and NoTorch archives succeeded.
+
+Build warnings observed: AML's `am_tape_backward` allocation-range warning and
+amlc's `strncpy` truncation warning; NoTorch's format and `strncpy` warnings.
+No build failed. Browser/physical-phone gates and the full Haiku suite were
+not run; the Haiku checks above target Parliament and contact specifically.
+
 ## 2026-10-27 — every instrument sounds into one world
 
 The 2026-10-20 event background below was transplanted onto main after #11 and

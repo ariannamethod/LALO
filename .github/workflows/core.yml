@@ -54,3 +54,4 @@ jobs:
       - run: node scripts/build-router.mjs
       - run: node scripts/build-aml.mjs
       - run: node --test tests/action-memory.integration.mjs
+      - run: node scripts/wolfe-diff.mjs
