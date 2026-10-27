@@ -204,6 +204,48 @@ gate (`node scripts/browser-check.mjs`) fails to launch with `spawn google-chrom
 ENOENT`; no browser executable is installed. This change adds no visual surface.
 
 ## 2026-10-17 — the action keeps the world it read
+## 2026-10-20 — WOLFE speaks AML; the C router stays the oracle
+
+`aml/wolfe.aml` (1,207 lines) reproduces the vendored C router's whole
+selection path — tokenization, the hash-projected lexical field, IDF,
+Hebbian proximity, tool signatures, example scores, the Boltzmann layer,
+the six-iteration attractor, thresholds and abstention — in AML, on the
+five field intrinsics grown upstream for exactly this
+(`ariannamethod.ai` branch `fable/field-organ`, commit `0db4861`:
+`field_project`/`field_normalize`/`field_dot` carry the exact u64
+FNV-1a/LCG word identity that float32 scalars cannot, plus scalar
+`exp`/`log`). `vendor/wolfe/wolfe.c` is byte-untouched and remains the
+golden oracle.
+
+The measurement that shaped it: an honest float32 shadow of C-WOLFE
+flips **zero of 68 decisions** at a thinnest margin of 2.05e-4 —
+accumulation precision is not load-bearing in this architecture;
+identity precision is. The forbidden move (silently narrowing double to
+float32) was not taken; it was measured, and the real gap turned out to
+be the hash, not the arithmetic.
+
+**Status: measured artifact, not a replacement.** The router keeps
+calling C WOLFE. Activation waits for the field organ to merge upstream
+and for the `deps/aml` pin to move past it — then a separate decision.
+Named limits: zero-argument tool schemas only (the extractor does not
+exist in either body); neural mode only; the field vocabulary bound is
+1,024 words; AML runs the 68-phrase corpus in 1.59 s against the
+oracle's 16 ms, inside the router's 5 s budget.
+
+### Verification
+
+- `node scripts/wolfe-diff.mjs --aml <runner>` — decisions 68/68,
+  evidence tokens 68/68, 64/68 output lines byte-identical, max
+  |Δconfidence| and |Δmargin| 1.00e-6 (one ulp of the `%.6f` contract
+  surface). Corpus: the 35 shipped examples plus held-out phrasings from
+  this repo's tests plus stress lines — `tests/fixtures/wolfe-corpus.jsonl`.
+- Red run: one attention constant in `wolfe.aml` (.78→.80) fails 67/68
+  with deltas ~2e-2; restored by SHA, final run green. The harness bites
+  drift well before a decision flips.
+- `scripts/wolfe-aml-prep.mjs` emits the tool table byte-equal to the
+  live selector's own `tools.json`.
+- Oracle intact: `vendor/wolfe/wolfe.c` SHA unchanged (`dea0df2c…`);
+  the pinned oracle rebuilds with `scripts/build-router.mjs`.
 
 Action memory now retains the complete canonical source journal. Each new v2
 action is staged as a directory containing `receipt` and `world.json`; AML
