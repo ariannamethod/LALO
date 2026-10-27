@@ -31,11 +31,11 @@ async function directory(t) {
 
 test('background CLI saves through real AML and replays the selected original world after new arrivals', async t => {
   const dir = await directory(t), memoryDir = join(dir, 'memory'), journalFile = join(dir, 'world.json');
-  const requestFile = join(dir, 'request.json'), background = createBackground();
-  background.ingest(collection(quake()), { receivedAt: QUAKETIME + 2000 });
-  background.signal({ id: 'don:attention:1', subject: 'agent:don-eduardo', predicate: 'attention_subject',
-    value: 'usgs:synthetic1', source: 'fixture:explicit-action', validFrom: QUAKETIME,
-    validTo: null, recordedAt: QUAKETIME + 2500 });
+  const requestFile = join(dir, 'request.json'), background = await createBackground();
+  await background.receive({ kind: 'usgs', feed: collection(quake()), receivedAt: QUAKETIME + 2000 });
+  await background.receive({ kind: 'signal', fact: { id: 'don:attention:1', subject: 'agent:don-eduardo',
+    predicate: 'attention_subject', value: 'usgs:synthetic1', source: 'fixture:explicit-action', validFrom: QUAKETIME,
+    validTo: null, recordedAt: QUAKETIME + 2500 } });
   const original = background.journal();
   await writeFile(journalFile, original);
   const request = { agent: 'agent:don-eduardo', knownAt: QUAKETIME + 3000,
@@ -46,7 +46,7 @@ test('background CLI saves through real AML and replays the selected original wo
   const first = await cli('select', '--journal', journalFile, '--request', requestFile, '--memory', memoryDir);
   assert.equal(first.memory.state, 'saved');
   assert.equal(first.memory.snapshot.sha256, digest(original));
-  background.ingest(collection(quake({ mag: 3.4, updated: QUAKETIME + 4000 })), { receivedAt: QUAKETIME + 5000 });
+  await background.receive({ kind: 'usgs', feed: collection(quake({ mag: 3.4, updated: QUAKETIME + 4000 })), receivedAt: QUAKETIME + 5000 });
   await writeFile(journalFile, background.journal());
   await writeFile(requestFile, JSON.stringify({ ...request, knownAt: QUAKETIME + 6000 }));
   const second = await cli('select', '--journal', journalFile, '--request', requestFile, '--memory', memoryDir);

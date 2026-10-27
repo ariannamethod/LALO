@@ -13,8 +13,8 @@ const allowed = { ingest: ['--journal'], poll: ['--journal'], select: ['--journa
 const emit = value => new Promise((done, reject) => process.stdout.write(JSON.stringify(value) + '\n', error => error ? reject(error) : done()));
 
 async function readWorld(path, allowMissing = false) {
-  try { return createBackground(await boundedTextFile(path)).journal(); }
-  catch (error) { if (allowMissing && error.code === 'ENOENT') return createBackground().journal(); throw error; }
+  try { return (await createBackground(await boundedTextFile(path))).journal(); }
+  catch (error) { if (allowMissing && error.code === 'ENOENT') return (await createBackground()).journal(); throw error; }
 }
 
 async function writer(path, run) {
@@ -26,11 +26,10 @@ async function writer(path, run) {
   try {
     let journal = await readWorld(path, true);
     await run(async frame => {
-      const next = createBackground(journal);
-      let summary;
-      if (frame?.kind === 'usgs') summary = next.ingest(frame.feed, { receivedAt: frame.receivedAt });
-      else if (frame?.kind === 'signal') summary = { signal: next.signal(frame.fact).id };
-      else throw new TypeError('expected a usgs or signal event frame');
+      // The producer may stamp its own receipt, never one ahead of this receiver.
+      if ((frame?.kind === 'signal' ? frame.fact?.recordedAt : frame?.receivedAt) > Date.now())
+        throw new RangeError('receipt time is ahead of the receiver clock');
+      const next = await createBackground(journal), summary = await next.receive(frame);
       const text = next.journal();
       const handle = await open(temporary, 'wx', 0o600);
       ownsTemporary = true;
@@ -75,7 +74,7 @@ try {
   } else if (mode === 'select') {
     const journal = await readWorld(options['--journal']);
     const request = JSON.parse(await boundedTextFile(options['--request'], 8192));
-    const context = selectBackground(journal, request);
+    const context = await selectBackground(journal, request);
     if (!options['--memory']) await emit(context);
     else {
       const { actionMemory } = await import('./action-memory.mjs');
@@ -97,11 +96,11 @@ try {
       if (options['--head']) query.head = options['--head'];
       const { receipt, journal } = await memory.recall(query);
       if (!receipt || receipt.action.request?.kind !== 'background-context') throw new Error('selected receipt is not a background selection');
-      await emit(replayBackground(JSON.stringify(journal), receipt.action.result));
+      await emit(await replayBackground(JSON.stringify(journal), receipt.action.result));
     } else {
       if (!options['--journal'] || !options['--context'] || options['--sequence'] || options['--head']) throw new Error(usage);
       const saved = JSON.parse(await boundedTextFile(options['--context'], 65_536));
-      await emit(replayBackground(await readWorld(options['--journal']), saved));
+      await emit(await replayBackground(await readWorld(options['--journal']), saved));
     }
   }
 } catch (error) {

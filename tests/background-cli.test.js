@@ -65,6 +65,31 @@ test('bad or torn frames fail visibly, preserving the last accepted journal', as
   assert.deepEqual(await readdir(dir), ['world.json']);
 });
 
+test('location and action frames share the receiver; a receipt ahead of its clock never enters', async tcase => {
+  const dir = await mkdtemp(join(tmpdir(), 'lalo-background-instruments-'));
+  tcase.after(() => rm(dir, { recursive: true, force: true }));
+  const journal = join(dir, 'world.json'), req = join(dir, 'request.json');
+  const fix = { kind: 'location', id: 'fixture1', receivedAt: t + 2100,
+    position: { timestamp: t + 5, coords: { latitude: 12.5, longitude: -34.25, accuracy: 7 } } };
+  const trace = { format: 'lalo/action', version: 1, status: 'executed', request: null, route: null,
+    call: { name: 'lalo_history', arguments: { subject: 'usgs:synthetic1', knownAt: t + 2100 } }, result: null };
+  const action = { kind: 'action', agent: 'agent:don-eduardo', id: 'don:act:1', receivedAt: t + 2200, trace };
+  const ingested = await run(['ingest', '--journal', journal], [frame(), JSON.stringify(fix) + '\n', JSON.stringify(action) + '\n'].join(''));
+  assert.equal(ingested.code, 0, ingested.stderr);
+  assert.deepEqual(ingested.stdout.trim().split('\n').map(line => JSON.parse(line).kind), ['usgs', 'location', 'action']);
+  await writeFile(req, JSON.stringify({ agent: 'agent:don-eduardo', knownAt: t + 3000, stateAt: t + 3000, worldFrom: t, worldTo: t + 10 }));
+  const selected = JSON.parse((await run(['select', '--journal', journal, '--request', req])).stdout);
+  assert.deepEqual(selected.otherInstruments, { location: 1, camera: 0 });
+  assert.equal(selected.state[0].source, 'lalo:action/lalo_history');
+  assert.equal(selected.items[0].reason, 'attention_subject');
+  const before = await readFile(journal, 'utf8');
+  const future = await run(['ingest', '--journal', journal], frame(quake({ id: 'synthetic2' }), Date.now() + 3_650 * 86_400_000));
+  assert.equal(future.code, 1); assert.match(JSON.parse(future.stderr).message, /ahead of the receiver clock/);
+  assert.equal(await readFile(journal, 'utf8'), before);
+  const present = await run(['ingest', '--journal', journal], frame(quake({ id: 'synthetic2' }), Date.now()));
+  assert.equal(present.code, 0, present.stderr);
+});
+
 test('explicit signal frames share the world; failed persistence is visible and stale staging is retained', async tcase => {
   const dir = await mkdtemp(join(tmpdir(), 'lalo-background-signal-'));
   tcase.after(() => rm(dir, { recursive: true, force: true }));

@@ -131,9 +131,10 @@ past stays put. [Action memory contract](docs/ACTION_MEMORY.md).
 
 No Python in LALO's runtime, build or tests.
 
-Let observations arrive while no model is asking. The first event background
-keeps USGS revisions and explicit agent signals in one bounded journal, then
-selects a fresh context with its own event and byte limits:
+LALO plays instruments; the world keeps sounding while no model is asking.
+USGS revisions, device fixes, kept frames and Don's own reads arrive through
+one door into one bounded journal. Each context is a fresh, bounded reading
+of that world with its own event, signal and byte limits:
 
 ```sh
 node examples/background.js
