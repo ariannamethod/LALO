@@ -9,6 +9,10 @@ import { actionMemory, AML_BINARY } from '../scripts/action-memory.mjs';
 import { serve } from '../scripts/serve.mjs';
 import { FactLedger } from '../src/ledger.js';
 import { encodeJournal } from '../src/journal.js';
+import { execFile } from 'node:child_process';
+import { promisify } from 'node:util';
+import { createBackground } from '../src/background.js';
+import { collection, quake, QUAKETIME } from './fixtures/usgs.js';
 
 const digest = text => createHash('sha256').update(text).digest('hex');
 const bundle = (dir, sequence) => join(dir, `${String(sequence).padStart(6, '0')}.action`);
@@ -24,6 +28,37 @@ async function directory(t) {
   const path = await mkdtemp(join(tmpdir(), 'lalo-memory-'));
   t.after(() => rm(path, { recursive: true, force: true })); return path;
 }
+
+test('background CLI saves through real AML and replays the selected original world after new arrivals', async t => {
+  const dir = await directory(t), memoryDir = join(dir, 'memory'), journalFile = join(dir, 'world.json');
+  const requestFile = join(dir, 'request.json'), background = await createBackground();
+  await background.receive({ kind: 'usgs', feed: collection(quake()), receivedAt: QUAKETIME + 2000 });
+  await background.receive({ kind: 'signal', fact: { id: 'don:attention:1', subject: 'agent:don-eduardo',
+    predicate: 'attention_subject', value: 'usgs:synthetic1', source: 'fixture:explicit-action', validFrom: QUAKETIME,
+    validTo: null, recordedAt: QUAKETIME + 2500 } });
+  const original = background.journal();
+  await writeFile(journalFile, original);
+  const request = { agent: 'agent:don-eduardo', knownAt: QUAKETIME + 3000,
+    stateAt: QUAKETIME + 3000, worldFrom: QUAKETIME, worldTo: QUAKETIME + 100 };
+  await writeFile(requestFile, JSON.stringify(request));
+  const cli = async (...args) => JSON.parse((await promisify(execFile)(process.execPath,
+    [new URL('../scripts/background.mjs', import.meta.url).pathname, ...args])).stdout);
+  const first = await cli('select', '--journal', journalFile, '--request', requestFile, '--memory', memoryDir);
+  assert.equal(first.memory.state, 'saved');
+  assert.equal(first.memory.snapshot.sha256, digest(original));
+  await background.receive({ kind: 'usgs', feed: collection(quake({ mag: 3.4, updated: QUAKETIME + 4000 })), receivedAt: QUAKETIME + 5000 });
+  await writeFile(journalFile, background.journal());
+  await writeFile(requestFile, JSON.stringify({ ...request, knownAt: QUAKETIME + 6000 }));
+  const second = await cli('select', '--journal', journalFile, '--request', requestFile, '--memory', memoryDir);
+  assert.equal(second.context.items[0].facts[0].value, 3.4);
+  const replay = await cli('replay', '--memory', memoryDir, '--sequence', '1', '--head', first.memory.head);
+  assert.equal(replay.comparison, 'match');
+  assert.deepEqual(replay.result, first.context);
+  assert.equal(replay.result.items[0].facts[0].value, 2.9);
+  assert.equal(replay.result.state[0].source, 'fixture:explicit-action');
+  await writeFile(join(bundle(memoryDir, 1), 'world.json'), original.replace('2.9', '9.9'));
+  await assert.rejects(cli('replay', '--memory', memoryDir, '--sequence', '1'), /world|World|snapshot/);
+});
 
 test('real AML persists exact UTF-8 and both integer clocks; a fresh host verifies all receipts', async t => {
   const dir = await directory(t), memory = await actionMemory(dir);

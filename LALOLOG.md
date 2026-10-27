@@ -3,6 +3,74 @@
 The engineering record. New entries first. README keeps the pulse; this file
 keeps the measurements, decisions, sources and scars.
 
+## 2026-10-27 — every instrument sounds into one world
+
+The 2026-10-20 event background below was transplanted onto main after #11 and
+#12 (merge commit; the only conflict was the two sides' LALOLOG heads). Three
+probes against the transplanted prototype found three defects. Open agent
+signals accumulated inside every context: at 143 active `attention_subject`
+receipts each default selection threw `agent state and request exceed the
+context byte budget`, so a Don who keeps acting loses his background. A world
+holding one `browser:geolocation` group was rejected with `signal subject must
+be agent:<identifier>`; location and camera receipts had no way in. A stdin
+frame stamped ten years ahead was committed (exit 0), after which an honest
+present-time frame failed with `receipt time precedes the world journal`
+(exit 1). The prototype also described agent actions recording their focus
+without code that connected an action trace to a signal.
+
+`src/background.js` now has one async door, `receive(frame)`, over an
+instrument table: `usgs`, `location`, `camera`, `signal`, plus `action`.
+Every receipt has exactly one owner by subject or source. Each projection
+passes its own adapter's validator (`validateUSGSJournal`, `locationSamples`,
+`cameraFrames` with SHA-256, signal attention values) on arrival, restart and
+selection. The adapters' own budgets hold inside the shared 1024-fact /
+2000000-byte world. Overlapping arrivals are serialized; with the queue
+removed, three successful arrivals committed stale worlds of 8, 3 and 1
+records instead of 8, 11 and 12. An `action` frame turns an executed
+`lalo/action` trace that read a `usgs:` subject into an `attention_subject`
+receipt with source `lalo:action/<tool>`. The next one supersedes it.
+Abstentions, errors and other subjects append nothing. Model-internal state
+has no channel and none is inferred.
+
+Selection policy `usgs-attention-receipt/v2` carries Don's active receipts as
+a newest-first prefix bounded by `maxSignals` (default 8, 0–64) and the byte
+budget, with `stateEligible`/`stateOmitted`. Attention ranks only through
+carried receipts. `limitedBy` lists every budget that cut. `otherInstruments`
+counts location and camera observations in the window that v2 does not select;
+their receipts, the full JPEG included, stay reachable through the existing
+tools. v1 contexts are rejected explicitly. The CLI refuses a receipt ahead of
+its own clock. docs/BACKGROUND.md now opens with the instrument frame: the
+background is the world the instruments resonate in, the context is one
+bounded reading of it.
+
+Local verification: Node v25.9.0, Apple clang 21.0.0, Darwin arm64. Main
+baseline 62/62 offline; after the transplant 70/70; after this step 75/75
+(nine core and four CLI background tests). Ten counted full runs of the final
+tree: four 75/75, six 74/75. The one failing test is the existing
+`action endpoint is opt-in…` in tests/action-http.test.js, unchanged from main:
+fetch reports `ECONNRESET` instead of the 413 for its 2.1 MB body. Main's own
+62-test set without the background files gave 61/62 in five of ten runs, and
+the HTTP file alone failed 10 of 30 runs on this host. `node scripts/build-router.mjs`
+then the native integration: 6/6. Pinned AML 8ebc1b7 built; action-memory
+integration 14/14, including the CLI save and v2 replay of a background
+selection from its original world. All four examples pass. The documented
+offline sequence commits four frames, replays `match` locally, saves through
+AML and replays `match` by sequence. Four mutants each turned a gate red and
+were reverted to their anchored SHA-256: queue removed, attention read from
+all active state, default `maxSignals` 64, future-receipt guard disabled. The
+only network call in the background path is `fetchUSGS()` inside the explicit
+`poll` branch of `scripts/background.mjs`; the portable modules import no
+transport.
+
+Limits: the browser Device and Camera fields still save only to their own
+IndexedDB journals; no producer carries their observations into a host
+background yet. Selection reads USGS events and Don's receipts; location and
+camera are counted, not selected. Stream producers stamp receipt time, bounded
+only by the receiver clock. A local `--journal` replay can report `changed`
+when later receipts fall at or before the saved `knownAt`; AML replay reads
+the exact original world. No browser gate or phone measurement was run; this
+step adds no visual surface.
+
 ## 2026-10-20 — the camera keeps its frame in the world
 
 Camera opens only on a click and captures only on a second click. Capture,
@@ -71,6 +139,69 @@ code `3d0e60ac`, passes all three jobs on Node v24.14.0 and Chrome
 155.0.8059.39. The first browser attempt hit the existing 15-second Chrome
 startup deadline before opening the application; its retry passed unchanged.
 Desktop and 390-pixel screenshots were downloaded and visually inspected.
+
+## 2026-10-20 — observations arrive outside the context window
+
+The first event background receives bounded USGS batches independently of model
+calls. `createBackground` keeps source observations and explicit `agent:*`
+signals in the existing two-clock FactLedger, under one 1024-record / 2000000-byte
+budget. USGS validation runs on the ordered source projection: complete versions,
+event/source identity, companion fields, source updates and predecessor links.
+Every mutation stages and validates a complete candidate before replacing the
+world. A batch has at most 64 events. Exhaustion rejects the complete operation;
+accepted history remains intact. Duplicate/stale source updates report counts.
+
+The separate `usgs-attention-receipt/v1` policy resolves source revisions at the
+knowledge cutoff, then filters origin times. Active, explicitly supplied
+`attention_subject` signals rank matching events before receipt order and a
+stable subject tie-break. Other scalar signals remain sourced state evidence.
+The agent is a subject in the same world and can record its chosen focus through
+this boundary. Acquisition of model-internal signals remains an open interface;
+the prototype receives host/agent observations with explicit source and clocks.
+
+Context is a fresh bounded projection: default eight complete event versions and
+32768 UTF-8 bytes, including request, state evidence, policy, reasons and omission
+counts. Callers replace the previous context. History stays outside that context
+and remains readable by the existing tools. A correction moving an event outside
+the requested window removes it without reviving its older version. Replay uses
+the original request and policy and reports match/changed for the complete result.
+
+`background.mjs ingest` consumes newline-delimited events without network access,
+persists each accepted frame before EOF and permits independent local selection
+readers. An exclusive lock serializes writers. A synced bounded staging file is
+renamed over the journal, followed by directory sync; acknowledgments distinguish
+saved/unconfirmed persistence. Invalid or torn frames stop with a visible error.
+Interrupted lock/staging files require inspection and are never silently adopted
+or deleted. `poll` explicitly requests one bounded fetch through the existing
+USGS HTTP transport. No startup poll, scheduler or background network loop was
+added. Persistent acquisition can be driven by an external producer independently
+of any context reader.
+
+Optional `select --memory` uses the existing AML v2 action/world storage, shared
+snapshots, chain, streamed SHA-256 and canonical readback. A local selection action
+has `request.kind = background-context`, a null route/call and its result. Its CLI
+replay selects the saved sequence/head and opens that exact world; the six-tool
+native router and routed-action replay retain their existing contracts. Failed
+memory writes return the selected context with a separate failure acknowledgment.
+No new dependency, source pin or memory format was introduced.
+
+Verification: Node v24.19.0, GCC 13.3.0, Linux x86_64. All 77 tests pass: 57 offline
+(`node --test tests/*.test.js`), six native (`node scripts/build-router.mjs` then
+`node --test tests/native-router.integration.mjs`), 14 real AML (`node
+scripts/build-aml.mjs` then `node --test tests/action-memory.integration.mjs`).
+Eight new offline tests cover independent readers before input EOF, restart,
+exclusive writers, broken/torn/oversized input, retained staging, source validation,
+atomic record/byte limits, old and moved event times, state at both clocks, null
+magnitude, deterministic ranking, complete-event UTF-8 limits and replay. The new
+AML gate saves two worlds through the CLI, replays the first by sequence/head and
+rejects its damaged snapshot. The pinned AML build repeats its existing
+`am_tape_backward` allocation-bound compiler warning.
+
+All four examples pass. The synthetic frame producer → persistent receiver →
+selection → replay commands from docs/BACKGROUND.md also run locally. The new
+example is in the existing core CI job. `git diff --check` passes. Local browser
+gate (`node scripts/browser-check.mjs`) fails to launch with `spawn google-chrome
+ENOENT`; no browser executable is installed. This change adds no visual surface.
 
 ## 2026-10-17 — the action keeps the world it read
 

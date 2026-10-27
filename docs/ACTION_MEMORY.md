@@ -1,5 +1,12 @@
 # Actions survive a restart
 
+The [event background](BACKGROUND.md) also uses this v2 storage through
+`background.mjs select --memory DIRECTORY`. Its explicit local selection action
+has `request.kind = background-context`, a null route/call and the selected
+context in `result`. `background.mjs replay --memory DIRECTORY --sequence N`
+reproduces it from the verified original world using its versioned selection
+policy. The tool-call replay below continues to handle routed actions.
+
 The optional host memory stores the full `lalo/action` trace: request, routing
 decision, explicit call, result and errors. Each new action retains the complete
 canonical journal used by that call, its SHA-256, byte and record counts, plus the host's save

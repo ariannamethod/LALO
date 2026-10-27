@@ -131,6 +131,18 @@ past stays put. [Action memory contract](docs/ACTION_MEMORY.md).
 
 No Python in LALO's runtime, build or tests.
 
+LALO plays instruments; the world keeps sounding while no model is asking.
+USGS revisions, device fixes, kept frames and Don's own reads arrive through
+one door into one bounded journal. Each context is a fresh, bounded reading
+of that world with its own event, signal and byte limits:
+
+```sh
+node examples/background.js
+```
+
+Offline and reproducible. Stream input, one-shot live acquisition and optional
+AML snapshot replay: [Event background](docs/BACKGROUND.md).
+
 [God's Eye View](https://github.com/bilawalsidhu/gods-eye-view) informs the world
 sources; [Utopia](https://github.com/deeplethe/utopia) informs time and provenance.
 This repository grows separately from the upstream contribution fork.
