@@ -27,7 +27,7 @@ try {
         let request;
         try { request = JSON.parse(frame.text); }
         catch { response = { jsonrpc: '2.0', id: null, error: { code: -32700, message: 'Invalid JSON' } }; }
-        if (!response) response = session.handle(request);
+        if (!response) response = await session.handle(request);
       }
       if (response) await send(response);
     }

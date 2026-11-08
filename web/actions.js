@@ -1,12 +1,14 @@
 import { routeRequest, ROUTE_BUDGET } from '../src/route.js';
 import { TOOL_BUDGET } from '../src/tools.js';
 import { actionWorld } from './action-world.js';
+import { calendarSummary } from './calendar.js';
 
 const intents = {
   reading: ['Read this hypothesis', 'please check the conflicting evidence'],
   facts: ['Read active facts', 'get the active observations please'],
   history: ['Read receipt history', 'please inspect earlier observations'],
   lineage: ['Follow selected revision', 'follow the correction chain please'],
+  calendar: ['Read selected receipt in JANUS', 'show the janus calendar coordinates please'],
   subjects: ['Discover known subjects', 'show the known subjects please'],
   status: ['Inspect journal limits', 'please inspect the journal limits'],
 };
@@ -91,7 +93,7 @@ export function actionPanel({ getContext, select, highlight, presets = Object.ke
       args.subject = c.subject; args.predicate = c.predicate;
     }
     if (preset === 'reading') { args.rule = c.rule; Object.assign(args, c.ruleArguments); }
-    if (preset === 'lineage' && c.selected) args.id = c.selected;
+    if (['lineage', 'calendar'].includes(preset) && c.selected) args.id = c.selected;
     $('action-intent').value = intents[preset][1];
     $('action-args').value = JSON.stringify(args, null, 2);
   }
@@ -136,7 +138,8 @@ export function actionPanel({ getContext, select, highlight, presets = Object.ke
       }
       target.append(list);
       $('action-next').hidden = submitted?.restored || data.nextOffset === null;
-    } else if (data) target.append(element('p', `${data.records} receipts in the submitted journal.`, 'small'));
+    } else if (data?.calendar) target.append(element('p', calendarSummary(data.calendar)));
+    else if (data) target.append(element('p', `${data.records} receipts in the submitted journal.`, 'small'));
     const raw = element('details', '', 'action-raw');
     raw.append(element('summary', 'Complete action / decision / receipts'), element('pre', JSON.stringify(trace, null, 2)));
     target.append(raw);

@@ -101,10 +101,12 @@ try {
     const {crossingDemo,START,SUBJECT,PREDICATE}=await import('/src/crossing-demo.js');
     const demo=crossingDemo();demo.receive();demo.receive();demo.receive();
     const host=createToolHost(demo.ledger);
-    return {count:host.list().length,result:host.call('lalo_reading',{
+    const id=demo.ledger.entries()[0].id;
+    return {count:host.list().length,calendar:await host.call('lalo_calendar',{id,knownAt:demo.latest}),result:host.call('lalo_reading',{
       subject:SUBJECT,predicate:PREDICATE,rule:'unanimous-boolean/v1',knownAt:demo.latest,validAt:START,limit:1})};
   })()`);
-  assert.equal(portableTools.count, 6);
+  assert.equal(portableTools.count, 7);
+  assert.equal(portableTools.calendar.data.calendar.civil.schema, 'janus.calendar/1');
   assert.equal(portableTools.result.data.reading.state, 'contested');
   assert.equal(portableTools.result.data.reading.premiseCount, 3);
   assert.equal(portableTools.result.data.items.length, 1);

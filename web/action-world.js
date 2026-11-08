@@ -1,6 +1,7 @@
 import { decodeJournal } from '../src/journal.js';
 import { TOOL_BUDGET } from '../src/tools.js';
 import { createActionReplay } from '../src/action-replay.js';
+import { calendarSummary } from './calendar.js';
 import { cameraFrames, CAMERA_SOURCE } from '../src/sources/camera.js';
 
 const element = (tag, text, className) => {
@@ -57,8 +58,8 @@ export async function actionWorld(root, { receipt, journal }) {
   evidence.id = 'world-replay-evidence';
   const raw = element('details', '', 'action-raw'), output = element('pre', ''); output.id = 'world-replay-result';
   raw.append(element('summary', 'Complete reproduced call / result'), output); raw.hidden = true;
-  function reproduce(nextPage = false) {
-    report = replay.read(nextPage ? report.result.data.nextOffset : undefined);
+  async function reproduce(nextPage = false) {
+    report = await replay.read(nextPage ? report.result.data.nextOffset : undefined);
     root.dataset.comparison = report.comparison;
     status.textContent = report.comparison === 'match' ? 'Original result reproduced.'
       : report.comparison === 'changed' ? 'Current tool result differs from the saved result. Both remain available.'
@@ -78,7 +79,8 @@ export async function actionWorld(root, { receipt, journal }) {
         } else li.append(element('p', `${row.subject} · ${row.receipts} receipts`, 'small'));
         evidence.append(li);
       }
-    } else if (data) summary.append(element('p', `${data.records} receipts in the original journal.`, 'small'));
+    } else if (data?.calendar) summary.append(element('p', calendarSummary(data.calendar)));
+    else if (data) summary.append(element('p', `${data.records} receipts in the original journal.`, 'small'));
     else summary.append(element('p', `${result.error.code}: ${result.error.message}`, 'small'));
     raw.hidden = false; output.textContent = JSON.stringify(report, null, 2);
     more.hidden = !report.result.ok || !Number.isInteger(report.result.data?.nextOffset);

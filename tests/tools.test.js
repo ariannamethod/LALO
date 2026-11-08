@@ -94,6 +94,6 @@ test('input validation rejects coercion, ignored parameters and unsupported tool
   }
   assert.equal(host.call('constructor').error.code, 'UNKNOWN_TOOL');
   assert.equal(host.call('lalo_reading', { subject: 'x', predicate: 'open', rule: RULE, knownAt: 100, validAt: 10, threshold: 3 }).error.code, 'INVALID_ARGUMENTS');
-  assert.equal(listTools().length, 6);
+  assert.equal(listTools().length, 7);
   for (const t of listTools()) assert.ok(Object.values(t.parameters.properties).every(p => ['string', 'number', 'integer', 'boolean'].includes(p.type)));
 });

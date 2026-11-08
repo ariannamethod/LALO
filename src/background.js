@@ -48,11 +48,21 @@ const kinds = Object.keys(INSTRUMENTS);
 
 // The agent's own executed read is an act LALO observes. It is the one agent
 // state channel available today; model-internal state has no channel here.
-function actionFact(signals, { agent, id, receivedAt, trace }) {
+function actionFact(signals, world, { agent, id, receivedAt, trace }) {
   if (!isAgent(agent)) throw new TypeError('agent must be agent:<identifier>');
   if (trace?.format !== 'lalo/action' || trace.version !== 1) throw new TypeError('expected a LALO action trace');
-  const subject = trace.call?.arguments?.subject;
-  if (trace.status !== 'executed' || !isQuake(subject)) return null;
+  if (trace.status !== 'executed') return null;
+  const args = trace.call?.arguments;
+  let subject = args?.subject;
+  if (trace.call?.name === 'lalo_calendar') {
+    const assertion = trace.result?.data?.calendar?.assertion;
+    if (!trace.result?.ok || !assertion || !Number.isSafeInteger(args?.knownAt)) return null;
+    const target = world.entries().find(f => f.id === args?.id && f.recordedAt <= args.knownAt);
+    // Calendar provenance carries every ledger field except the observed value.
+    if (!target || !Object.keys(target).every(key => key === 'value' || target[key] === assertion[key])) return null;
+    subject = target.subject;
+  }
+  if (!isQuake(subject)) return null;
   if (!/^lalo_[a-z]{1,32}$/.test(trace.call.name)) throw new TypeError('action names an unknown tool');
   const all = signals.entries(), replaced = new Set(all.map(f => f.supersedes));
   const head = all.filter(f => f.subject === agent && f.predicate === 'attention_subject'
@@ -87,7 +97,7 @@ export async function createBackground(journal = encodeJournal(new FactLedger())
   async function arrive(frame) {
     if (frame?.kind === 'action') {
       const { parts } = await readBackground(encodeJournal(world, budget), budget);
-      const fact = actionFact(parts.signal, frame);
+      const fact = actionFact(parts.signal, world, frame);
       if (!fact) return { kind: 'action', receipts: 0, signal: null, records: world.size };
       return { ...await arrive({ kind: 'signal', fact }), kind: 'action' };
     }

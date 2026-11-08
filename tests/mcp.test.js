@@ -27,7 +27,7 @@ test('MCP negotiates a fixed tools capability and distinguishes protocol and too
   assert.equal(hello.result.protocolVersion, MCP_VERSION); assert.deepEqual(hello.result.capabilities, { tools: { listChanged: false } });
   assert.equal(s.handle(request(2, 'tools/list')).error.code, -32002);
   assert.equal(s.handle(initialized), null);
-  assert.equal(s.handle(request(3, 'tools/list')).result.tools.length, 6);
+  assert.equal(s.handle(request(3, 'tools/list')).result.tools.length, 7);
   assert.equal(s.handle(request(4, 'tools/list', { cursor: 'invented' })).error.code, -32602);
   assert.equal(s.handle(request(5, 'tools/call', { name: 'not_registered' })).error.code, -32602);
   const invalid = s.handle(request(6, 'tools/call', { name: 'lalo_facts', arguments: { knownAt: '100', validAt: 10 } }));
@@ -63,16 +63,19 @@ test('real stdio process serves discovery and two-clock calls, recovers from bad
   try {
     const file = join(dir, 'world.json'); await writeFile(file, encodeJournal(fixture()));
     const lines = [init, initialized, request(2, 'tools/list'), request(3, 'tools/call', { name: 'lalo_facts', arguments: { knownAt: 100, validAt: 10 } }),
-      request(4, 'tools/call', { name: 'lalo_lineage', arguments: { id: 'a2', knownAt: 200 } })].map(JSON.stringify).join('\n');
+      request(4, 'tools/call', { name: 'lalo_lineage', arguments: { id: 'a2', knownAt: 200 } }),
+      request(9, 'tools/call', { name: 'lalo_calendar', arguments: { id: 'a2', knownAt: 200 } })].map(JSON.stringify).join('\n');
     const input = lines + '\n' + 'x'.repeat(40_000) + '\n{bad json}\n' + JSON.stringify(request(5, 'ping')) + '\n';
     const child = spawnSync(process.execPath, ['scripts/mcp.mjs', '--journal', file], { input, encoding: 'utf8', timeout: 10000, maxBuffer: 1_000_000 });
     assert.equal(child.status, 0, child.stderr); assert.match(child.stderr, /2 receipts, fixed snapshot/);
     const messages = child.stdout.trim().split('\n').map(JSON.parse);
-    assert.equal(messages.length, 7); assert.equal(messages[1].result.tools.length, 6);
+    assert.equal(messages.length, 8); assert.equal(messages[1].result.tools.length, 7);
     assert.equal(messages[2].result.structuredContent.data.items[0].id, 'a1');
     assert.deepEqual(messages[3].result.structuredContent.data.items.map(f => f.id), ['a1', 'a2']);
-    assert.equal(messages[4].error.code, -32700); assert.equal(messages[5].error.code, -32700);
-    assert.deepEqual(messages[6], { jsonrpc: '2.0', id: 5, result: {} });
+    assert.equal(messages[4].result.structuredContent.data.calendar.lag.milliseconds, 190);
+    assert.deepEqual(JSON.parse(messages[4].result.content[0].text), messages[4].result.structuredContent);
+    assert.equal(messages[5].error.code, -32700); assert.equal(messages[6].error.code, -32700);
+    assert.deepEqual(messages[7], { jsonrpc: '2.0', id: 5, result: {} });
     assert.equal(await boundedTextFile(file), encodeJournal(fixture()));
     await writeFile(file, Buffer.from([0xff]));
     const broken = spawnSync(process.execPath, ['scripts/mcp.mjs', '--journal', file], { input: '', encoding: 'utf8', timeout: 10000 });

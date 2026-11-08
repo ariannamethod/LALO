@@ -1,20 +1,25 @@
 // Deterministic context projection. It cannot fetch, append or start a worker.
 import { readBackground, isAgent, isQuake } from './background.js';
+import { knownReceipt, receiptCalendar } from './janus-calendar.js';
 
-export const BACKGROUND_POLICY = 'usgs-attention-receipt/v2';
+const PREVIOUS_POLICY = 'usgs-attention-receipt/v2';
+export const BACKGROUND_POLICY = 'usgs-attention-janus/v3';
 export const CONTEXT_BUDGET = Object.freeze({ maxEvents: 8, maxSignals: 8, maxBytes: 32_768 });
 const bytes = value => new TextEncoder().encode(JSON.stringify(value)).length;
 const canonical = value => JSON.stringify(value, (_, v) => v && typeof v === 'object' && !Array.isArray(v)
   ? Object.fromEntries(Object.keys(v).sort().map(k => [k, v[k]])) : v);
 const order = (a, b) => a < b ? -1 : a > b ? 1 : 0;
 
-function requestFor(input) {
+function requestFor(input, version) {
   const keys = ['agent', 'knownAt', 'stateAt', 'worldFrom', 'worldTo', 'subject', 'maxEvents', 'maxSignals', 'maxBytes'];
+  if (version === 3) keys.push('originId');
   if (!input || typeof input !== 'object' || Array.isArray(input)
     || Object.keys(input).some(key => !keys.includes(key))) throw new TypeError('invalid background selection request');
   const request = { ...input };
   for (const key of ['maxEvents', 'maxSignals', 'maxBytes']) request[key] = input[key] ?? CONTEXT_BUDGET[key];
   if (!isAgent(request.agent)) throw new TypeError('agent must be agent:<identifier>');
+  if (request.originId !== undefined && (typeof request.originId !== 'string'
+    || !request.originId.trim() || request.originId.length > 512)) throw new TypeError('invalid calendar origin receipt ID');
   for (const key of ['knownAt', 'stateAt', 'worldFrom', 'worldTo'])
     if (!Number.isSafeInteger(request[key])) throw new TypeError(`${key} must be an integer timestamp`);
   if (request.worldTo <= request.worldFrom) throw new RangeError('worldTo must be after worldFrom');
@@ -26,8 +31,11 @@ function requestFor(input) {
   return request;
 }
 
-export async function selectBackground(journal, input) {
-  const request = requestFor(input), { world, parts, views } = await readBackground(journal);
+export function selectBackground(journal, input) { return projectBackground(journal, input, 3); }
+
+async function projectBackground(journal, input, version) {
+  const request = requestFor(input, version), { world, parts, views } = await readBackground(journal);
+  const origin = request.originId === undefined ? null : knownReceipt(world.entries(), request.originId, request.knownAt);
   const inWindow = (observedAt, receivedAt) => receivedAt <= request.knownAt
     && observedAt >= request.worldFrom && observedAt < request.worldTo;
   // Newest agent receipts first; the context carries a bounded prefix of them.
@@ -42,7 +50,7 @@ export async function selectBackground(journal, input) {
   // move an event out of the requested window without reviving its old version.
   const candidates = [...heads.values()].filter(([f]) => f.validFrom >= request.worldFrom && f.validFrom < request.worldTo
     && (request.subject === undefined || f.subject === request.subject));
-  const result = { format: 'lalo/background-context', version: 2, policy: BACKGROUND_POLICY, request,
+  const result = { format: 'lalo/background-context', version, policy: version === 2 ? PREVIOUS_POLICY : BACKGROUND_POLICY, request,
     state: [], stateEligible: active.length, stateOmitted: active.length,
     items: [], eligible: candidates.length, omitted: candidates.length, complete: false, limitedBy: [],
     // Instruments this policy does not select: observations inside the window, known at the cutoff.
@@ -66,7 +74,10 @@ export async function selectBackground(journal, input) {
   for (const facts of candidates) {
     if (result.items.length === request.maxEvents) { limit('maxEvents'); break; }
     const f = facts[0];
-    result.items.push({ subject: f.subject, reason: attention.has(f.subject) ? 'attention_subject' : 'receipt_order', facts });
+    const item = { subject: f.subject, reason: attention.has(f.subject) ? 'attention_subject' : 'receipt_order', facts };
+    // All eight validated companion assertions share the clocks of this revision.
+    if (version === 3) item.calendar = await receiptCalendar(f, origin);
+    result.items.push(item);
     result.omitted--;
     if (!fits()) { result.items.pop(); result.omitted++; limit('maxBytes'); break; }
   }
@@ -77,9 +88,10 @@ export async function selectBackground(journal, input) {
 // The original full journal can be kept by the existing AML world snapshots.
 // Replay checks the recorded policy and compares the complete result.
 export async function replayBackground(journal, saved) {
-  if (saved?.format !== 'lalo/background-context' || saved.version !== 2 || saved.policy !== BACKGROUND_POLICY)
+  if (saved?.format !== 'lalo/background-context' ||
+    !(saved.version === 2 && saved.policy === PREVIOUS_POLICY || saved.version === 3 && saved.policy === BACKGROUND_POLICY))
     throw new TypeError('unsupported background context or policy');
-  const result = await selectBackground(journal, saved.request);
+  const result = await projectBackground(journal, saved.request, saved.version);
   return { format: 'lalo/background-replay', version: 1,
     comparison: canonical(result) === canonical(saved) ? 'match' : 'changed', result };
 }

@@ -62,7 +62,7 @@ export function createRouteSession(host, router) {
         scoreKind: 'routing activation, not factual reliability', explanation: d.reasoning };
       if (d.status !== 'call') { trace.status = d.status; return trace; }
       trace.call = { name: d.calls[0].name, arguments: copy(trace.request.arguments), argumentSource: 'request.arguments' };
-      trace.result = host.call(trace.call.name, trace.call.arguments);
+      trace.result = await host.call(trace.call.name, trace.call.arguments);
       trace.status = trace.result.ok ? 'executed' : 'tool_error';
       if (bytes(JSON.stringify(trace)) > ROUTE_BUDGET.maxTraceBytes)
         throw fail('TRACE_BUDGET', 'Action trace exceeds 196608 bytes');

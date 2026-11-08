@@ -1,0 +1,134 @@
+{
+  "format": "lalo/background-context",
+  "version": 2,
+  "policy": "usgs-attention-receipt/v2",
+  "request": {
+    "agent": "agent:don-eduardo",
+    "knownAt": 1792065603000,
+    "stateAt": 1792065603000,
+    "worldFrom": 1792065600000,
+    "worldTo": 1792065600100,
+    "maxEvents": 1,
+    "maxSignals": 8,
+    "maxBytes": 32768
+  },
+  "state": [
+    {
+      "id": "don:attention:1",
+      "subject": "agent:don-eduardo",
+      "predicate": "attention_subject",
+      "value": "usgs:synthetic1",
+      "source": "fixture:explicit-agent-action",
+      "validFrom": 1792065602000,
+      "validTo": null,
+      "recordedAt": 1792065603000,
+      "supersedes": null
+    }
+  ],
+  "stateEligible": 1,
+  "stateOmitted": 0,
+  "items": [
+    {
+      "subject": "usgs:synthetic1",
+      "reason": "attention_subject",
+      "facts": [
+        {
+          "id": "usgs:synthetic1:1792065601000:magnitude",
+          "subject": "usgs:synthetic1",
+          "predicate": "magnitude",
+          "value": 2.9,
+          "source": "https://earthquake.usgs.gov/earthquakes/eventpage/synthetic1",
+          "validFrom": 1792065600000,
+          "validTo": 1792065600001,
+          "recordedAt": 1792065602000,
+          "supersedes": null
+        },
+        {
+          "id": "usgs:synthetic1:1792065601000:magnitude_type",
+          "subject": "usgs:synthetic1",
+          "predicate": "magnitude_type",
+          "value": "ml",
+          "source": "https://earthquake.usgs.gov/earthquakes/eventpage/synthetic1",
+          "validFrom": 1792065600000,
+          "validTo": 1792065600001,
+          "recordedAt": 1792065602000,
+          "supersedes": null
+        },
+        {
+          "id": "usgs:synthetic1:1792065601000:longitude",
+          "subject": "usgs:synthetic1",
+          "predicate": "longitude",
+          "value": 30,
+          "source": "https://earthquake.usgs.gov/earthquakes/eventpage/synthetic1",
+          "validFrom": 1792065600000,
+          "validTo": 1792065600001,
+          "recordedAt": 1792065602000,
+          "supersedes": null
+        },
+        {
+          "id": "usgs:synthetic1:1792065601000:latitude",
+          "subject": "usgs:synthetic1",
+          "predicate": "latitude",
+          "value": 40,
+          "source": "https://earthquake.usgs.gov/earthquakes/eventpage/synthetic1",
+          "validFrom": 1792065600000,
+          "validTo": 1792065600001,
+          "recordedAt": 1792065602000,
+          "supersedes": null
+        },
+        {
+          "id": "usgs:synthetic1:1792065601000:depth_km",
+          "subject": "usgs:synthetic1",
+          "predicate": "depth_km",
+          "value": 8,
+          "source": "https://earthquake.usgs.gov/earthquakes/eventpage/synthetic1",
+          "validFrom": 1792065600000,
+          "validTo": 1792065600001,
+          "recordedAt": 1792065602000,
+          "supersedes": null
+        },
+        {
+          "id": "usgs:synthetic1:1792065601000:place",
+          "subject": "usgs:synthetic1",
+          "predicate": "place",
+          "value": "Synthetic crossing",
+          "source": "https://earthquake.usgs.gov/earthquakes/eventpage/synthetic1",
+          "validFrom": 1792065600000,
+          "validTo": 1792065600001,
+          "recordedAt": 1792065602000,
+          "supersedes": null
+        },
+        {
+          "id": "usgs:synthetic1:1792065601000:event_type",
+          "subject": "usgs:synthetic1",
+          "predicate": "event_type",
+          "value": "earthquake",
+          "source": "https://earthquake.usgs.gov/earthquakes/eventpage/synthetic1",
+          "validFrom": 1792065600000,
+          "validTo": 1792065600001,
+          "recordedAt": 1792065602000,
+          "supersedes": null
+        },
+        {
+          "id": "usgs:synthetic1:1792065601000:source_updated_at",
+          "subject": "usgs:synthetic1",
+          "predicate": "source_updated_at",
+          "value": 1792065601000,
+          "source": "https://earthquake.usgs.gov/earthquakes/eventpage/synthetic1",
+          "validFrom": 1792065600000,
+          "validTo": 1792065600001,
+          "recordedAt": 1792065602000,
+          "supersedes": null
+        }
+      ]
+    }
+  ],
+  "eligible": 1,
+  "omitted": 0,
+  "complete": true,
+  "limitedBy": [],
+  "otherInstruments": {
+    "location": 1,
+    "camera": 0
+  }
+}

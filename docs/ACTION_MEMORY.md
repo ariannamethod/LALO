@@ -24,10 +24,10 @@ node scripts/build-aml.mjs
 node scripts/serve.mjs --router --memory build/action-memory
 ```
 
-No npm packages. The portable JS core and ordinary visual field do not load
-or require AML. The pinned language is an optional Git submodule at
-`8ebc1b7e9333dcf062fdc32d3e6f935efd6f2595`; its own license and attribution stay
-in `deps/aml`. Build checks that pin. Only its C interpreter is compiled.
+The LALO gitlink at `deps/aml` pins the shared AML revision for JANUS and action
+memory. The memory build checks the checkout against that gitlink and compiles
+the C interpreter. JANUS loads AML's bundled C/WASM module on its first read.
+The upstream license and attribution travel with the submodule.
 The pinned compiler currently warns about an allocation bound in the existing
 autodiff code; LALO does not use that code in these memory programs.
 

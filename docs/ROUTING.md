@@ -1,6 +1,6 @@
 # From intent to receipts
 
-LALO's optional C body selects one of the six world tools. JavaScript supplies
+LALO's optional C body selects one of the seven world tools. JavaScript supplies
 the explicitly requested arguments, validates them through the tool host and
 returns an action trace. It reads one fixed journal snapshot per session.
 
@@ -49,11 +49,12 @@ meaning; prose cannot narrow them. Missing required values fail validation.
 | read receipt history | lalo_history |
 | trace revision lineage | lalo_lineage |
 | read hypothesis | lalo_reading |
+| read janus calendar | lalo_calendar |
 
-The initial corpus contains 35 English examples, including no-call examples.
+The corpus contains 40 English examples, including no-call examples.
 The native field also derives examples from tool names/descriptions. Routing
-is statistical: paraphrases can abstain or select incorrectly. The six examples
-above and six held-out phrasings have executable tests; this is not a general
+is statistical: paraphrases can abstain or select incorrectly. The native gate
+exercises all seven heads with held-out phrasings; this is not a general
 language benchmark. UTF-8 subjects and source strings travel unchanged in JSON.
 
 ## Action contract

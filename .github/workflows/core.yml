@@ -10,6 +10,7 @@ jobs:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
           persist-credentials: false
+          submodules: true
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
         with:
           node-version: 24.14.0
@@ -53,5 +54,7 @@ jobs:
           node-version: 24.14.0
       - run: node scripts/build-router.mjs
       - run: node scripts/build-aml.mjs
+      - run: make -C deps/aml calendar-bridge
+      - run: node --test tests/janus-calendar.integration.mjs
       - run: node --test tests/action-memory.integration.mjs
       - run: node scripts/wolfe-diff.mjs

@@ -19,7 +19,7 @@ const fixture = () => {
   return world;
 };
 
-test('real neural body selects all six tools and executes explicit UTF-8 scope with both clocks', async t => {
+test('real neural body selects all seven tools and executes explicit UTF-8 scope with both clocks', async t => {
   const router = await createNativeRouter(); t.after(() => router.close());
   const host = createToolHost(fixture()), session = createRouteSession(host, router);
   // Held-out wording: these complete phrases do not occur in the shipped corpus.
@@ -31,12 +31,13 @@ test('real neural body selects all six tools and executes explicit UTF-8 scope w
     ['follow the correction chain please', 'lalo_lineage', { knownAt: 200, id: 'a2' }],
     ['please check the conflicting evidence', 'lalo_reading', { knownAt: 150, validAt: 10, subject: 'переправа:север',
       predicate: 'open', rule: 'unanimous-boolean/v1', limit: 1 }],
+    ['show the janus calendar coordinates please', 'lalo_calendar', { knownAt: 200, id: 'a2', originId: 'a1' }],
   ];
   for (const [text, name, args] of cases) {
     const trace = await session.call({ text, arguments: args });
     assert.equal(trace.status, 'executed', JSON.stringify(trace));
     assert.equal(trace.call.name, name); assert.deepEqual(trace.call.arguments, args);
-    assert.deepEqual(trace.result, host.call(name, args));
+    assert.deepEqual(trace.result, await host.call(name, args));
   }
   const trace = await session.call({ text: 'read hypothesis', arguments: cases[5][2] });
   assert.equal(trace.result.data.reading.state, 'contested'); assert.equal(trace.result.data.reading.premiseCount, 2);
@@ -132,4 +133,15 @@ test('real C action bridge reads a submitted world over HTTP and shuts down clea
   assert.equal(trace.call.name, 'lalo_reading'); assert.equal(trace.status, 'executed');
   assert.equal(trace.result.data.reading.state, 'contested');
   assert.deepEqual(trace.result.data.items.map(row => row.fact.id), ['a1', 'b1']);
+  const bundle = await fetch(`${origin}/deps/aml/janus/calendar_browser.mjs`);
+  assert.equal(bundle.status, 200);
+  assert.match(bundle.headers.get('content-type'), /javascript/);
+  assert.equal((await fetch(`${origin}/deps/aml/janus/calendar_bridge.c`)).status, 404);
+  const calendar = await fetch(`${origin}/api/action`, { method: 'POST', headers: { Origin: origin, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ journal: JSON.parse(encodeJournal(fixture())),
+      request: { text: 'read janus calendar', arguments: { id: 'a2', knownAt: 200 } } }) });
+  const action = await calendar.json();
+  assert.equal(action.status, 'executed');
+  assert.equal(action.result.data.calendar.assertion.id, 'a2');
+  assert.equal(action.result.data.calendar.lag.milliseconds, 190);
 });
