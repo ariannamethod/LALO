@@ -45,6 +45,7 @@ test('background CLI saves through real AML and replays the selected original wo
     [new URL('../scripts/background.mjs', import.meta.url).pathname, ...args])).stdout);
   const first = await cli('select', '--journal', journalFile, '--request', requestFile, '--memory', memoryDir);
   assert.equal(first.memory.state, 'saved');
+  assert.equal(first.context.items[0].calendar.lag.seconds, 2);
   assert.equal(first.memory.snapshot.sha256, digest(original));
   await background.receive({ kind: 'usgs', feed: collection(quake({ mag: 3.4, updated: QUAKETIME + 4000 })), receivedAt: QUAKETIME + 5000 });
   await writeFile(journalFile, background.journal());
@@ -55,6 +56,7 @@ test('background CLI saves through real AML and replays the selected original wo
   assert.equal(replay.comparison, 'match');
   assert.deepEqual(replay.result, first.context);
   assert.equal(replay.result.items[0].facts[0].value, 2.9);
+  assert.equal(replay.result.items[0].calendar.assertion.id, replay.result.items[0].facts[0].id);
   assert.equal(replay.result.state[0].source, 'fixture:explicit-action');
   await writeFile(join(bundle(memoryDir, 1), 'world.json'), original.replace('2.9', '9.9'));
   await assert.rejects(cli('replay', '--memory', memoryDir, '--sequence', '1'), /world|World|snapshot/);

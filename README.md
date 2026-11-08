@@ -23,6 +23,7 @@ which. Ask the same question with yesterday's knowledge. Get yesterday's answer.
 ## run it
 
 ```sh
+git submodule update --init deps/aml
 node examples/earthquake.js
 node --test tests/*.test.js
 node scripts/serve.mjs
@@ -94,7 +95,7 @@ preserves images; it does not identify what they depict.
 
 ## call the world
 
-Six tools give models facts, history, lineage and conclusions with receipts.
+Seven tools give models facts, history, lineage, rule readings and JANUS calendar coordinates.
 The portable JS host and the local MCP server read the same journal:
 
 ```sh
@@ -114,7 +115,9 @@ node scripts/serve.mjs --router
 ```
 
 Ask from any visual field. Follow the call into its receipts. Rewind without
-rewriting the answer. One warm C field. Six tools. No invented clocks. [Routing contract](docs/ROUTING.md).
+rewriting the answer. Choose **Read selected receipt in JANUS** to see its Gregorian
+and Hebrew date, JANUS epoch day and signed delay between occurrence and receipt.
+The same call works through MCP and the route CLI. [Routing contract](docs/ROUTING.md).
 
 Give him a memory that survives the host:
 
@@ -139,6 +142,12 @@ of that world with its own event, signal and byte limits:
 ```sh
 node examples/background.js
 ```
+
+Don reads each selected earthquake revision through AML's local C/WASM calendar.
+Pass a known receipt as `originId` for a personal calendar perspective.
+The AML submodule supplies both JANUS and action memory. Dependabot checks its
+`main` branch daily at 03:17 UTC and opens update PRs. After pulling a merged update, run
+`git submodule update --init deps/aml` to use that revision locally.
 
 Offline and reproducible. Stream input, one-shot live acquisition and optional
 AML snapshot replay: [Event background](docs/BACKGROUND.md).

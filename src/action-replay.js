@@ -1,5 +1,5 @@
 // Reproduce an already selected read against its original world, with no selector.
-import { createToolHost, TOOL_BUDGET } from './tools.js';
+import { createToolHost, mapToolResult, TOOL_BUDGET } from './tools.js';
 const copy = value => JSON.parse(JSON.stringify(value));
 const canonical = value => JSON.stringify(value, (_, v) => v && typeof v === 'object' && !Array.isArray(v)
   ? Object.fromEntries(Object.keys(v).sort().map(k => [k, v[k]])) : v);
@@ -13,8 +13,9 @@ export function createActionReplay(world, action) {
     if (offset !== undefined && (!Number.isInteger(offset) || offset < 0 || offset > TOOL_BUDGET.capacity))
       throw new RangeError('Replay offset must be an integer within the snapshot budget');
     const args = { ...saved.call.arguments, ...(offset === undefined ? {} : { offset }) };
-    const result = host.call(saved.call.name, args);
-    return { format: 'lalo/action-replay', version: 1, call: { name: saved.call.name, arguments: args }, result,
-      comparison: offset === undefined ? canonical(result) === canonical(saved.result) ? 'match' : 'changed' : 'page' };
+    return mapToolResult(host.call(saved.call.name, args), result => ({
+      format: 'lalo/action-replay', version: 1, call: { name: saved.call.name, arguments: args }, result,
+      comparison: offset === undefined ? canonical(result) === canonical(saved.result) ? 'match' : 'changed' : 'page',
+    }));
   } });
 }

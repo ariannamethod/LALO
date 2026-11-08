@@ -14,13 +14,14 @@ The portable boundary has no network, timer, native process or ambient clock:
 - `src/background.js`: one door, `receive(frame)`, for every instrument. Each
   instrument owns its receipts and validates them with its own source adapter.
 - `src/background-context.js`: select by an explicit request and replay a saved
-  selection under the versioned `usgs-attention-receipt/v2` policy.
+  selection under its recorded policy. New selections use `usgs-attention-janus/v3`.
 - `scripts/background.mjs`: persist an input stream, request one live poll,
   select locally, or replay from a journal or a verified AML snapshot.
 
 ## Reproduce offline
 
-Node 24. These fixtures are synthetic; this sequence makes no network requests.
+Use Node 24 and initialize the AML submodule once with `git submodule update --init deps/aml`.
+The synthetic fixture then runs offline.
 
 ```sh
 node examples/background.js
@@ -129,6 +130,7 @@ starts reading it.
 | `stateAt` | World instant at which Don's receipts apply. |
 | `worldFrom`, `worldTo` | Half-open interval of observed instants. |
 | `subject` | Optional exact USGS subject filter. |
+| `originId` | Optional receipt known at `knownAt`. Its occurrence day anchors the personal calendar view for this request. |
 | `maxEvents` | Whole event versions in the result; default 8, range 1–64. |
 | `maxSignals` | Don's active receipts in the result; default 8, range 0–64. |
 | `maxBytes` | Complete context JSON UTF-8 bytes; default 32768, range 1024–65536. |
@@ -157,6 +159,18 @@ full JPEG included, stay in the world for the existing fact, history and
 lineage tools. Every selection is fresh: callers replace the previous context
 and never concatenate. A request envelope that cannot fit alone fails
 explicitly.
+
+Each selected event version has one JANUS annotation anchored to its magnitude
+receipt. The eight companion facts share occurrence, receipt and validity clocks.
+The complete annotation counts toward the context byte budget alongside the facts.
+An unavailable calendar or out-of-range timestamp leaves a structured error
+on that event alongside its source receipts. The separate `lalo_calendar` tool
+can also read individual device, camera and agent receipts. An executed calendar
+read of a USGS receipt in the background world can become Don's next attention signal.
+
+Historical v2 contexts replay with their original projection and byte budget.
+New contexts save the coordinates and calculator's WASM digest. Replay compares
+both against a fresh reading of the saved world.
 
 ## Budgets and persistence
 
@@ -209,7 +223,7 @@ and its world digest.
 
 Selection is recorded as a `lalo/action` with `request.kind = background-context`,
 `status = executed`, `route = null`, `call = null` and the context in `result`.
-The existing six native tools and their routing stay intact. The CLI provides
+The CLI provides
 this action's replay entry point; the visual tool-call replay keeps handling
 routed actions. A failed save returns the computed context alongside
 `memory.state = failed` and a nonzero exit code, so selection and persistence

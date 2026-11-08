@@ -1,6 +1,6 @@
 # Call the world
 
-LALO exposes six read tools over one fixed journal snapshot. The portable host
+LALO exposes seven read tools over one fixed journal snapshot. The portable host
 runs in JavaScript; the local MCP process connects it to a stdio client.
 
 ## Start a session
@@ -24,7 +24,7 @@ notification, ping, tools/list and tools/call. It advertises a fixed tools
 capability. Tool replies carry identical structured JSON and serialized text.
 Source ingestion remains the explicit CLI or browser action.
 
-## The six tools
+## Tools
 
 All timestamps are safe-integer Unix milliseconds. `knownAt` limits receipt
 time. `validAt` selects world time, with half-open `[validFrom, validTo)`
@@ -38,11 +38,22 @@ world interval. Null magnitude remains unknown.
 | `lalo_facts` | `knownAt`, `validAt` | Active facts; optional exact `subject`, `predicate`, `source` filters |
 | `lalo_history` | `knownAt` | Receipt history including superseded facts; the same optional filters |
 | `lalo_lineage` | `knownAt`, `id` | Original assertion through the requested known revision |
+| `lalo_calendar` | `knownAt`, `id` | JANUS coordinates for the named receipt, optionally relative to another known receipt (`originId`) |
 | `lalo_reading` | `knownAt`, `validAt`, `subject`, `predicate`, `rule` | Complete rule conclusion and paginated, classified premises |
 
 `lalo_status` describes the whole loaded snapshot. The other tools apply the
 requested receipt cutoff to all returned rows and counts. A future receipt ID
 and an absent ID both return `NOT_FOUND` at that cutoff.
+
+Use `await host.call('lalo_calendar', { id, knownAt, originId })` in JavaScript.
+The existing six reads retain their synchronous results. Generic clients can await
+every call. JANUS loads the embedded WASM from `deps/aml` on the first calendar
+read. Its result includes the source assertion, both POSIX instants, the signed
+receipt lag, the occurrence's UTC civil view and the WASM SHA-256. The UTC
+midnight policy applies to the civil date. The JANUS epoch turns over at noon.
+An explicit origin adds AML's subject view and the anchor's provenance.
+`CALENDAR_RANGE` identifies an unsupported coordinate and
+`CALENDAR_UNAVAILABLE` identifies an unavailable local runtime.
 
 `lalo_reading` accepts `unanimous-boolean/v1` with optional `expected` (default
 true), or `magnitude-at-least/v1` with predicate `magnitude` and optional

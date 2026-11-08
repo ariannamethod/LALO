@@ -1,3 +1,4 @@
 [submodule "deps/aml"]
 	path = deps/aml
 	url = https://github.com/ariannamethod/ariannamethod.ai.git
+	branch = main

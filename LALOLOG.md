@@ -3,6 +3,48 @@
 The engineering record. New entries first. README keeps the pulse; this file
 keeps the measurements, decisions, sources and scars.
 
+## 2026-11-08 — Don Eduardo reads both clocks through JANUS.CALENDAR
+
+LALO at `aab68a3` used AML `b932a09` for action memory and WOLFE. That
+revision predates the calendar client. AMOS II at `6b11998` embeds AML's
+C/WASM client from `5e893f9`, attaches the original receipt and computes a
+subject view when an origin receipt is chosen. LALO now consumes the local
+AML module from its existing gitlink, advanced to `8f577e8` (AML #50).
+
+* Don's v3 background context annotates the selected USGS revision after the
+  knowledge cutoff and world window are applied. The annotation and source
+  facts fit or are omitted together. Historical v2 contexts reproduce through
+  the original projection. The archived synthetic v2 fixture came from running
+  `examples/background.js` at `aab68a3`.
+* The seventh tool, `lalo_calendar`, reads any known assertion, signed
+  millisecond receipt lag and UTC Gregorian, Hebrew and JANUS coordinates.
+  A known origin receipt enables AML's subject view. The portable host, MCP,
+  native router, browser action panel and original-world replay share the read.
+  Each successful annotation identifies the calculator by its WASM SHA-256.
+* The gitlink supplies both the runtime and the calendar. Dependabot is configured
+  to check Git submodules daily at 03:17 UTC and propose pin updates through PRs.
+  The build verifies the checked-out AML against the gitlink. The current LALO
+  build uses AML's plain runner. NoTorch is a separate optional AML build target.
+
+Local verification on Linux x86_64, Node v24.22.1, GCC 14.2.0:
+
+* `node --test tests/*.test.js` passed 79/79. Calendar cases cover the UTC
+  noon epoch, -1 ms, signed lag, two origins, receipt cutoffs, corrections,
+  byte limits, out-of-domain facts, v2 replay and attention after a routed read.
+* Built `scripts/build-router.mjs`, `scripts/build-aml.mjs` and
+  `make -C deps/aml calendar-bridge`. The three suites
+  `tests/{action-memory,native-router,janus-calendar}.integration.mjs` passed
+  21/21. The parity test compares both instants, local coordinates, duration
+  and subject against native libaml. MCP stdio and loopback HTTP returned the
+  calculator result. All four offline examples exited zero.
+* `node scripts/wolfe-diff.mjs` passed 71/71, evidence equal for all 71.
+  The new C selector retained the baseline status and called tool on all
+  68 existing corpus entries. A checkout without AML could still read
+  history and returned `CALENDAR_UNAVAILABLE` on a calendar call.
+* Local Chromium 156 stopped before page load because the execution sandbox
+  denied its process-singleton socket. The browser CI gate exercises the
+  embedded WASM, selected-receipt action and original-world replay.
+
 ## 2026-10-27 — pin the merged field organ and reopen the WOLFE gate
 
 `deps/aml` and the independent guard in `scripts/build-aml.mjs` now both pin

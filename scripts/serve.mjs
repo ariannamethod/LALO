@@ -6,7 +6,7 @@ import { actionHandler } from './action-http.mjs';
 import { actionMemory } from './action-memory.mjs';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
-const mime = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8' };
+const mime = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.mjs': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8' };
 export async function serve({ port = 3000, host = '127.0.0.1', router = false, routerFactory, memoryDirectory } = {}) {
   if (router && host !== '127.0.0.1') throw new Error('The native action host binds to 127.0.0.1');
   if (memoryDirectory !== undefined && !router) throw new Error('Action memory requires --router');
@@ -21,7 +21,8 @@ export async function serve({ port = 3000, host = '127.0.0.1', router = false, r
       const url = new URL(req.url, 'http://localhost');
       const route = decodeURIComponent(url.pathname);
       const path = resolve(root, '.' + (route === '/' ? '/web/index.html' : route));
-      if (!['web', 'src'].some(dir => path.startsWith(resolve(root, dir) + sep)) || !mime[extname(path)]) {
+      const calendarModule = path === resolve(root, 'deps/aml/janus/calendar_browser.mjs');
+      if (!(calendarModule || ['web', 'src'].some(dir => path.startsWith(resolve(root, dir) + sep))) || !mime[extname(path)]) {
         res.writeHead(404); res.end('Not found'); return;
       }
       const content = await readFile(path);

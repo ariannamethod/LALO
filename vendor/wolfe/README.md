@@ -12,14 +12,14 @@ header and the exact upstream GPL-3.0 [LICENSE](LICENSE).
 
 LALO uses the neural selection field in batch mode. The warm native process
 receives intent text only; the JS host binds explicit arguments and executes
-one of its six read-only tools. No correction memory, feedback, network,
+one of its read-only tools. No correction memory, feedback, network,
 training or model weights are enabled. The public entry points are
 `scripts/build-router.mjs`, `scripts/route.mjs` and `examples/route.js`.
 
 NoTorch's JS tensor/matmul API and C attention/value APIs were inspected before
 this import. This stage preserves WOLFE's existing double-precision arithmetic
 as a comparison baseline; it adds no numerical kernels. Migrating that body to
-NoTorch needs a separate parity check. NoTorch and AML are not linked yet.
+NoTorch needs a separate parity check. This selector uses its own C arithmetic.
 
 To update: review upstream changes, replace source/license from one commit,
 update this pin and the build hash, then run the routing integration gate.

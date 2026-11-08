@@ -116,5 +116,19 @@ export async function checkActionField({ evaluate, call, shot, reload, kind }) {
   assert.equal(liveAfter, liveBefore); assert.deepEqual(await markers(), []);
   assert.equal(await value('document.documentElement.scrollWidth <= innerWidth'), true);
   await shot(`${kind}-original-world-phone`);
+  if (kind === 'crossing') {
+    await value("document.getElementById('action-preset').value = 'calendar'");
+    await click('action-fill'); await click('action-run'); await idle();
+    const temporal = await trace();
+    assert.equal(temporal.call.name, 'lalo_calendar');
+    assert.equal(temporal.result.data.calendar.assertion.id, temporal.request.arguments.id);
+    assert.match(await value("document.getElementById('action-trace').textContent"), /Gregorian.*Hebrew/);
+    await click('action-world-open'); await idle(); await click('world-replay');
+    for (let i = 0; i < 100 && !await value("document.getElementById('world-replay-result').textContent"); i++)
+      await new Promise(resolve => setTimeout(resolve, 50));
+    const report = await value("JSON.parse(document.getElementById('world-replay-result').textContent)");
+    assert.equal(report.comparison, 'match');
+    assert.deepEqual(report.result, temporal.result);
+  }
   console.log(`PASS: ${kind} real C calls, explicit clocks, complete inference, evidence selection, fixed-snapshot paging, stale/late responses, abstention, argument failures, AML readback, original-world reproduction after reload and phone layout`);
 }

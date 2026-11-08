@@ -1,5 +1,6 @@
 import { encodeJournal, decodeJournal } from './journal.js';
 import { hypothesis, magnitudeHypothesis, RULE, MAGNITUDE_RULE } from './hypothesis.js';
+import { knownReceipt, receiptCalendar } from './janus-calendar.js';
 
 export const TOOL_BUDGET = Object.freeze({ capacity: 1024, maxBytes: 2_000_000,
   maxResultBytes: 65_536, maxPage: 64, maxArgumentBytes: 32_768 });
@@ -28,6 +29,9 @@ const definitions = [
     { ...clocks, subject: filters.subject, predicate: filters.predicate,
       rule: { type: 'string', enum: [RULE, MAGNITUDE_RULE] }, expected: { type: 'boolean' }, threshold: { type: 'number' }, ...paging },
     ['knownAt', 'validAt', 'subject', 'predicate', 'rule']),
+  define('lalo_calendar', 'Read JANUS calendar coordinates, the Hebrew and Gregorian dates and the exact elapsed time from occurrence to receipt.',
+    { id: name('Receipt ID.'), knownAt: clocks.knownAt, originId: name('Optional known receipt whose occurrence sets the personal calendar origin.') },
+    ['id', 'knownAt']),
 ];
 export const listTools = () => JSON.parse(JSON.stringify(definitions));
 const bytes = value => new TextEncoder().encode(JSON.stringify(value)).byteLength;
@@ -37,6 +41,8 @@ class ToolError extends Error {
   constructor(code, message) { super(message); this.code = code; }
 }
 function invalid(message) { throw new ToolError('INVALID_ARGUMENTS', message); }
+// Existing reads are synchronous. The calendar loads its C/WASM body on demand.
+export const mapToolResult = (result, project) => result instanceof Promise ? result.then(project) : project(result);
 function argumentsFor(tool, input) {
   if (!object(input)) invalid('arguments must be an object');
   const schema = tool.parameters, args = {};
@@ -104,6 +110,14 @@ export function createToolHost(world, { maxResultBytes = TOOL_BUDGET.maxResultBy
       if (!known(a.knownAt).some(f => f.id === a.id)) throw new ToolError('NOT_FOUND', 'Receipt is not known at this cutoff');
       return page(ledger.lineage(a.id), a, { id: a.id, knownAt: a.knownAt });
     }
+    if (tool === 'lalo_calendar') {
+      const fact = knownReceipt(all, a.id, a.knownAt);
+      const origin = a.originId === undefined ? null : knownReceipt(all, a.originId, a.knownAt);
+      return receiptCalendar(fact, origin).then(calendar => {
+        if (calendar.error) throw new ToolError(calendar.error.code, calendar.error.message);
+        return { ok: true, data: { knownAt: a.knownAt, calendar } };
+      });
+    }
     if (a.rule === RULE && a.threshold !== undefined) invalid('threshold belongs to magnitude-at-least/v1');
     if (a.rule === MAGNITUDE_RULE && (a.expected !== undefined || a.predicate !== 'magnitude'))
       invalid('magnitude-at-least/v1 requires predicate magnitude and uses threshold, not expected');
@@ -116,15 +130,18 @@ export function createToolHost(world, { maxResultBytes = TOOL_BUDGET.maxResultBy
     return page(premises.map(id => ({ role: roles.get(id), fact: byID.get(id) })), a,
       { reading: { ...summary, premiseCount: premises.length, counts: { supporting: supporting.length, opposing: opposing.length, unknown: unknown.length } } });
   }
+  function checked(result) {
+    if (bytes(result) > maxResultBytes) throw new ToolError('RESULT_BUDGET', 'Result exceeds the host byte budget');
+    return JSON.parse(JSON.stringify(result));
+  }
+  const failed = error => ({ ok: false, error: { code: error?.code || 'TOOL_FAILURE',
+    message: String(error?.message || 'Tool call failed').slice(0, 400) } });
   return Object.freeze({ list: listTools, call(name, input = {}) {
     try {
       const tool = definitions.find(t => t.name === name);
       if (!tool) throw new ToolError('UNKNOWN_TOOL', 'Tool is not registered');
       const args = argumentsFor(tool, input), result = execute(name, args);
-      if (bytes(result) > maxResultBytes) throw new ToolError('RESULT_BUDGET', 'Result exceeds the host byte budget');
-      return JSON.parse(JSON.stringify(result));
-    } catch (error) {
-      return { ok: false, error: { code: error?.code || 'TOOL_FAILURE', message: String(error?.message || 'Tool call failed').slice(0, 400) } };
-    }
+      return result instanceof Promise ? result.then(checked).catch(failed) : checked(result);
+    } catch (error) { return failed(error); }
   } });
 }

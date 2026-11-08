@@ -1,4 +1,5 @@
 // MCP 2025-11-25 tools-only session. Transport and journal loading belong to the host.
+import { mapToolResult } from './tools.js';
 export const MCP_VERSION = '2025-11-25';
 const object = value => value !== null && typeof value === 'object' && !Array.isArray(value);
 const idOK = id => typeof id === 'string' && id.length <= 128 || Number.isSafeInteger(id);
@@ -40,9 +41,10 @@ export function createMCPSession(host) {
     if (method === 'tools/call') {
       if (typeof params.name !== 'string' || params.name.length > 128 || params.arguments !== undefined && !object(params.arguments)
         || params.task !== undefined) return rpcError(id, -32602, 'tools/call requires a name and object arguments; task execution is not offered');
-      const result = host.call(params.name, params.arguments ?? {});
-      if (!result.ok && result.error.code === 'UNKNOWN_TOOL') return rpcError(id, -32602, result.error.message);
-      return success({ content: [{ type: 'text', text: JSON.stringify(result) }], structuredContent: result, isError: !result.ok });
+      return mapToolResult(host.call(params.name, params.arguments ?? {}), result => {
+        if (!result.ok && result.error.code === 'UNKNOWN_TOOL') return rpcError(id, -32602, result.error.message);
+        return success({ content: [{ type: 'text', text: JSON.stringify(result) }], structuredContent: result, isError: !result.ok });
+      });
     }
     return rpcError(id, -32601, 'Method is not available');
   } };

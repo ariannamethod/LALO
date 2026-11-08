@@ -33,3 +33,8 @@
 {"text":"do not read receipt history","tool":null,"arguments":{}}
 {"text":"do not trace revision lineage","tool":null,"arguments":{}}
 {"text":"do not read hypothesis","tool":null,"arguments":{}}
+{"text":"read janus calendar","tool":"lalo_calendar","arguments":{}}
+{"text":"show hebrew and gregorian dates","tool":"lalo_calendar","arguments":{}}
+{"text":"measure elapsed calendar time","tool":"lalo_calendar","arguments":{}}
+{"text":"inspect janus coordinates","tool":"lalo_calendar","arguments":{}}
+{"text":"do not read janus calendar","tool":null,"arguments":{}}
