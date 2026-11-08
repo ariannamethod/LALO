@@ -42,6 +42,9 @@ test('Thursday’s choice survives restart; Wednesday cannot see it; another age
   assert.equal(calendar.perspective.coordinates.age_days, 2);
   assert.match(calendarSummary(calendar), /2 calendar days from fixture:monday · chosen by agent:don-eduardo/);
   assert.deepEqual(calendar.originChoice, decodeJournal(restored.journal()).lineage(action.id)[0]);
+  const compared = (await read(restored, { compareToId: origin })).data.calendar;
+  assert.deepEqual(compared.originChoice, calendar.originChoice);
+  assert.equal(compared.comparison.occurrence.order, 1);
   assert.equal(calendar.originChoice.validFrom, thursday);
   assert.equal(calendar.originChoice.recordedAt, thursday);
   assert.equal((await read(restored, { knownAt: thursday - 1 })).data.calendar.perspective, null);

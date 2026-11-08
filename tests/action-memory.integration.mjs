@@ -8,7 +8,8 @@ import { join } from 'node:path';
 import { actionMemory, AML_BINARY } from '../scripts/action-memory.mjs';
 import { serve } from '../scripts/serve.mjs';
 import { FactLedger } from '../src/ledger.js';
-import { encodeJournal } from '../src/journal.js';
+import { decodeJournal, encodeJournal } from '../src/journal.js';
+import { createActionReplay } from '../src/action-replay.js';
 import { execFile, execFileSync } from 'node:child_process';
 import { promisify } from 'node:util';
 import { createBackground } from '../src/background.js';
@@ -95,6 +96,32 @@ test('native calendar choice crosses receiver restart and AML replays the person
   assert.deepEqual(saved.context.items[0].calendar, calendar);
   const replay = cli('background', ['replay', '--memory', memory, '--sequence', '1', '--head', saved.memory.head]);
   assert.equal(replay.comparison, 'match'); assert.deepEqual(replay.result, saved.context);
+});
+
+test('native router compares late receipts, AML code agrees on both clocks and AML memory replays the result', async t => {
+  const dir = await directory(t), journalPath = join(dir, 'world.json'), memoryPath = join(dir, 'memory');
+  const tuesday = Date.UTC(2026, 10, 3, 12), thursday = Date.UTC(2026, 10, 5, 12), friday = Date.UTC(2026, 10, 6, 12);
+  const ledger = new FactLedger(), fact = { subject: 'agent:don-eduardo', predicate: 'note',
+    source: 'fixture:diary', value: true, validTo: null };
+  ledger.add({ ...fact, id: 'thursday', validFrom: thursday + 125, recordedAt: thursday + 125 });
+  ledger.add({ ...fact, id: 'tuesday', validFrom: tuesday + 123, recordedAt: friday + 1 });
+  const original = encodeJournal(ledger);
+  await writeFile(journalPath, original);
+  const args = { id: 'tuesday', compareToId: 'thursday', knownAt: friday + 1 };
+  const trace = JSON.parse(execFileSync(process.execPath, ['scripts/route.mjs', '--journal', journalPath], {
+    input: JSON.stringify({ text: 'which event did I hear about first', arguments: args }) + '\n',
+    encoding: 'utf8', stdio: ['pipe', 'pipe', 'pipe'] }));
+  assert.equal(trace.status, 'executed'); assert.equal(trace.call.name, 'lalo_calendar');
+  const { occurrence, receipt } = trace.result.data.calendar.comparison;
+  const block = (label, { order, delta }) => [label, order, delta.sign, delta.days, delta.seconds, delta.milliseconds];
+  const aml = execFileSync(AML_BINARY, ['examples/receipt-order.aml'], { encoding: 'utf8' }).trimEnd();
+  assert.equal(aml, [...block('occurrence', occurrence), ...block('receipt', receipt)].join('\n'));
+
+  const ack = await (await actionMemory(memoryPath)).append(trace, original);
+  assert.equal(ack.state, 'saved');
+  const restored = await (await actionMemory(memoryPath)).recall({ sequence: ack.sequence, head: ack.head, snapshot: true });
+  const replay = await createActionReplay(decodeJournal(JSON.stringify(restored.journal)), restored.receipt.action).read();
+  assert.equal(replay.comparison, 'match'); assert.deepEqual(replay.result, trace.result);
 });
 
 test('real AML persists exact UTF-8 and both integer clocks; a fresh host verifies all receipts', async t => {

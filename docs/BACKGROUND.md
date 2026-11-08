@@ -200,7 +200,9 @@ The complete annotation counts toward the context byte budget alongside the fact
 An unavailable calendar or out-of-range timestamp leaves a structured error
 on that event alongside its source receipts. The separate `lalo_calendar` tool
 can also read individual device, camera and agent receipts. An executed calendar
-read of a USGS receipt in the background world can become Don's next attention signal.
+read of a single USGS receipt in the background world can become Don's next attention
+signal. A comparison with `compareToId` reads both revisions and leaves Don's
+attention as it was.
 
 Historical v2 and v3 contexts replay with their original projection and byte budget.
 New contexts save the coordinates and calculator's WASM digest. Replay compares

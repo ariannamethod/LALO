@@ -131,6 +131,20 @@ export async function checkActionField({ evaluate, call, shot, reload, kind }) {
     const report = await value("JSON.parse(document.getElementById('world-replay-result').textContent)");
     assert.equal(report.comparison, 'match');
     assert.deepEqual(report.result, temporal.result);
+
+    await value(`{const preset=document.getElementById('action-preset');preset.value='compare';preset.dispatchEvent(new Event('change'))}`);
+    assert.equal(await value("document.getElementById('action-pair').hidden"), false);
+    await click('action-fill'); await click('action-run'); await idle();
+    const pair = await trace(), calendar = pair.result.data.calendar;
+    assert.equal(pair.status, 'executed');
+    assert.notEqual(calendar.comparison.assertion.id, calendar.assertion.id);
+    assert.equal(calendar.comparison.assertion.id, pair.call.arguments.compareToId);
+    assert.match(await value("document.querySelector('#action-trace p:last-of-type').textContent"), /Occurred.*Received/);
+    await click('action-world-open'); await idle(); await click('world-replay');
+    for (let i = 0; i < 100 && !await value("document.getElementById('world-replay-result').textContent"); i++)
+      await new Promise(resolve => setTimeout(resolve, 50));
+    assert.equal(await value("document.getElementById('action-world').dataset.comparison"), 'match');
+    assert.match(await value("document.querySelector('#action-world .world-reading').textContent"), /Occurred.*Received/);
   }
   console.log(`PASS: ${kind} real C calls, explicit clocks, complete inference, evidence selection, fixed-snapshot paging, stale/late responses, abstention, argument failures, AML readback, original-world reproduction after reload and phone layout`);
 }

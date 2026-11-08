@@ -57,6 +57,8 @@ function actionFact(signals, world, origins, frame) {
   const args = trace.call?.arguments;
   let subject = args?.subject;
   if (trace.call?.name === 'lalo_calendar') {
+    // A pairwise read supplies two peers and identifies no single attention subject.
+    if (args?.compareToId !== undefined) return null;
     const calendar = trace.result?.data?.calendar, assertion = calendar?.assertion;
     const target = Number.isSafeInteger(args?.knownAt) && world.entries().find(f => f.id === args.id && f.recordedAt <= args.knownAt);
     // Calendar provenance carries every ledger field except the observed value.

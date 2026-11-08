@@ -38,7 +38,7 @@ world interval. Null magnitude remains unknown.
 | `lalo_facts` | `knownAt`, `validAt` | Active facts; optional exact `subject`, `predicate`, `source` filters |
 | `lalo_history` | `knownAt` | Receipt history including superseded facts; the same optional filters |
 | `lalo_lineage` | `knownAt`, `id` | Original assertion through the requested known revision |
-| `lalo_calendar` | `knownAt`, `id` | JANUS coordinates for the named receipt using the agent’s saved origin or a one-read `originId` |
+| `lalo_calendar` | `knownAt`, `id` | JANUS coordinates and personal origin. Optional `compareToId` compares two receipts on both clocks. |
 | `lalo_reading` | `knownAt`, `validAt`, `subject`, `predicate`, `rule` | Complete rule conclusion and paginated, classified premises |
 
 `lalo_status` describes the whole loaded snapshot. The other tools apply the
@@ -61,6 +61,35 @@ Pass the executed trace to the background receiver to record it.
 [Recording a calendar origin](BACKGROUND.md#personal-calendar-origin).
 `CALENDAR_RANGE` identifies an unsupported coordinate and
 `CALENDAR_UNAVAILABLE` identifies an unavailable local runtime.
+
+For two named revisions, supply both IDs in the same call.
+
+```js
+const result = await host.call('lalo_calendar', { id: 'tuesday', compareToId: 'thursday', knownAt });
+```
+
+Both receipts must be visible at `knownAt`, including previously superseded
+revisions named explicitly. The result keeps the first assertion at
+`data.calendar.assertion` and the second at `data.calendar.comparison.assertion`.
+The comparison has two independent readings.
+
+| Field | Moments compared |
+| --- | --- |
+| `comparison.occurrence` | The assertions’ `validFrom` timestamps |
+| `comparison.receipt` | The assertions’ `recordedAt` timestamps |
+
+Each reading returns AML's `order` (−1 for left before right, 0 for a tie,
++1 for left after right) and signed `delta` (right minus left, in POSIX days,
+seconds and milliseconds). If Tuesday's report arrives on Friday and Thursday's
+on Thursday, the order for Tuesday versus Thursday is −1 on occurrence and
++1 on receipt. A comparison uses the usual personal origin for the primary
+reading. Choosing a new origin takes a separate action. A pair read adds no
+single-subject attention receipt to the background.
+
+In the action panel, select **Compare occurrence and receipt order**, pick the
+second receipt and use the current view to fill the request. The saved action
+can be reproduced on its original world. Run the same example directly in AML
+with `deps/aml/runner/aml examples/receipt-order.aml` after building the runner.
 
 `lalo_reading` accepts `unanimous-boolean/v1` with optional `expected` (default
 true), or `magnitude-at-least/v1` with predicate `magnitude` and optional

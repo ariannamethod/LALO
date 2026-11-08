@@ -9,6 +9,7 @@ const intents = {
   history: ['Read receipt history', 'please inspect earlier observations'],
   lineage: ['Follow selected revision', 'follow the correction chain please'],
   calendar: ['Read selected receipt in JANUS', 'show the janus calendar coordinates please'],
+  compare: ['Compare occurrence and receipt order', 'compare janus calendar clocks'],
   subjects: ['Discover known subjects', 'show the known subjects please'],
   status: ['Inspect journal limits', 'please inspect the journal limits'],
 };
@@ -43,6 +44,7 @@ export function actionPanel({ getContext, select, highlight, presets = Object.ke
     <form id="action-form">
       <label for="action-preset">START FROM THIS VIEW</label>
       <div class="action-seed"><select id="action-preset"></select><button id="action-fill" type="button">Use current view ↗</button></div>
+      <div id="action-pair" hidden><label for="action-other">Compare the selected receipt with</label><select id="action-other"></select></div>
       <label for="action-intent">INTENT</label><input id="action-intent" required maxlength="2047" autocomplete="off" placeholder="please check the conflicting evidence">
       <details class="action-arguments" open><summary>Explicit arguments · review before calling</summary>
       <label for="action-args" class="small">Clocks are integer Unix milliseconds. These values stay as you entered them.</label>
@@ -63,9 +65,30 @@ export function actionPanel({ getContext, select, highlight, presets = Object.ke
     const option = element('option', label); option.value = value; $('action-preset').append(option);
   }
   let busy = false, submitted, trace, receiptButtons = [], marked = '';
+  let pairContext;
+  function showPair(context) {
+    const visible = $('action-preset').value === 'compare';
+    $('action-pair').hidden = !visible;
+    if (!visible || !context) {
+      if (pairContext) $('action-other').replaceChildren();
+      pairContext = undefined;
+      return;
+    }
+    if (pairContext?.journal === context.journal && pairContext.knownAt === context.knownAt
+      && pairContext.selected === context.selected) return;
+    pairContext = { journal: context.journal, knownAt: context.knownAt, selected: context.selected };
+    const select = $('action-other'), previous = select.value;
+    const ids = JSON.parse(context.journal).records.filter(f => f.recordedAt <= context.knownAt && f.id !== context.selected)
+      .map(f => f.id);
+    select.replaceChildren(...ids.map(id => new Option(id, id)));
+    if (ids.includes(previous)) select.value = previous;
+    if (!ids.length) select.add(new Option('No second receipt at this cutoff', ''));
+  }
   function refresh() {
     const context = getContext();
-    $('action-fill').disabled = $('action-run').disabled = busy || !context;
+    showPair(context);
+    $('action-run').disabled = busy || !context;
+    $('action-fill').disabled = busy || !context || ($('action-preset').value === 'compare' && (!context.selected || !$('action-other').value));
     $('action-next').disabled = $('action-recall').disabled = busy;
     $('action-world-open').disabled = busy;
     root.dataset.busy = String(busy);
@@ -93,7 +116,8 @@ export function actionPanel({ getContext, select, highlight, presets = Object.ke
       args.subject = c.subject; args.predicate = c.predicate;
     }
     if (preset === 'reading') { args.rule = c.rule; Object.assign(args, c.ruleArguments); }
-    if (['lineage', 'calendar'].includes(preset) && c.selected) args.id = c.selected;
+    if (['lineage', 'calendar', 'compare'].includes(preset) && c.selected) args.id = c.selected;
+    if (preset === 'compare') args.compareToId = $('action-other').value;
     $('action-intent').value = intents[preset][1];
     $('action-args').value = JSON.stringify(args, null, 2);
   }
@@ -203,6 +227,8 @@ export function actionPanel({ getContext, select, highlight, presets = Object.ke
       controller.abort(); $('action-world-status').textContent = `Original world unavailable · ${error.name === 'AbortError' ? 'Readback timed out' : error.message}`;
     } finally { clearTimeout(timer); busy = false; refresh(); }
   }
+  $('action-preset').addEventListener('change', refresh);
+  $('action-other').addEventListener('change', fill);
   $('action-fill').addEventListener('click', fill);
   $('action-form').addEventListener('submit', event => { event.preventDefault(); void execute(); });
   $('action-next').addEventListener('click', () => void execute(true));
