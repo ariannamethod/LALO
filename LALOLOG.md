@@ -3,6 +3,40 @@
 The engineering record. New entries first. README keeps the pulse; this file
 keeps the measurements, decisions, sources and scars.
 
+## 2026-11-08 — Don chooses which receipt begins his personal calendar
+
+At `f79272a`, every personal JANUS reading needed an explicit `originId`.
+Don can now choose a known receipt through the existing calendar instrument.
+The receiver records that choice once per agent in its world journal. The
+anchor's occurrence sets day zero. The choice's own receipt time determines
+when subsequent reads may use it. A corrected anchor keeps its original ID and
+clocks in the personal calendar.
+
+* `lalo_calendar` proposes the choice. Ingesting the executed action appends
+  the `calendar_origin` receipt. The receiver checks the returned assertion,
+  anchor, agent and cutoff. Redelivery of an accepted frame adds zero receipts.
+* Policy v4 carries a choice that is visible at both requested clocks. The
+  event's byte budget includes its calendar and choice provenance. Saved v2
+  and v3 contexts replay under their original policies. The synthetic v3
+  fixture was captured with the selector from `f79272a`.
+* The action panel and original-world view display the proposal or the
+  recorded choice and its day offset. `originId` remains a one-read override.
+
+Local checks on Linux x86_64 with Node v24.22.1, GCC 14.2.0 and AML `8f577e8`:
+
+* `node --test tests/*.test.js` passed 82/82. The origin tests cover the
+  choice boundary, separate agents, corrected anchors, rejected forgeries,
+  overlapping choices, retries, byte budgets and historical context replay.
+* Built the native router, AML runner and calendar bridge. The action-memory,
+  native-router and JANUS integration suites passed 22/22. Separate CLI
+  processes proposed a Monday anchor on Thursday, persisted it, read
+  Wednesday at day two, and reproduced the entire context from an AML snapshot.
+* The four offline examples ran successfully. `node scripts/wolfe-diff.mjs`
+  matched 71/71 decisions and 71/71 evidence results.
+* The local Chromium process stopped before page load when the sandbox denied
+  its process-singleton socket. The browser CI gate exercises a real routed
+  proposal, its rendered status and replay from the saved world.
+
 ## 2026-11-08 — Don Eduardo reads both clocks through JANUS.CALENDAR
 
 LALO at `aab68a3` used AML `b932a09` for action memory and WOLFE. That

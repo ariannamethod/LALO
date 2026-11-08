@@ -144,7 +144,10 @@ node examples/background.js
 ```
 
 Don reads each selected earthquake revision through AML's local C/WASM calendar.
-Pass a known receipt as `originId` for a personal calendar perspective.
+Don can choose a known receipt as his calendar origin. Once his choice reaches
+the background journal, future reads count from that event across restarts.
+Rewinding to before the choice restores his earlier perspective. An explicit
+`originId` overrides the origin for one read.
 The AML submodule supplies both JANUS and action memory. Dependabot checks its
 `main` branch daily at 03:17 UTC and opens update PRs. After pulling a merged update, run
 `git submodule update --init deps/aml` to use that revision locally.

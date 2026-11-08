@@ -38,7 +38,7 @@ world interval. Null magnitude remains unknown.
 | `lalo_facts` | `knownAt`, `validAt` | Active facts; optional exact `subject`, `predicate`, `source` filters |
 | `lalo_history` | `knownAt` | Receipt history including superseded facts; the same optional filters |
 | `lalo_lineage` | `knownAt`, `id` | Original assertion through the requested known revision |
-| `lalo_calendar` | `knownAt`, `id` | JANUS coordinates for the named receipt, optionally relative to another known receipt (`originId`) |
+| `lalo_calendar` | `knownAt`, `id` | JANUS coordinates for the named receipt using the agent’s saved origin or a one-read `originId` |
 | `lalo_reading` | `knownAt`, `validAt`, `subject`, `predicate`, `rule` | Complete rule conclusion and paginated, classified premises |
 
 `lalo_status` describes the whole loaded snapshot. The other tools apply the
@@ -51,7 +51,14 @@ every call. JANUS loads the embedded WASM from `deps/aml` on the first calendar
 read. Its result includes the source assertion, both POSIX instants, the signed
 receipt lag, the occurrence's UTC civil view and the WASM SHA-256. The UTC
 midnight policy applies to the civil date. The JANUS epoch turns over at noon.
-An explicit origin adds AML's subject view and the anchor's provenance.
+After the background receiver records an origin for `agent` (default
+`agent:don-eduardo`), subsequent calendar calls return AML's subject view and
+`calendar.originChoice`, the receipt for the choice. The tool reads a fixed
+snapshot. Open the updated journal to see a newly recorded choice. A supplied
+`originId` uses another known receipt for this read. A call with
+`chooseOrigin: true` proposes the named `id` and returns `data.originProposal`.
+Pass the executed trace to the background receiver to record it.
+[Recording a calendar origin](BACKGROUND.md#personal-calendar-origin).
 `CALENDAR_RANGE` identifies an unsupported coordinate and
 `CALENDAR_UNAVAILABLE` identifies an unavailable local runtime.
 

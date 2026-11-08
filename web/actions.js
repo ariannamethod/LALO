@@ -138,7 +138,7 @@ export function actionPanel({ getContext, select, highlight, presets = Object.ke
       }
       target.append(list);
       $('action-next').hidden = submitted?.restored || data.nextOffset === null;
-    } else if (data?.calendar) target.append(element('p', calendarSummary(data.calendar)));
+    } else if (data?.calendar) target.append(element('p', calendarSummary(data.calendar, data.originProposal)));
     else if (data) target.append(element('p', `${data.records} receipts in the submitted journal.`, 'small'));
     const raw = element('details', '', 'action-raw');
     raw.append(element('summary', 'Complete action / decision / receipts'), element('pre', JSON.stringify(trace, null, 2)));

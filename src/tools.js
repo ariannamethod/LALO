@@ -1,6 +1,7 @@
 import { encodeJournal, decodeJournal } from './journal.js';
 import { hypothesis, magnitudeHypothesis, RULE, MAGNITUDE_RULE } from './hypothesis.js';
 import { knownReceipt, receiptCalendar } from './janus-calendar.js';
+import { calendarOrigins, DON_EDUARDO, isAgent } from './calendar-origin.js';
 
 export const TOOL_BUDGET = Object.freeze({ capacity: 1024, maxBytes: 2_000_000,
   maxResultBytes: 65_536, maxPage: 64, maxArgumentBytes: 32_768 });
@@ -30,7 +31,9 @@ const definitions = [
       rule: { type: 'string', enum: [RULE, MAGNITUDE_RULE] }, expected: { type: 'boolean' }, threshold: { type: 'number' }, ...paging },
     ['knownAt', 'validAt', 'subject', 'predicate', 'rule']),
   define('lalo_calendar', 'Read JANUS calendar coordinates, the Hebrew and Gregorian dates and the exact elapsed time from occurrence to receipt.',
-    { id: name('Receipt ID.'), knownAt: clocks.knownAt, originId: name('Optional known receipt whose occurrence sets the personal calendar origin.') },
+    { id: name('Receipt ID.'), knownAt: clocks.knownAt, originId: name('Optional one-read origin override.'),
+      agent: name('Agent whose stored origin applies. Defaults to agent:don-eduardo.'),
+      chooseOrigin: { type: 'boolean', description: 'Propose this receipt as the agent’s fixed origin. Ingest the successful action in the background journal to record the choice.' } },
     ['id', 'knownAt']),
 ];
 export const listTools = () => JSON.parse(JSON.stringify(definitions));
@@ -111,11 +114,20 @@ export function createToolHost(world, { maxResultBytes = TOOL_BUDGET.maxResultBy
       return page(ledger.lineage(a.id), a, { id: a.id, knownAt: a.knownAt });
     }
     if (tool === 'lalo_calendar') {
+      const agent = a.agent ?? DON_EDUARDO;
+      if (!isAgent(agent)) invalid('agent must be agent:<identifier>');
+      if (a.chooseOrigin && a.originId !== undefined) invalid('chooseOrigin and originId are mutually exclusive');
       const fact = knownReceipt(all, a.id, a.knownAt);
-      const origin = a.originId === undefined ? null : knownReceipt(all, a.originId, a.knownAt);
-      return receiptCalendar(fact, origin).then(calendar => {
+      const saved = calendarOrigins(known(a.knownAt)).get(agent);
+      if (a.chooseOrigin && saved) throw new ToolError('ORIGIN_ALREADY_SET', 'Agent already has a calendar origin');
+      const explicit = a.originId === undefined ? null : knownReceipt(all, a.originId, a.knownAt);
+      const choice = a.chooseOrigin || explicit ? undefined : saved?.choice;
+      const anchor = a.chooseOrigin ? fact : explicit ?? saved?.anchor;
+      return receiptCalendar(fact, anchor, choice).then(calendar => {
         if (calendar.error) throw new ToolError(calendar.error.code, calendar.error.message);
-        return { ok: true, data: { knownAt: a.knownAt, calendar } };
+        const data = { knownAt: a.knownAt, calendar };
+        if (a.chooseOrigin) data.originProposal = { agent, originId: fact.id };
+        return { ok: true, data };
       });
     }
     if (a.rule === RULE && a.threshold !== undefined) invalid('threshold belongs to magnitude-at-least/v1');

@@ -1,0 +1,186 @@
+{
+  "format": "lalo/background-context",
+  "version": 3,
+  "policy": "usgs-attention-janus/v3",
+  "request": {
+    "agent": "agent:don-eduardo",
+    "knownAt": 1793966400000,
+    "stateAt": 1793966400000,
+    "worldFrom": 1793793600000,
+    "worldTo": 1793793600001,
+    "maxSignals": 0,
+    "maxEvents": 8,
+    "maxBytes": 32768
+  },
+  "state": [],
+  "stateEligible": 1,
+  "stateOmitted": 1,
+  "items": [
+    {
+      "subject": "usgs:synthetic1",
+      "reason": "receipt_order",
+      "facts": [
+        {
+          "id": "usgs:synthetic1:1793793600000:magnitude",
+          "subject": "usgs:synthetic1",
+          "predicate": "magnitude",
+          "value": 2.9,
+          "source": "https://earthquake.usgs.gov/earthquakes/eventpage/synthetic1",
+          "validFrom": 1793793600000,
+          "validTo": 1793793600001,
+          "recordedAt": 1793793600000,
+          "supersedes": null
+        },
+        {
+          "id": "usgs:synthetic1:1793793600000:magnitude_type",
+          "subject": "usgs:synthetic1",
+          "predicate": "magnitude_type",
+          "value": "ml",
+          "source": "https://earthquake.usgs.gov/earthquakes/eventpage/synthetic1",
+          "validFrom": 1793793600000,
+          "validTo": 1793793600001,
+          "recordedAt": 1793793600000,
+          "supersedes": null
+        },
+        {
+          "id": "usgs:synthetic1:1793793600000:longitude",
+          "subject": "usgs:synthetic1",
+          "predicate": "longitude",
+          "value": 30,
+          "source": "https://earthquake.usgs.gov/earthquakes/eventpage/synthetic1",
+          "validFrom": 1793793600000,
+          "validTo": 1793793600001,
+          "recordedAt": 1793793600000,
+          "supersedes": null
+        },
+        {
+          "id": "usgs:synthetic1:1793793600000:latitude",
+          "subject": "usgs:synthetic1",
+          "predicate": "latitude",
+          "value": 40,
+          "source": "https://earthquake.usgs.gov/earthquakes/eventpage/synthetic1",
+          "validFrom": 1793793600000,
+          "validTo": 1793793600001,
+          "recordedAt": 1793793600000,
+          "supersedes": null
+        },
+        {
+          "id": "usgs:synthetic1:1793793600000:depth_km",
+          "subject": "usgs:synthetic1",
+          "predicate": "depth_km",
+          "value": 8,
+          "source": "https://earthquake.usgs.gov/earthquakes/eventpage/synthetic1",
+          "validFrom": 1793793600000,
+          "validTo": 1793793600001,
+          "recordedAt": 1793793600000,
+          "supersedes": null
+        },
+        {
+          "id": "usgs:synthetic1:1793793600000:place",
+          "subject": "usgs:synthetic1",
+          "predicate": "place",
+          "value": "Synthetic crossing",
+          "source": "https://earthquake.usgs.gov/earthquakes/eventpage/synthetic1",
+          "validFrom": 1793793600000,
+          "validTo": 1793793600001,
+          "recordedAt": 1793793600000,
+          "supersedes": null
+        },
+        {
+          "id": "usgs:synthetic1:1793793600000:event_type",
+          "subject": "usgs:synthetic1",
+          "predicate": "event_type",
+          "value": "earthquake",
+          "source": "https://earthquake.usgs.gov/earthquakes/eventpage/synthetic1",
+          "validFrom": 1793793600000,
+          "validTo": 1793793600001,
+          "recordedAt": 1793793600000,
+          "supersedes": null
+        },
+        {
+          "id": "usgs:synthetic1:1793793600000:source_updated_at",
+          "subject": "usgs:synthetic1",
+          "predicate": "source_updated_at",
+          "value": 1793793600000,
+          "source": "https://earthquake.usgs.gov/earthquakes/eventpage/synthetic1",
+          "validFrom": 1793793600000,
+          "validTo": 1793793600001,
+          "recordedAt": 1793793600000,
+          "supersedes": null
+        }
+      ],
+      "calendar": {
+        "assertion": {
+          "id": "usgs:synthetic1:1793793600000:magnitude",
+          "subject": "usgs:synthetic1",
+          "predicate": "magnitude",
+          "source": "https://earthquake.usgs.gov/earthquakes/eventpage/synthetic1",
+          "supersedes": null,
+          "validFrom": 1793793600000,
+          "validTo": 1793793600001,
+          "recordedAt": 1793793600000
+        },
+        "originId": null,
+        "api": "janus.calendar/1",
+        "wasmSha256": "668bb46b05aa31b20d1be8a030feea4e4753d93900a4d00df18543af7bb384ae",
+        "occurred": {
+          "schema": "janus.instant/1",
+          "time_scale": "posix",
+          "unix_day": 20761,
+          "second": 43200,
+          "millisecond": 0
+        },
+        "known": {
+          "schema": "janus.instant/1",
+          "time_scale": "posix",
+          "unix_day": 20761,
+          "second": 43200,
+          "millisecond": 0
+        },
+        "civil": {
+          "schema": "janus.calendar/1",
+          "calendar_model": "hebrew.dr/1",
+          "day_policy": "midnight",
+          "drift_model": "metonic.legacy-trunc/1",
+          "day": 762,
+          "unix_day": 20761,
+          "gregorian_year": 2026,
+          "gregorian_month": 11,
+          "gregorian_day": 4,
+          "hebrew_year": 5787,
+          "hebrew_month": 8,
+          "hebrew_day": 24,
+          "gregorian_leap": 0,
+          "hebrew_leap": 1,
+          "metonic_year": 11,
+          "utc_second": 43200,
+          "offset_minutes": 0,
+          "sunset_second": -1,
+          "local_second": 43200,
+          "epoch_day": 762,
+          "utc_civil_day": 762,
+          "hebrew_civil_day": 762
+        },
+        "lag": {
+          "schema": "janus.duration/1",
+          "time_scale": "posix",
+          "sign": 0,
+          "days": 0,
+          "seconds": 0,
+          "milliseconds": 0
+        },
+        "perspective": null
+      }
+    }
+  ],
+  "eligible": 1,
+  "omitted": 0,
+  "complete": false,
+  "limitedBy": [
+    "maxSignals"
+  ],
+  "otherInstruments": {
+    "location": 0,
+    "camera": 0
+  }
+}

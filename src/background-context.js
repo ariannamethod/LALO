@@ -2,8 +2,8 @@
 import { readBackground, isAgent, isQuake } from './background.js';
 import { knownReceipt, receiptCalendar } from './janus-calendar.js';
 
-const PREVIOUS_POLICY = 'usgs-attention-receipt/v2';
-export const BACKGROUND_POLICY = 'usgs-attention-janus/v3';
+const policies = new Map([[2, 'usgs-attention-receipt/v2'], [3, 'usgs-attention-janus/v3'], [4, 'usgs-attention-janus/v4']]);
+export const BACKGROUND_POLICY = policies.get(4);
 export const CONTEXT_BUDGET = Object.freeze({ maxEvents: 8, maxSignals: 8, maxBytes: 32_768 });
 const bytes = value => new TextEncoder().encode(JSON.stringify(value)).length;
 const canonical = value => JSON.stringify(value, (_, v) => v && typeof v === 'object' && !Array.isArray(v)
@@ -12,7 +12,7 @@ const order = (a, b) => a < b ? -1 : a > b ? 1 : 0;
 
 function requestFor(input, version) {
   const keys = ['agent', 'knownAt', 'stateAt', 'worldFrom', 'worldTo', 'subject', 'maxEvents', 'maxSignals', 'maxBytes'];
-  if (version === 3) keys.push('originId');
+  if (version >= 3) keys.push('originId');
   if (!input || typeof input !== 'object' || Array.isArray(input)
     || Object.keys(input).some(key => !keys.includes(key))) throw new TypeError('invalid background selection request');
   const request = { ...input };
@@ -31,11 +31,15 @@ function requestFor(input, version) {
   return request;
 }
 
-export function selectBackground(journal, input) { return projectBackground(journal, input, 3); }
+export function selectBackground(journal, input) { return projectBackground(journal, input, 4); }
 
 async function projectBackground(journal, input, version) {
-  const request = requestFor(input, version), { world, parts, views } = await readBackground(journal);
-  const origin = request.originId === undefined ? null : knownReceipt(world.entries(), request.originId, request.knownAt);
+  const request = requestFor(input, version), { world, parts, views, origins } = await readBackground(journal);
+  const explicit = request.originId === undefined ? null : knownReceipt(world.entries(), request.originId, request.knownAt);
+  const saved = version >= 4 && !explicit ? origins.get(request.agent) : undefined;
+  const choice = saved && saved.choice.recordedAt <= request.knownAt && saved.choice.validFrom <= request.stateAt
+    ? saved.choice : undefined;
+  const anchor = choice ? saved.anchor : explicit;
   const inWindow = (observedAt, receivedAt) => receivedAt <= request.knownAt
     && observedAt >= request.worldFrom && observedAt < request.worldTo;
   // Newest agent receipts first; the context carries a bounded prefix of them.
@@ -50,7 +54,7 @@ async function projectBackground(journal, input, version) {
   // move an event out of the requested window without reviving its old version.
   const candidates = [...heads.values()].filter(([f]) => f.validFrom >= request.worldFrom && f.validFrom < request.worldTo
     && (request.subject === undefined || f.subject === request.subject));
-  const result = { format: 'lalo/background-context', version, policy: version === 2 ? PREVIOUS_POLICY : BACKGROUND_POLICY, request,
+  const result = { format: 'lalo/background-context', version, policy: policies.get(version), request,
     state: [], stateEligible: active.length, stateOmitted: active.length,
     items: [], eligible: candidates.length, omitted: candidates.length, complete: false, limitedBy: [],
     // Instruments this policy does not select: observations inside the window, known at the cutoff.
@@ -76,7 +80,7 @@ async function projectBackground(journal, input, version) {
     const f = facts[0];
     const item = { subject: f.subject, reason: attention.has(f.subject) ? 'attention_subject' : 'receipt_order', facts };
     // All eight validated companion assertions share the clocks of this revision.
-    if (version === 3) item.calendar = await receiptCalendar(f, origin);
+    if (version >= 3) item.calendar = await receiptCalendar(f, anchor, choice);
     result.items.push(item);
     result.omitted--;
     if (!fits()) { result.items.pop(); result.omitted++; limit('maxBytes'); break; }
@@ -88,8 +92,7 @@ async function projectBackground(journal, input, version) {
 // The original full journal can be kept by the existing AML world snapshots.
 // Replay checks the recorded policy and compares the complete result.
 export async function replayBackground(journal, saved) {
-  if (saved?.format !== 'lalo/background-context' ||
-    !(saved.version === 2 && saved.policy === PREVIOUS_POLICY || saved.version === 3 && saved.policy === BACKGROUND_POLICY))
+  if (saved?.format !== 'lalo/background-context' || !policies.has(saved.version) || saved.policy !== policies.get(saved.version))
     throw new TypeError('unsupported background context or policy');
   const result = await projectBackground(journal, saved.request, saved.version);
   return { format: 'lalo/background-replay', version: 1,
