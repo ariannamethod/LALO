@@ -14,7 +14,7 @@ The portable boundary has no network, timer, native process or ambient clock:
 - `src/background.js`: one door, `receive(frame)`, for every instrument. Each
   instrument owns its receipts and validates them with its own source adapter.
 - `src/background-context.js`: select by an explicit request and replay a saved
-  selection under its recorded policy. New selections use `usgs-attention-janus/v3`.
+  selection under its recorded policy. New selections use `usgs-attention-janus/v4`.
 - `scripts/background.mjs`: persist an input stream, request one live poll,
   select locally, or replay from a journal or a verified AML snapshot.
 
@@ -56,7 +56,7 @@ restart and every selection.
 | `usgs` | subject `usgs:<event>` | `validateUSGSJournal` | 64 events per batch |
 | `location` | source `browser:geolocation` | `locationSamples` | 768 receipts, 512000 bytes |
 | `camera` | source `browser:camera` | `cameraFrames` (SHA-256) | 32 frames, 1500000 bytes |
-| `signal` | subject `agent:<identifier>` | attention values | one fact per frame |
+| `signal` | subject `agent:<identifier>` | attention values and calendar origin references | one fact per frame |
 
 Frames:
 
@@ -107,7 +107,7 @@ Don has identity `agent:<identifier>` in the same world as `usgs:<event>` and
 scalar value, source, world interval, receipt time, optional predecessor.
 
 Two channels exist. An `action` frame takes an executed `lalo/action` trace,
-the same trace the router and action memory already keep. When its call read
+the same trace the router and action memory already keep. When an ordinary read targets
 a USGS subject, the trace becomes an `attention_subject` receipt with source
 `lalo:action/<tool>`, valid from its receipt time. The next action-derived
 attention supersedes the previous one, so Don's focus moves and its lineage
@@ -120,6 +120,40 @@ Model-internal state has no channel. No receipt here claims to come from inside
 a model, and none is inferred. A future channel enters as another source on
 the same `agent:` subject and becomes a new policy version when selection
 starts reading it.
+
+## Personal calendar origin
+
+A routed `lalo_calendar` call can choose a receipt already known to Don. Its
+occurrence day becomes day zero. The choice itself enters the background as a
+separate receipt at the time the receiver accepts the action. For example, Don
+chooses Monday's entry on Thursday. Reading Wednesday's event on Friday gives
+`age_days: 2`. A rewind to Wednesday still shows the perspective he had then.
+
+Given a route session over the receiver's current journal, record the choice
+through the same action input used for attention:
+
+```js
+const agent = 'agent:don-eduardo';
+const trace = await session.call({ text: 'read janus calendar',
+  arguments: { id: anchorReceiptId, knownAt, agent, chooseOrigin: true } });
+if (trace.status === 'executed') {
+  await background.receive({ kind: 'action', id: choiceReceiptId, agent, receivedAt, trace });
+}
+```
+
+The CLI equivalent sends the request to `scripts/route.mjs --journal FILE`
+and passes its output as `trace` in an action frame to
+`scripts/background.mjs ingest --journal FILE`. A successful choice appends
+one `calendar_origin` receipt with source `lalo:action/calendar-origin/v1`.
+Its value names the exact anchor revision. Retrying the same frame appends zero
+receipts. Each agent has one fixed origin in this journal. Later corrections to
+the anchor remain visible in its lineage.
+
+A new calendar session uses the recorded choice at or after its receipt time.
+Background selection requires both `knownAt` and `stateAt` to include the
+choice. Each affected event carries the anchor provenance and the choice receipt,
+even when `maxSignals` is zero. Its bytes count toward the event budget.
+An explicit `originId` overrides the origin for one request.
 
 ## Selection
 
@@ -168,7 +202,7 @@ on that event alongside its source receipts. The separate `lalo_calendar` tool
 can also read individual device, camera and agent receipts. An executed calendar
 read of a USGS receipt in the background world can become Don's next attention signal.
 
-Historical v2 contexts replay with their original projection and byte budget.
+Historical v2 and v3 contexts replay with their original projection and byte budget.
 New contexts save the coordinates and calculator's WASM digest. Replay compares
 both against a fresh reading of the saved world.
 

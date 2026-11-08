@@ -79,7 +79,7 @@ export async function actionWorld(root, { receipt, journal }) {
         } else li.append(element('p', `${row.subject} · ${row.receipts} receipts`, 'small'));
         evidence.append(li);
       }
-    } else if (data?.calendar) summary.append(element('p', calendarSummary(data.calendar)));
+    } else if (data?.calendar) summary.append(element('p', calendarSummary(data.calendar, data.originProposal)));
     else if (data) summary.append(element('p', `${data.records} receipts in the original journal.`, 'small'));
     else summary.append(element('p', `${result.error.code}: ${result.error.message}`, 'small'));
     raw.hidden = false; output.textContent = JSON.stringify(report, null, 2);

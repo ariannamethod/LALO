@@ -9,7 +9,7 @@ import { actionMemory, AML_BINARY } from '../scripts/action-memory.mjs';
 import { serve } from '../scripts/serve.mjs';
 import { FactLedger } from '../src/ledger.js';
 import { encodeJournal } from '../src/journal.js';
-import { execFile } from 'node:child_process';
+import { execFile, execFileSync } from 'node:child_process';
 import { promisify } from 'node:util';
 import { createBackground } from '../src/background.js';
 import { collection, quake, QUAKETIME } from './fixtures/usgs.js';
@@ -60,6 +60,41 @@ test('background CLI saves through real AML and replays the selected original wo
   assert.equal(replay.result.state[0].source, 'fixture:explicit-action');
   await writeFile(join(bundle(memoryDir, 1), 'world.json'), original.replace('2.9', '9.9'));
   await assert.rejects(cli('replay', '--memory', memoryDir, '--sequence', '1'), /world|World|snapshot/);
+});
+
+test('native calendar choice crosses receiver restart and AML replays the personal calendar', async t => {
+  const dir = await directory(t), file = join(dir, 'world.json'), memory = join(dir, 'memory');
+  const requestFile = join(dir, 'request.json'), agent = 'agent:don-eduardo';
+  const monday = Date.UTC(2020, 0, 6, 12), wednesday = Date.UTC(2020, 0, 8, 12), thursday = Date.UTC(2020, 0, 9, 12);
+  function cli(script, args, input) {
+    const path = new URL(`../scripts/${script}.mjs`, import.meta.url).pathname;
+    return JSON.parse(execFileSync(process.execPath, [path, ...args], {
+      input: input === undefined ? '' : JSON.stringify(input) + '\n', encoding: 'utf8', stdio: ['pipe', 'pipe', 'pipe'] }));
+  }
+  const ingest = frame => cli('background', ['ingest', '--journal', file], frame);
+  const route = args => cli('route', ['--journal', file], { text: 'read janus calendar', arguments: args });
+  const anchorId = 'fixture:monday', eventId = `usgs:synthetic1:${wednesday}:magnitude`;
+  ingest({ kind: 'signal', fact: { id: anchorId, subject: agent, predicate: 'note', value: 'first observation',
+    source: 'fixture:diary', validFrom: monday, validTo: null, recordedAt: monday } });
+  ingest({ kind: 'usgs', feed: collection(quake({ time: wednesday, updated: wednesday })), receivedAt: wednesday });
+  const trace = route({ id: anchorId, knownAt: thursday, chooseOrigin: true });
+  assert.equal(trace.status, 'executed');
+  assert.deepEqual(trace.result.data.originProposal, { agent, originId: anchorId });
+  const frame = { kind: 'action', id: 'don:choice', receivedAt: thursday, agent, trace };
+  const ack = ingest(frame);
+  assert.equal(ack.state, 'saved'); assert.equal(ack.receipts, 1);
+  assert.equal(ingest(frame).receipts, 0);
+  assert.equal(route({ id: eventId, knownAt: wednesday }).result.data.calendar.perspective, null);
+  const calendar = route({ id: eventId, knownAt: thursday }).result.data.calendar;
+  assert.equal(calendar.originChoice.id, frame.id); assert.equal(calendar.perspective.coordinates.age_days, 2);
+
+  await writeFile(requestFile, JSON.stringify({ agent, knownAt: thursday, stateAt: thursday,
+    worldFrom: wednesday, worldTo: wednesday + 1 }));
+  const saved = cli('background', ['select', '--journal', file, '--request', requestFile, '--memory', memory]);
+  assert.equal(saved.memory.state, 'saved');
+  assert.deepEqual(saved.context.items[0].calendar, calendar);
+  const replay = cli('background', ['replay', '--memory', memory, '--sequence', '1', '--head', saved.memory.head]);
+  assert.equal(replay.comparison, 'match'); assert.deepEqual(replay.result, saved.context);
 });
 
 test('real AML persists exact UTF-8 and both integer clocks; a fresh host verifies all receipts', async t => {

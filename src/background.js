@@ -4,9 +4,10 @@ import { encodeJournal, decodeJournal } from './journal.js';
 import { ingestUSGS, validateUSGSJournal } from './sources/usgs.js';
 import { appendLocation, locationSamples, LOCATION_SOURCE } from './sources/geolocation.js';
 import { appendCamera, cameraFrames, CAMERA_SOURCE } from './sources/camera.js';
+import { calendarOrigins, isAgent, originFact, ORIGIN_SOURCE } from './calendar-origin.js';
 
 export const BACKGROUND_BUDGET = Object.freeze({ capacity: 1024, maxBytes: 2_000_000, maxEvents: 64 });
-export const isAgent = value => typeof value === 'string' && /^agent:[a-zA-Z0-9_-]{1,100}$/.test(value);
+export { isAgent };
 export const isQuake = value => typeof value === 'string' && /^usgs:[a-zA-Z0-9_-]{1,100}$/.test(value);
 
 function checkSignals(ledger) {
@@ -48,18 +49,21 @@ const kinds = Object.keys(INSTRUMENTS);
 
 // The agent's own executed read is an act LALO observes. It is the one agent
 // state channel available today; model-internal state has no channel here.
-function actionFact(signals, world, { agent, id, receivedAt, trace }) {
+function actionFact(signals, world, origins, frame) {
+  const { agent, id, receivedAt, trace } = frame;
   if (!isAgent(agent)) throw new TypeError('agent must be agent:<identifier>');
   if (trace?.format !== 'lalo/action' || trace.version !== 1) throw new TypeError('expected a LALO action trace');
   if (trace.status !== 'executed') return null;
   const args = trace.call?.arguments;
   let subject = args?.subject;
   if (trace.call?.name === 'lalo_calendar') {
-    const assertion = trace.result?.data?.calendar?.assertion;
-    if (!trace.result?.ok || !assertion || !Number.isSafeInteger(args?.knownAt)) return null;
-    const target = world.entries().find(f => f.id === args?.id && f.recordedAt <= args.knownAt);
+    const calendar = trace.result?.data?.calendar, assertion = calendar?.assertion;
+    const target = Number.isSafeInteger(args?.knownAt) && world.entries().find(f => f.id === args.id && f.recordedAt <= args.knownAt);
     // Calendar provenance carries every ledger field except the observed value.
-    if (!target || !Object.keys(target).every(key => key === 'value' || target[key] === assertion[key])) return null;
+    const witnessed = trace.result?.ok && target && assertion
+      && Object.keys(target).every(key => key === 'value' || target[key] === assertion[key]);
+    if (args?.chooseOrigin === true) return originFact(frame, witnessed ? target : null, origins.get(agent)?.choice);
+    if (!witnessed) return null;
     subject = target.subject;
   }
   if (!isQuake(subject)) return null;
@@ -82,7 +86,7 @@ export async function readBackground(journal, budget = BACKGROUND_BUDGET) {
     parts[owners[0]].add(fact);
   }
   for (const kind of kinds) views[kind] = await INSTRUMENTS[kind].check(parts[kind]);
-  return { world, parts, views };
+  return { world, parts, views, origins: calendarOrigins(world.entries()) };
 }
 
 const receiptOf = frame => frame?.kind === 'signal' ? frame.fact?.recordedAt : frame?.receivedAt;
@@ -96,11 +100,16 @@ export async function createBackground(journal = encodeJournal(new FactLedger())
   let { world } = await readBackground(journal, budget);
   async function arrive(frame) {
     if (frame?.kind === 'action') {
-      const { parts } = await readBackground(encodeJournal(world, budget), budget);
-      const fact = actionFact(parts.signal, world, frame);
+      const { parts, origins } = await readBackground(encodeJournal(world, budget), budget);
+      const fact = actionFact(parts.signal, world, origins, frame);
       if (!fact) return { kind: 'action', receipts: 0, signal: null, records: world.size };
-      return { ...await arrive({ kind: 'signal', fact }), kind: 'action' };
+      return { ...await appendFrame({ kind: 'signal', fact }), kind: 'action' };
     }
+    if (frame?.kind === 'signal' && frame.fact?.source === ORIGIN_SOURCE)
+      throw new Error('A calendar origin requires its executed calendar action');
+    return appendFrame(frame);
+  }
+  async function appendFrame(frame) {
     if (!Object.hasOwn(INSTRUMENTS, frame?.kind)) throw new TypeError('unknown instrument');
     const receivedAt = receiptOf(frame);
     if (!Number.isSafeInteger(receivedAt)) throw new TypeError('receipt time must be an integer timestamp');

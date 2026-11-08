@@ -20,10 +20,14 @@ export function knownReceipt(records, id, knownAt) {
   return fact;
 }
 
-export async function receiptCalendar(fact, origin) {
+// UTC Gregorian years 1..9999 are representable by AML.
+export const calendarTimestampSupported = at => at >= -62135596800000 && at <= 253402300799999;
+
+export async function receiptCalendar(fact, origin, choice) {
   const assertion = { id: fact.id, subject: fact.subject, predicate: fact.predicate, source: fact.source, supersedes: fact.supersedes,
     validFrom: fact.validFrom, validTo: fact.validTo, recordedAt: fact.recordedAt };
   const reading = { assertion, originId: origin?.id ?? null };
+  if (choice) reading.originChoice = choice;
   // A ledger accepts a wider timestamp range than AML's Gregorian years 1..9999.
   // Keep the source visible even when a coordinate cannot be calculated.
   try {
@@ -31,7 +35,7 @@ export async function receiptCalendar(fact, origin) {
     Object.assign(reading, { api, wasmSha256 });
     // Reject out-of-domain inputs before converting very large ledger integers.
     for (const at of [fact.validFrom, fact.recordedAt, origin?.validFrom ?? fact.validFrom])
-      if (at < -62135596800000 || at > 253402300799999)
+      if (!calendarTimestampSupported(at))
         throw new RangeError('Timestamp outside JANUS.CALENDAR years 1..9999');
     const event = split(fact.validFrom), receipt = split(fact.recordedAt);
     const occurred = await calendar.instant(event.unixDay, event.second, event.millisecond);
