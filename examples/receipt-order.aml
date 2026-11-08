@@ -1,0 +1,18 @@
+IMPORT "../deps/aml/janus/calendar.aml"
+
+# Synthetic UTC events. Tuesday reaches Don on Friday; Thursday reaches him on Thursday.
+tuesday = janus_event(20760, 43200, 123, 20763, 43200, 1, 0)
+thursday = janus_event(20762, 43200, 125, 20762, 43200, 125, 0)
+
+# Each block prints the order of its operands, then right minus left in exact components.
+def show_order(label, left, right):
+    PRINT label
+    PRINT calendar_compare(left, right)
+    delta = calendar_duration(left, right)
+    PRINT record_get(delta, "sign")
+    PRINT record_get(delta, "days")
+    PRINT record_get(delta, "seconds")
+    PRINT record_get(delta, "milliseconds")
+
+show_order("occurrence", janus_event_instant(tuesday), janus_event_instant(thursday))
+show_order("receipt", janus_known_instant(tuesday), janus_known_instant(thursday))

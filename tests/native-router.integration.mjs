@@ -31,6 +31,7 @@ test('real neural body selects all seven tools and executes explicit UTF-8 scope
     ['follow the correction chain please', 'lalo_lineage', { knownAt: 200, id: 'a2' }],
     ['please check the conflicting evidence', 'lalo_reading', { knownAt: 150, validAt: 10, subject: 'переправа:север',
       predicate: 'open', rule: 'unanimous-boolean/v1', limit: 1 }],
+    ['which happened first please', 'lalo_calendar', { knownAt: 200, id: 'a2', compareToId: 'a1' }],
     ['show the janus calendar coordinates please', 'lalo_calendar', { knownAt: 200, id: 'a2', originId: 'a1' }],
   ];
   for (const [text, name, args] of cases) {

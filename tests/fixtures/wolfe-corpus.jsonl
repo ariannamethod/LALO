@@ -69,3 +69,7 @@
 {"text":"read janus calendar"}
 {"text":"show the janus calendar coordinates please"}
 {"text":"do not read janus calendar"}
+{"text":"which event happened first"}
+{"text":"which event did I learn about first"}
+{"text":"compare janus calendar clocks"}
+{"text":"do not compare occurrence and receipt times"}

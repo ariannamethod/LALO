@@ -3,6 +3,43 @@
 The engineering record. New entries first. README keeps the pulse; this file
 keeps the measurements, decisions, sources and scars.
 
+## 2026-11-08 — What happened first, and what reached Don first?
+
+The calendar on `d087128` reads the two clocks of a single revision. With a
+second receipt ID, Don now asks JANUS about both occurrence order and receipt
+order. The same knowledge cutoff applies to both IDs. The result carries the
+two named assertions, their sources and predecessor IDs, two exact orders
+and the signed durations between their clocks. Ties survive as ties.
+
+* The pinned AML (`8f577e8`) already supplies `calendar_instant`,
+  `calendar_compare` and `calendar_duration`. LALO passes the split timestamps
+  to AML's local WASM build. `examples/receipt-order.aml` runs the same
+  comparison over two `janus_event` records in the native AML interpreter.
+* The calendar tool accepts `compareToId` alongside `id` and `knownAt`.
+  Previously superseded revisions remain addressable by ID. A pair read keeps
+  the agent's personal origin and contributes no single-subject attention fact.
+  The action panel offers a second receipt from the same knowledge cutoff.
+  Live and original-world views show which event and which receipt came first.
+* In the synthetic example, Tuesday at noon +123 ms arrived on Friday at noon
+  +1 ms. Thursday at noon +125 ms was received immediately. In operand order
+  Tuesday, Thursday, JANUS returned −1 for occurrence and +1 for receipt.
+  The occurrence interval was +2 days and 2 ms. The receipt interval was
+  −86,399.876 seconds.
+
+Local checks on Linux x86_64 with Node v24.22.1 and GCC 14.2.0:
+
+* `node --test tests/*.test.js` passed 85/85, including the shared cutoff,
+  reversed operands, one-clock ties, the same receipt twice, cross-epoch
+  milliseconds, corrections, calendar and result budgets, MCP and replay.
+* Built the router, AML runner and calendar bridge. `node --test
+  tests/*.integration.mjs` passed 23/23. The real routed result matched every
+  component printed by the AML example, then reproduced from an AML snapshot
+  opened by a fresh memory handle. All four JavaScript examples also ran.
+* The C and AML WOLFE runs matched 75/75 decisions and 75/75 evidence results.
+  The earlier 71 intents retained their baseline status and called tool.
+* Local Chromium stopped before page load when the sandbox denied its process
+  singleton socket. The browser CI gate now selects a pair and replays it.
+
 ## 2026-11-08 — Don chooses which receipt begins his personal calendar
 
 At `f79272a`, every personal JANUS reading needed an explicit `originId`.

@@ -147,7 +147,9 @@ Don reads each selected earthquake revision through AML's local C/WASM calendar.
 Don can choose a known receipt as his calendar origin. Once his choice reaches
 the background journal, future reads count from that event across restarts.
 Rewinding to before the choice restores his earlier perspective. An explicit
-`originId` overrides the origin for one read.
+`originId` overrides the origin for one read. Give `lalo_calendar` a second
+receipt as `compareToId` to ask which event happened first and which report
+reached Don first. JANUS compares both clocks to the millisecond.
 The AML submodule supplies both JANUS and action memory. Dependabot checks its
 `main` branch daily at 03:17 UTC and opens update PRs. After pulling a merged update, run
 `git submodule update --init deps/aml` to use that revision locally.

@@ -75,7 +75,7 @@ function render(latest = false) {
   select(selected); controls();
 }
 actions = actionPanel({
-  presets: ['facts', 'history', 'lineage', 'calendar', 'subjects', 'status'],
+  presets: ['facts', 'history', 'lineage', 'calendar', 'compare', 'subjects', 'status'],
   getContext: () => busy || blocked || !selection() ? null : ({ journal: encodeJournal(ledger, LOCATION_BUDGET),
     subject: LOCATION_SUBJECT, knownAt, validAt: selection().observedAt, selected,
     visibleIDs: visible.flatMap(s => s.records.map(f => f.id)) }),
