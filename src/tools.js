@@ -1,4 +1,4 @@
-import { encodeJournal, decodeJournal } from './journal.js';
+import { encodeJournal, decodeJournal, extendsJournal } from './journal.js';
 import { RULE, MAGNITUDE_RULE } from './hypothesis.js';
 import { readRule, readingTimeline } from './reading.js';
 import { historyWindow, knownReceipt, receiptCalendar } from './janus-calendar.js';
@@ -42,7 +42,13 @@ const definitions = [
       chooseOrigin: { type: 'boolean', description: 'Propose this receipt as the agent’s fixed origin. Ingest the successful action in the background journal to record the choice.' } },
     ['id', 'knownAt']),
 ];
+const compareTool = define('lalo_compare_reading', 'Compare an AML-saved reading with this journal at a new knowledge cutoff. The original world instant, rule and scope come from memory. Page the receipts that changed its evidence.',
+  { sequence: { type: 'integer', minimum: 1, description: 'Saved action sequence.' }, head: name('Optional saved action SHA-256 head.'),
+    knownAt: clocks.knownAt, ...paging }, ['sequence', 'knownAt']);
 export const listTools = () => JSON.parse(JSON.stringify(definitions));
+const canonical = value => JSON.stringify(value, (_, v) => v && typeof v === 'object' && !Array.isArray(v)
+  ? Object.fromEntries(Object.keys(v).sort().map(k => [k, v[k]])) : v);
+export const sameToolResult = (left, right) => canonical(left) === canonical(right);
 const bytes = value => new TextEncoder().encode(JSON.stringify(value)).byteLength;
 const object = value => value !== null && typeof value === 'object' && !Array.isArray(value)
   && [Object.prototype, null].includes(Object.getPrototypeOf(value));
@@ -75,10 +81,11 @@ function argumentsFor(tool, input) {
 }
 
 // Each host owns a fixed snapshot, so pagination and repeated calls cannot drift.
-export function createToolHost(world, { maxResultBytes = TOOL_BUDGET.maxResultBytes } = {}) {
+export function createToolHost(world, { maxResultBytes = TOOL_BUDGET.maxResultBytes, recall } = {}) {
   if (!Number.isSafeInteger(maxResultBytes) || maxResultBytes < 1024 || maxResultBytes > TOOL_BUDGET.maxResultBytes)
     throw new RangeError('result byte budget must be between 1024 and 65536');
   const ledger = decodeJournal(encodeJournal(world, TOOL_BUDGET), TOOL_BUDGET), all = ledger.entries();
+  const registered = recall ? [...definitions, compareTool] : definitions;
   const known = at => all.filter(f => f.recordedAt <= at);
   const match = (f, a) => ['subject', 'predicate', 'source'].every(k => a[k] === undefined || f[k] === a[k]);
   function page(rows, args, extra = {}) {
@@ -96,7 +103,27 @@ export function createToolHost(world, { maxResultBytes = TOOL_BUDGET.maxResultBy
     if (!data.items.length && !data.complete) throw new ToolError('RESULT_BUDGET', 'One result row exceeds the byte budget; request a larger host budget');
     return result;
   }
+  async function compareSaved(a) {
+    const { receipt, journal } = await recall({ sequence: a.sequence,
+      ...(a.head === undefined ? {} : { head: a.head }), snapshot: true });
+    const action = receipt.action;
+    if (action.format !== 'lalo/action' || action.version !== 1 || action.status !== 'executed'
+      || action.call?.name !== 'lalo_reading' || !action.result?.ok || !action.result.data?.reading)
+      throw new ToolError('NOT_A_READING', 'Select a successful saved lalo_reading action');
+    const original = decodeJournal(JSON.stringify(journal), TOOL_BUDGET);
+    if (!extendsJournal(ledger, original))
+      throw new ToolError('WORLD_DIVERGED', 'The current journal must contain the complete saved journal as its prefix');
+    const args = action.call.arguments;
+    const reproduced = await createToolHost(original).call('lalo_reading', args);
+    if (!sameToolResult(reproduced, action.result))
+      throw new ToolError('SAVED_READING_CHANGED', 'The original tool result could not be reproduced');
+    const { rows, reading, timeline, comparison } = await readingTimeline(ledger,
+      { ...args, sinceKnownAt: args.knownAt, knownAt: a.knownAt }, original);
+    return page(rows, a, { savedReading: action.result.data.reading, reading, timeline,
+      comparison: { sequence: receipt.sequence, head: receipt.head, snapshotSha256: receipt.snapshot.sha256, ...comparison } });
+  }
   function execute(tool, a) {
+    if (tool === 'lalo_compare_reading') return compareSaved(a);
     if (tool === 'lalo_status') return { ok: true, data: { snapshot: 'fixed for this host session', records: all.length,
       firstReceipt: all[0]?.recordedAt ?? null, latestReceipt: all.at(-1)?.recordedAt ?? null,
       limits: { ...TOOL_BUDGET, maxResultBytes } } };
@@ -157,9 +184,9 @@ export function createToolHost(world, { maxResultBytes = TOOL_BUDGET.maxResultBy
   }
   const failed = error => ({ ok: false, error: { code: error?.code || 'TOOL_FAILURE',
     message: String(error?.message || 'Tool call failed').slice(0, 400) } });
-  return Object.freeze({ list: listTools, call(name, input = {}) {
+  return Object.freeze({ list: () => JSON.parse(JSON.stringify(registered)), call(name, input = {}) {
     try {
-      const tool = definitions.find(t => t.name === name);
+      const tool = registered.find(t => t.name === name);
       if (!tool) throw new ToolError('UNKNOWN_TOOL', 'Tool is not registered');
       const args = argumentsFor(tool, input), result = execute(name, args);
       return result instanceof Promise ? result.then(checked).catch(failed) : checked(result);

@@ -1,4 +1,4 @@
-import { decodeJournal } from './journal.js';
+import { decodeJournal, extendsJournal } from './journal.js';
 import { validateUSGSJournal } from './sources/usgs.js';
 import { magnitudeHypothesis, MAGNITUDE_RULE } from './hypothesis.js';
 
@@ -8,8 +8,7 @@ export const QUAKE_BUDGET = Object.freeze({ capacity: 1024, maxBytes: 2_000_000 
 // Imports extend the saved history exactly. Neither receipt clocks nor old rows move.
 export function extendQuakeJournal(ledger, text) {
   const candidate = validateUSGSJournal(decodeJournal(text, QUAKE_BUDGET));
-  const old = ledger.entries(), next = candidate.entries();
-  if (next.length < old.length || old.some((f, i) => JSON.stringify(f) !== JSON.stringify(next[i])))
+  if (!extendsJournal(candidate, ledger))
     throw new Error('Import must extend this journal. Export it and use --prior for the next CLI poll.');
   return candidate;
 }

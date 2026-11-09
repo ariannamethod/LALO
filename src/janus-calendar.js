@@ -97,33 +97,31 @@ export async function historyWindow(records, { receivedFrom, receivedTo, occurre
   return { rows, window };
 }
 
-// The baseline already includes receipts at sinceKnownAt. A receipt at the closing
-// cutoff belongs to the last reading, including when several sources arrive together.
-export async function readingBatches(records, sinceKnownAt, knownAt) {
+// A saved snapshot can lack receipts stamped at or before its own cutoff.
+export async function readingBatches(records, sinceKnownAt, knownAt, savedIDs) {
   const { parts, instant, calendar, api, wasmSha256 } = await loadCalendar();
   const start = await instant(parts(sinceKnownAt)), end = await instant(parts(knownAt));
   const order = await calendar.compare(start, end);
   if (order > 0) throw Object.assign(new RangeError('sinceKnownAt exceeds knownAt'), { code: 'INVALID_ARGUMENTS' });
   const batches = new Map();
-  if (order < 0) {
-    // Records are in receipt order. Compare each distinct instant just once.
-    let previous, batch;
-    for (const fact of records) {
-      if (fact.recordedAt !== previous) {
-        previous = fact.recordedAt;
-        batch = null;
-        // Both endpoints have been validated; an unrepresentable instant lies outside.
-        if (calendarTimestampSupported(previous)) {
-          const at = await instant(parts(previous));
-          if (await calendar.compare(at, end) > 0) break;
-          if (await calendar.compare(at, start) > 0) {
-            batch = [];
-            batches.set(previous, batch);
-          }
-        }
-      }
-      if (batch) batch.push(fact);
+  if (order === 0 && !savedIDs) return { batches, api, wasmSha256 };
+  let previous, afterStart;
+  for (const fact of records) {
+    const time = fact.recordedAt;
+    if (!calendarTimestampSupported(time)) {
+      if (time > knownAt) break;
+      if (!savedIDs || savedIDs.has(fact.id)) continue;
+      // An unseen receipt below the range goes through the checked conversion below.
     }
+    if (time !== previous) {
+      previous = time;
+      const at = await instant(parts(time));
+      if (await calendar.compare(at, end) > 0) break;
+      afterStart = await calendar.compare(at, start) > 0;
+    }
+    if (!afterStart && (!savedIDs || savedIDs.has(fact.id))) continue;
+    if (!batches.has(time)) batches.set(time, []);
+    batches.get(time).push(fact);
   }
   return { batches, api, wasmSha256 };
 }

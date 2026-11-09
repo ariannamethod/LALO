@@ -3,6 +3,38 @@
 The engineering record. New entries first. README keeps the pulse; this file
 keeps the measurements, decisions, sources and scars.
 
+## 2026-11-09 — Revisit a saved answer after new receipts arrive
+
+Starting from `b4096a2`, Don can open a numbered AML action, reproduce its
+reading on the saved snapshot, then compare it with an extended journal at a
+chosen knowledge cutoff. The original action supplies the world instant,
+rule and parameters. The comparison returns its own paginated evidence.
+
+* The Thursday crossing answer survives a host restart and a newer saved
+  action. Friday's correction and Saturday's reversal appear in one read.
+  The final verdict agrees with Thursday's, with different active premises
+  and two intervening verdict changes.
+* JANUS groups newly visible receipts by their actual receipt instants.
+  A receipt that was already present beyond the saved cutoff is identified
+  separately from a newly appended one. A new source can join the last
+  saved millisecond. The batch uses one complete reading, including when
+  its evidence spans pages. The prefix check also covers the sources,
+  clocks and values of every previously stored receipt.
+* MCP exposes `lalo_compare_reading` when launched with `--memory`. The visual
+  fields can recall a sequence number and compare against the current view.
+  This path reads AML memory and keeps its existing head. Old pages and
+  timeline actions start their comparison at the saved call's closing cutoff.
+* Debian 13 x86_64, Node 24.22.1, AML `8f577e8`. Built the router, AML
+  runner and calendar bridge. `node --test tests/*.test.js` passed 102/102,
+  `node --test tests/*.integration.mjs` passed 26/26, and
+  `node scripts/wolfe-diff.mjs` matched 83/83 C/AML decisions and evidence.
+  A native restart test compares via HTTP and MCP stdio, retrieves the
+  original result again, checks the chain head and rejects a tampered world.
+  All four JS examples and both AML examples ran offline.
+* Local Chromium stopped before loading the page when the process singleton
+  socket was denied. The browser CI gate exercises numbered recall, the
+  appended crossing correction and an unchanged USGS reading.
+
 ## 2026-11-09 — What made Don change his reading?
 
 Starting from `b76cd6b`, `lalo_reading` can trace the same rule at one world

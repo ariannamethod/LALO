@@ -1,6 +1,6 @@
 # Call the world
 
-LALO exposes seven read tools over one fixed journal snapshot. The portable host
+LALO exposes seven read tools over one fixed journal snapshot. A host with AML action memory adds an eighth tool for comparing a saved reading. The portable host
 runs in JavaScript; the local MCP process connects it to a stdio client.
 
 ## Start a session
@@ -40,6 +40,7 @@ world interval. Null magnitude remains unknown.
 | `lalo_lineage` | `knownAt`, `id` | Original assertion through the requested known revision |
 | `lalo_calendar` | `knownAt`, `id` | JANUS coordinates and personal origin. Optional `compareToId` compares two receipts on both clocks. |
 | `lalo_reading` | `knownAt`, `validAt`, `subject`, `predicate`, `rule` | Complete rule conclusion and paginated evidence, with optional revision history |
+| `lalo_compare_reading` (with memory) | `sequence`, `knownAt` | Saved and current readings and the receipts behind each revision. Optional `head`, `offset`, `limit`. |
 
 `lalo_status` describes the whole loaded snapshot. The other tools apply the
 requested receipt cutoff to all returned rows and counts. A future receipt ID
@@ -132,6 +133,38 @@ Friday receipt `correction` contradicts it. The Saturday receipt
   `verdict` step changes the conclusion. An `evidence` step changes the
   premises while preserving that conclusion. Pages can split the receipts
   for a step. The step number and complete verdict stay the same on each page.
+
+## Compare a saved answer with a later journal
+
+Start MCP on the extended journal and the action host's existing memory directory.
+
+```sh
+node scripts/mcp.mjs --journal current.json --memory build/action-memory
+```
+
+Call `lalo_compare_reading` with the saved action's `sequence` and the new
+inclusive `knownAt` cutoff. Include the saved `head` to pin its SHA-256.
+The successful original `lalo_reading` supplies its subject, predicate,
+rule, parameters and world instant. AML verifies the saved memory and
+snapshot. LALO checks that the current journal extends that snapshot and
+reproduces the saved page before reading further. The new cutoff must be at
+least the original call's final `knownAt`. This also applies to saved timeline
+pages. Comparison evidence starts at offset zero.
+
+* `savedReading` and `reading` give the complete original and current rule
+  summaries. `comparison` identifies the saved action and snapshot. Its
+  `sameVerdict`, `samePremises` and `verdictChanges` distinguish an
+  unchanged answer, changed evidence and a verdict that changed and returned.
+* The rows contain the incoming facts that affected the reading, with their
+  current role and any displaced predecessor's role. `origin: "appended"`
+  means the receipt was absent from the saved snapshot. `"saved_snapshot"`
+  means it was there but lay beyond the old knowledge cutoff. A newly appended
+  receipt at or before that cutoff retains its real timestamp. Simultaneous
+  arrivals share one step and verdict across pages.
+* A shortened or rewritten journal returns `WORLD_DIVERGED`. An irreproducible
+  saved page returns `SAVED_READING_CHANGED`. A different tool or failed
+  action returns `NOT_A_READING`. Memory verification and calendar failures
+  retain their own error codes.
 
 ## Find reports by receipt and occurrence time
 

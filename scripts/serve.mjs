@@ -16,7 +16,8 @@ export async function serve({ port = 3000, host = '127.0.0.1', router = false, r
   const server = createServer(async (req, res) => {
     try {
       if (req.url === '/api/action') { await actions.handle(req, res); return; }
-      if (req.url === '/api/memory') { await actions.handle(req, res, true); return; }
+      if (req.url === '/api/memory') { await actions.handle(req, res, 'recall'); return; }
+      if (req.url === '/api/memory/compare') { await actions.handle(req, res, 'compare'); return; }
       if (!['GET', 'HEAD'].includes(req.method)) { res.writeHead(405); res.end(); return; }
       const url = new URL(req.url, 'http://localhost');
       const route = decodeURIComponent(url.pathname);

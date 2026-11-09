@@ -1,8 +1,6 @@
 // Reproduce an already selected read against its original world, with no selector.
-import { createToolHost, mapToolResult, TOOL_BUDGET } from './tools.js';
+import { createToolHost, mapToolResult, sameToolResult, TOOL_BUDGET } from './tools.js';
 const copy = value => JSON.parse(JSON.stringify(value));
-const canonical = value => JSON.stringify(value, (_, v) => v && typeof v === 'object' && !Array.isArray(v)
-  ? Object.fromEntries(Object.keys(v).sort().map(k => [k, v[k]])) : v);
 
 export function createActionReplay(world, action) {
   if (action?.format !== 'lalo/action' || action.version !== 1) throw new TypeError('Expected a saved LALO action');
@@ -15,7 +13,7 @@ export function createActionReplay(world, action) {
     const args = { ...saved.call.arguments, ...(offset === undefined ? {} : { offset }) };
     return mapToolResult(host.call(saved.call.name, args), result => ({
       format: 'lalo/action-replay', version: 1, call: { name: saved.call.name, arguments: args }, result,
-      comparison: offset === undefined ? canonical(result) === canonical(saved.result) ? 'match' : 'changed' : 'page',
+      comparison: offset === undefined ? sameToolResult(result, saved.result) ? 'match' : 'changed' : 'page',
     }));
   } });
 }

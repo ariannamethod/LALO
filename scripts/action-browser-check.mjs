@@ -172,5 +172,25 @@ export async function checkActionField({ evaluate, call, shot, reload, kind }) {
     await new Promise(resolve => setTimeout(resolve, 50));
   assert.equal(await value("document.getElementById('action-world').dataset.comparison"), 'match');
   assert.deepEqual(await headings('#action-world'), liveSteps);
+  if (kind === 'crossing') {
+    await click('receive'); // a2 replaces a1 in the current journal only.
+    for (let i = 0; i < 100 && await value("document.getElementById('receive').disabled"); i++)
+      await new Promise(resolve => setTimeout(resolve, 50));
+  }
+  await value(`document.getElementById('action-sequence').value='${saved.memory.sequence}'`);
+  await click('action-recall'); await idle();
+  assert.deepEqual((await trace()).result, saved.result);
+  await click('action-world-open'); await idle();
+  await click('world-compare');
+  for (let i = 0; i < 200 && await value("document.getElementById('world-compare').disabled"); i++)
+    await new Promise(resolve => setTimeout(resolve, 50));
+  const compared = await value("document.querySelector('#world-comparison [role=status]').textContent");
+  if (kind === 'crossing') {
+    assert.match(compared, /different final premises/);
+    const delta = await value("JSON.parse(document.querySelector('#world-comparison li pre').textContent)");
+    assert.equal(delta.id, 'a2'); assert.equal(delta.supersedes, 'a1');
+  } else assert.match(compared, /same final premises · changes: 0/);
+  await click('world-replay');
+  assert.equal(await value("document.getElementById('action-world').dataset.comparison"), 'match');
   console.log(`PASS: ${kind} real C calls, explicit clocks, complete inference, evidence selection, fixed-snapshot paging, stale/late responses, abstention, argument failures, AML readback, original-world reproduction after reload and phone layout`);
 }
