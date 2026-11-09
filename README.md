@@ -137,7 +137,7 @@ past stays put. [Action memory contract](docs/ACTION_MEMORY.md).
 No Python in LALO's runtime, build or tests.
 
 LALO plays instruments; the world keeps sounding while no model is asking.
-USGS revisions, device fixes, kept frames and Don's own reads arrive through
+USGS revisions, NOAA weather frame listings, device fixes, kept camera frames and Don's own reads arrive through
 one door into one bounded journal. Each context is a fresh, bounded reading
 of that world with its own event, signal and byte limits:
 
@@ -145,7 +145,13 @@ of that world with its own event, signal and byte limits:
 node examples/background.js
 ```
 
-Don reads each selected earthquake revision through AML's local C/WASM calendar.
+With the native router and AML built, run `node examples/gev-weather.js` for an offline
+session. A radar frame predates a quake but reaches Don later. He reopens his
+earlier answer from AML memory and names the receipt that changed it. Run
+`background.mjs poll-weather` against a God's Eye View server to receive its
+radar, lightning or cloud imagery manifests. [Commands and source fields](docs/BACKGROUND.md#weather-from-gods-eye-view).
+
+Don reads each selected event through AML's local C/WASM calendar.
 Don can choose a known receipt as his calendar origin. Once his choice reaches
 the background journal, future reads count from that event across restarts.
 Rewinding to before the choice restores his earlier perspective. An explicit

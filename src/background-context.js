@@ -1,9 +1,10 @@
 // Deterministic context projection. It cannot fetch, append or start a worker.
-import { readBackground, isAgent, isQuake } from './background.js';
+import { readBackground, isAgent, isQuake, isEventSubject } from './background.js';
 import { knownReceipt, receiptCalendar } from './janus-calendar.js';
 
-const policies = new Map([[2, 'usgs-attention-receipt/v2'], [3, 'usgs-attention-janus/v3'], [4, 'usgs-attention-janus/v4']]);
-export const BACKGROUND_POLICY = policies.get(4);
+const policies = new Map([[2, 'usgs-attention-receipt/v2'], [3, 'usgs-attention-janus/v3'], [4, 'usgs-attention-janus/v4'],
+  [5, 'usgs-nowcoast-attention-janus/v5']]);
+export const BACKGROUND_POLICY = policies.get(5);
 export const CONTEXT_BUDGET = Object.freeze({ maxEvents: 8, maxSignals: 8, maxBytes: 32_768 });
 const bytes = value => new TextEncoder().encode(JSON.stringify(value)).length;
 const canonical = value => JSON.stringify(value, (_, v) => v && typeof v === 'object' && !Array.isArray(v)
@@ -23,7 +24,8 @@ function requestFor(input, version) {
   for (const key of ['knownAt', 'stateAt', 'worldFrom', 'worldTo'])
     if (!Number.isSafeInteger(request[key])) throw new TypeError(`${key} must be an integer timestamp`);
   if (request.worldTo <= request.worldFrom) throw new RangeError('worldTo must be after worldFrom');
-  if (request.subject !== undefined && !isQuake(request.subject)) throw new TypeError('subject must name a USGS event');
+  const acceptsSubject = version >= 5 ? isEventSubject : isQuake;
+  if (request.subject !== undefined && !acceptsSubject(request.subject)) throw new TypeError('invalid background event subject');
   if (!Number.isSafeInteger(request.maxEvents) || request.maxEvents < 1 || request.maxEvents > 64
     || !Number.isSafeInteger(request.maxSignals) || request.maxSignals < 0 || request.maxSignals > 64
     || !Number.isSafeInteger(request.maxBytes) || request.maxBytes < 1024 || request.maxBytes > 65_536)
@@ -31,7 +33,7 @@ function requestFor(input, version) {
   return request;
 }
 
-export function selectBackground(journal, input) { return projectBackground(journal, input, 4); }
+export function selectBackground(journal, input) { return projectBackground(journal, input, 5); }
 
 async function projectBackground(journal, input, version) {
   const request = requestFor(input, version), { world, parts, views, origins } = await readBackground(journal);
@@ -52,7 +54,9 @@ async function projectBackground(journal, input, version) {
   }
   // Resolve revisions BEFORE the world-time filter: a corrected origin can
   // move an event out of the requested window without reviving its old version.
-  const candidates = [...heads.values()].filter(([f]) => f.validFrom >= request.worldFrom && f.validFrom < request.worldTo
+  const groups = [...heads.values()];
+  if (version >= 5) groups.push(...views['gev-weather']);
+  const candidates = groups.filter(([f]) => inWindow(f.validFrom, f.recordedAt)
     && (request.subject === undefined || f.subject === request.subject));
   const result = { format: 'lalo/background-context', version, policy: policies.get(version), request,
     state: [], stateEligible: active.length, stateOmitted: active.length,
@@ -74,12 +78,12 @@ async function projectBackground(journal, input, version) {
   // Ranking reads only the state the context carries, so every reason has its receipt.
   const attention = new Set(result.state.filter(f => f.predicate === 'attention_subject' && f.value !== null).map(f => f.value));
   candidates.sort(([a], [b]) => Number(attention.has(b.subject)) - Number(attention.has(a.subject))
-    || b.recordedAt - a.recordedAt || order(a.subject, b.subject));
+    || b.recordedAt - a.recordedAt || order(a.subject, b.subject) || b.validFrom - a.validFrom || order(a.id, b.id));
   for (const facts of candidates) {
     if (result.items.length === request.maxEvents) { limit('maxEvents'); break; }
     const f = facts[0];
     const item = { subject: f.subject, reason: attention.has(f.subject) ? 'attention_subject' : 'receipt_order', facts };
-    // All eight validated companion assertions share the clocks of this revision.
+    // Each group shares one observation instant and one receipt time.
     if (version >= 3) item.calendar = await receiptCalendar(f, anchor, choice);
     result.items.push(item);
     result.omitted--;

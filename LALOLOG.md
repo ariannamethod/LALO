@@ -3,6 +3,37 @@
 The engineering record. New entries first. README keeps the pulse; this file
 keeps the measurements, decisions, sources and scars.
 
+## 2026-11-09 — Receive God's Eye View weather manifests beside USGS
+
+From `c937561`, the background accepts GEV v1 manifests for radar, lightning,
+global clouds and regional clouds. Each listed observation has three receipts
+with its endpoint, observation time, first cache-fetch time, cache state and
+Don's first receipt time. Repeated listings append zero facts. An unavailable
+manifest rejects the batch. The new v5 context can select and attend to each
+product alongside USGS. The v2–v4 replay policies remain available.
+
+* `node examples/gev-weather.js` ran an offline session through the native C
+  router, AML memory and JANUS. At 12:01 UTC Don had no premise for a radar
+  frame at 11:58. He received its listing at 12:08. After reopening the
+  saved reading the verdict changed from unsettled to supported, with one
+  new premise. JANUS ordered the radar before the noon earthquake in world
+  time and after it in receipt time. The earthquake correction moved its
+  magnitude from 2.9 to 3.4. Piping the five frames through the durable CLI
+  produced 8, 3, 3, 0 and 8 new receipts, respectively.
+* The interoperability test ran the actual [GEV provider at
+  027c961](https://github.com/bilawalsidhu/gods-eye-view/blob/027c9616a5245bd5e0725cd03d62fce41d54c691/server/providers/weather.js)
+  with a synthetic NOAA WMS response over a loopback HTTP server. Seven
+  CLI polls covered four products, a cache hit, a stale fallback and an
+  expired cache. The last three preserved the 12-receipt journal byte for
+  byte. CI checks out the pinned provider for this test. Runtime acquisition
+  uses the GEV origin supplied by the operator.
+* Debian 13 x86_64, Node 24.22.1, AML `8f577e8`. Ran both build scripts,
+  `make -C deps/aml calendar-bridge`, 114 core tests, 27 native integration
+  tests, the GEV contract test and 83 C/AML differential cases successfully.
+  The initial core run still asserted v4 for new contexts. Its replacement
+  checks v5, with a separate replay test against a saved v4 projection.
+  Commands for polling and simulation are in the [background guide](docs/BACKGROUND.md#weather-from-gods-eye-view).
+
 ## 2026-11-09 — Don Eduardo runtime audit
 
 Starting at `453c2fa`, traced how a source becomes a receipt, shapes

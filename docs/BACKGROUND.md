@@ -14,7 +14,7 @@ The portable boundary has no network, timer, native process or ambient clock:
 - `src/background.js`: one door, `receive(frame)`, for every instrument. Each
   instrument owns its receipts and validates them with its own source adapter.
 - `src/background-context.js`: select by an explicit request and replay a saved
-  selection under its recorded policy. New selections use `usgs-attention-janus/v4`.
+  selection under its recorded policy. New selections use `usgs-nowcoast-attention-janus/v5`.
 - `scripts/background.mjs`: persist an input stream, request one live poll,
   select locally, or replay from a journal or a verified AML snapshot.
 
@@ -54,6 +54,7 @@ restart and every selection.
 | `kind` | Owns | Validator | Own budget |
 | --- | --- | --- | --- |
 | `usgs` | subject `usgs:<event>` | `validateUSGSJournal` | 64 events per batch |
+| `gev-weather` | subject `nowcoast:<product>` | `weatherFrames` | 13 times per manifest, 32 KiB per HTTP response |
 | `location` | source `browser:geolocation` | `locationSamples` | 768 receipts, 512000 bytes |
 | `camera` | source `browser:camera` | `cameraFrames` (SHA-256) | 32 frames, 1500000 bytes |
 | `signal` | subject `agent:<identifier>` | attention values and calendar origin references | one fact per frame |
@@ -62,6 +63,7 @@ Frames:
 
 ```js
 { kind: 'usgs', receivedAt, feed: geojsonFeatureCollection }
+{ kind: 'gev-weather', receivedAt, origin, manifest }
 { kind: 'location', id, receivedAt, position: { timestamp, coords: { latitude, longitude, accuracy } } }
 { kind: 'camera', id, receivedAt, image: { jpeg, width, height, capturedAt } }
 { kind: 'signal', fact: { id, subject: 'agent:don-eduardo', predicate, value, source,
@@ -90,7 +92,7 @@ measurement and coordinates from a browser position. The producer can then
 reuse its object. Overlapping calls commit in submission order against the
 latest world. After a rejected frame the queue continues from the last commit.
 
-One explicit network acquisition exists:
+To fetch one USGS batch, run
 
 ```sh
 node scripts/background.mjs poll --journal build/background-live.json
@@ -101,6 +103,43 @@ host and commits the batch. The receiver, selection, replay, module import and
 examples never start it. Scheduling is an explicit host decision. There is no
 daemon and no polling loop.
 
+## Weather from God's Eye View
+
+With a GEV server running, set `GEV_ORIGIN` to its HTTP(S) origin. Each
+command fetches one manifest. All four products share the same journal.
+
+```sh
+mkdir -p build
+for product in radar lightning clouds clouds-regional; do
+  node scripts/background.mjs poll-weather --gev-origin "$GEV_ORIGIN" --product "$product" --journal build/background-live.json || break
+done
+```
+
+The [GEV weather provider](https://github.com/bilawalsidhu/gods-eye-view/blob/027c9616a5245bd5e0725cd03d62fce41d54c691/server/providers/weather.js)
+lists observation times in `/api/weather/manifest?product=…`. For each new time,
+Don records `frame_listed = true`, the first witnessing manifest's `manifest_fetched_at`
+and its `manifest_stale` flag. The source is the GEV endpoint. The observation
+time anchors a one-millisecond interval. All three facts receive the time when
+Don accepted that manifest. Radar covers CONUS, lightning reports a regional
+density product, and the two cloud products list global and regional satellite
+imagery. These receipts answer when a frame was listed. Reading rain, strikes
+or cloud cover at a point requires measurements from the image itself.
+
+The same endpoint listing the same time again returns a duplicate count and
+the current cache status. A frame falling out of the list stays in history.
+A provider outage without usable metadata rejects the poll and preserves the
+journal. Responses from distinct GEV origins keep distinct receipts.
+
+To run the reproducible scenario, build the native router and the pinned AML
+runner, then run `node examples/gev-weather.js`. It creates temporary AML
+memory, records the radar question before the late arrival, reopens it and
+compares with the extended world. For a durable copy of the synthetic inputs
+use a new journal path:
+
+```sh
+node examples/gev-weather.js --frames | node scripts/background.mjs ingest --journal build/weather-simulation.json
+```
+
 ## Don in the world
 
 Don has identity `agent:<identifier>` in the same world as `usgs:<event>` and
@@ -110,7 +149,7 @@ scalar value, source, world interval, receipt time, optional predecessor.
 Two channels exist. An `action` frame takes an executed `lalo/action` trace,
 the same trace the router and action memory already keep. A successful
 `lalo_facts`, `lalo_history`, `lalo_reading` or single-receipt `lalo_calendar`
-read of a USGS subject becomes an `attention_subject` receipt with source
+read of a USGS event or a nowCOAST product becomes an `attention_subject` receipt with source
 `lalo:action/<tool>`, valid from its receipt time. The next action-derived
 attention supersedes the previous one, so Don's focus moves and its lineage
 stays. An abstention, an error or a read of any other subject names no
@@ -168,7 +207,7 @@ An explicit `originId` overrides the origin for one request.
 | `knownAt` | Receipt cutoff for every instrument and for Don's receipts. |
 | `stateAt` | World instant at which Don's receipts apply. |
 | `worldFrom`, `worldTo` | Half-open interval of observed instants. |
-| `subject` | Optional exact USGS subject filter. |
+| `subject` | Optional exact USGS event or nowCOAST product subject. |
 | `originId` | Optional receipt known at `knownAt`. Its occurrence day anchors the personal calendar view for this request. |
 | `maxEvents` | Whole event versions in the result; default 8, range 1–64. |
 | `maxSignals` | Don's active receipts in the result; default 8, range 0–64. |
@@ -184,12 +223,13 @@ Each USGS event resolves its latest revision at `knownAt` first, then its
 origin time is filtered. A correction that moves an event out of the window
 removes it; the earlier location or time never comes back. Attention subjects
 rank first, then the most recently received versions, then subject in
-code-unit order. The policy emits no reliability, uncertainty or
+code-unit order. Simultaneous receipts for the same product sort by newest
+observation and then by receipt ID. The policy emits no reliability, uncertainty or
 routing-activation score.
 
 The context carries the normalized request, the policy, Don's carried receipts,
 the selected complete event versions and their reasons. Each event keeps all
-eight source facts, both clocks and predecessor IDs. `stateEligible`,
+eight USGS facts or three weather facts, both clocks and predecessor IDs. `stateEligible`,
 `stateOmitted`, `eligible`, `omitted`, `complete` and `limitedBy` (the list of
 budgets that cut anything) mark the exact boundary of the reading.
 `otherInstruments` counts location and camera observations inside the window
@@ -199,17 +239,17 @@ lineage tools. Every selection is fresh: callers replace the previous context
 and never concatenate. A request envelope that cannot fit alone fails
 explicitly.
 
-Each selected event version has one JANUS annotation anchored to its magnitude
-receipt. The eight companion facts share occurrence, receipt and validity clocks.
+Each selected group has one JANUS annotation anchored to its magnitude or
+`frame_listed` receipt. Companion facts share occurrence, receipt and validity clocks.
 The complete annotation counts toward the context byte budget alongside the facts.
 An unavailable calendar or out-of-range timestamp leaves a structured error
 on that event alongside its source receipts. The separate `lalo_calendar` tool
 can also read individual device, camera and agent receipts. An executed calendar
-read of a single USGS receipt in the background world can become Don's next attention
+read of a single USGS or weather receipt in the background world can become Don's next attention
 signal. A comparison with `compareToId` reads both revisions and leaves Don's
 attention as it was.
 
-Historical v2 and v3 contexts replay with their original projection and byte budget.
+Historical v2, v3 and v4 contexts replay with their original projection and byte budget.
 New contexts save the coordinates and calculator's WASM digest. Replay compares
 both against a fresh reading of the saved world.
 
