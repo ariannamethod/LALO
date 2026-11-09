@@ -88,6 +88,15 @@ export async function checkQuakeField({ socket, call, evaluate, shot, waitIdle, 
     assert.equal(exported?.size, 24, 'export contains the full replayable journal');
     const extended = ingestUSGS(exported, collection(quake({ mag: 4.1, updated: T + 9000 })), { receivedAt: T + 10000 }).ledger;
     const extensionPath = join(out, 'synthetic-extension.json');
+    // Insert malformed UTF-8 only into the appended version. A permissive
+    // decoder would admit that version with U+FFFD in its place name.
+    const corrupt = Buffer.from(encodeJournal(extended));
+    const place = corrupt.lastIndexOf('Synthetic crossing'); assert.ok(place > 0);
+    corrupt[place] = 0xff;
+    const damaged = join(out, 'invalid-utf8.json');
+    await writeFile(damaged, corrupt); await importFile(damaged);
+    assert.equal(await evaluate('document.getElementById("error").hidden'), false);
+    assert.match(await budget(), /^24 \/ 1024/);
     await writeFile(extensionPath, encodeJournal(extended)); await importFile(extensionPath);
     assert.match(await budget(), /^32 \/ 1024/); assert.match(await inspector(), /Magnitude 4\.1/);
     await importFile(exportPath);

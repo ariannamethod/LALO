@@ -12,7 +12,7 @@ export async function fetchUSGS({ fetchImpl = globalThis.fetch, maxBytes = 2_000
     if (Number(response.headers.get('content-length')) > maxBytes) throw new RangeError('feed exceeds byte budget');
     if (!response.body) throw new Error('USGS response has no body');
     reader = response.body.getReader();
-    const decoder = new TextDecoder(); let size = 0, text = '';
+    const decoder = new TextDecoder('utf-8', { fatal: true }); let size = 0, text = '';
     while (true) {
       const { value, done } = await reader.read();
       if (done) break;

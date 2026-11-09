@@ -74,3 +74,11 @@ test('unanswered permission request times out; late callback does not become a r
   await assert.rejects(pending, /timed out/);
   assert.equal(reads, 0);
 });
+
+test('device clocks outside the display Date range retain their exact Unix milliseconds', async () => {
+  const { receiptTime } = await import('../web/calendar.js');
+  const at = Number.MAX_SAFE_INTEGER - 1;
+  const sample = locationSamples(add(new FactLedger(), 'far', at, fix(at)))[0];
+  assert.equal(receiptTime(sample.receivedAt), at + ' ms');
+  assert.equal(receiptTime(0), '1970-01-01 00:00:00.000 UTC');
+});

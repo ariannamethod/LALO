@@ -1,5 +1,6 @@
 // Differential gate: the C oracle (vendor/wolfe, --batch --reasoning-compact) against aml/wolfe.aml.
-// Per intent: status and winner must match; |confidence| and |margin| deltas stay within 1e-4.
+// Compare the selected calls, evidence and decision, allowing 1e-4 in activation and margin.
+import { isDeepStrictEqual } from 'node:util';
 import { spawnSync } from 'node:child_process';
 import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
@@ -45,8 +46,8 @@ if (take('--save-oracle')) await writeFile(take('--save-oracle'), c.lines.join('
 if (take('--save-aml')) await writeFile(take('--save-aml'), a.lines.join('\n') + '\n');
 
 const fields = d => ({ status: d.status, winner: d.reasoning?.winner ?? null, confidence: d.confidence,
-  margin: d.reasoning?.margin, evidence: JSON.stringify(d.reasoning?.evidence ?? null), error: d.error ?? null });
-const misses = { status: 0, winner: 0, confidence: 0, margin: 0, error: 0, parse: 0 };
+  margin: d.reasoning?.margin, calls: d.calls, evidence: d.reasoning?.evidence ?? null, error: d.error ?? null });
+const misses = { status: 0, winner: 0, calls: 0, evidence: 0, confidence: 0, margin: 0, error: 0, parse: 0 };
 let passed = 0, evidence = 0, identical = 0, worstConfidence = 0, worstMargin = 0, oracleErrors = 0;
 console.log('  #  status oracle/aml          winner oracle/aml                 dconf     dmargin   ev  intent');
 texts.forEach((text, i) => {
@@ -57,15 +58,16 @@ texts.forEach((text, i) => {
   const errored = o.status === 'error' || m.status === 'error';
   if (o.status === 'error') oracleErrors++;
   const dc = errored ? 0 : Math.abs(o.confidence - m.confidence), dm = errored ? 0 : Math.abs(o.margin - m.margin);
-  const failed = [o.status !== m.status && 'status', o.winner !== m.winner && 'winner',
+  const sameEvidence = isDeepStrictEqual(o.evidence, m.evidence);
+  const failed = [!isDeepStrictEqual(o.calls, m.calls) && 'calls', !sameEvidence && 'evidence', o.status !== m.status && 'status', o.winner !== m.winner && 'winner',
     !(dc <= TOLERANCE) && 'confidence', !(dm <= TOLERANCE) && 'margin', o.error !== m.error && 'error'].filter(Boolean);
   failed.forEach(name => misses[name]++);
   if (!failed.length) passed++;
-  if (o.evidence === m.evidence) evidence++;
+  if (sameEvidence) evidence++;
   if (c.lines[i] === a.lines[i]) identical++;
   worstConfidence = Math.max(worstConfidence, dc || 0); worstMargin = Math.max(worstMargin, dm || 0);
   console.log(`${String(i + 1).padStart(3)}  ${`${o.status}/${m.status}`.padEnd(24)} ${`${o.winner}/${m.winner}`.padEnd(33)}`
-    + ` ${dc.toExponential(1).padEnd(9)} ${dm.toExponential(1).padEnd(9)} ${o.evidence === m.evidence ? 'eq' : 'NE'}  `
+    + ` ${dc.toExponential(1).padEnd(9)} ${dm.toExponential(1).padEnd(9)} ${sameEvidence ? 'eq' : 'NE'}  `
     + `${text}${failed.length ? `  FAIL ${failed.join(',')}` : ''}`);
 });
 console.log(`oracle ${c.lines.length} lines in ${c.ms.toFixed(0)} ms (exit ${c.status}); aml ${a.lines.length} lines in ${a.ms.toFixed(0)} ms (exit ${a.status})`);
@@ -75,8 +77,8 @@ console.log(`decisions ${passed}/${texts.length}; evidence equal ${evidence}/${t
 // The oracle's batch exits 1 after any error line; the AML program keeps serving and exits 0.
 const oracleExit = c.status === 0 || c.status === 1 && oracleErrors > 0;
 const counts = c.lines.length === texts.length && a.lines.length === texts.length && oracleExit && a.status === 0;
-const ok = counts && passed === texts.length;
+const ok = texts.length > 0 && counts && passed === texts.length;
 console.log(ok ? `VERDICT PASS ${passed}/${texts.length}` : `VERDICT FAIL ${passed}/${texts.length}`
-  + ` (status ${misses.status}, winner ${misses.winner}, confidence ${misses.confidence}, margin ${misses.margin},`
+  + ` (status ${misses.status}, winner ${misses.winner}, calls ${misses.calls}, evidence ${misses.evidence}, confidence ${misses.confidence}, margin ${misses.margin},`
   + ` error ${misses.error}, parse ${misses.parse}${counts ? '' : ', line count or exit status'})`);
 process.exitCode = ok ? 0 : 1;

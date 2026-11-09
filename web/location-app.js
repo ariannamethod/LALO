@@ -1,3 +1,4 @@
+import { receiptTime as when } from './calendar.js';
 import { FactLedger } from '../src/ledger.js';
 import { encodeJournal, decodeJournal } from '../src/journal.js';
 import { appendLocation, locationSamples, LOCATION_BUDGET, LOCATION_SUBJECT } from '../src/sources/geolocation.js';
@@ -7,7 +8,6 @@ import { actionPanel } from './actions.js';
 
 const $ = id => document.getElementById(id);
 const store = worldStore(globalThis.indexedDB, { key: 'location-v1', maxBytes: LOCATION_BUDGET.maxBytes });
-const when = t => new Date(t).toISOString().replace('T', ' ').replace('Z', ' UTC');
 const element = (tag, text) => { const e = document.createElement(tag); e.textContent = text; return e; };
 let ledger = new FactLedger(LOCATION_BUDGET), revision = 0, busy = true, blocked = false;
 let samples = [], visible = [], times = [], knownAt = 0, selected, actions, marked = [];

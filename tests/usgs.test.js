@@ -52,3 +52,22 @@ test('an unknown magnitude stays explicit null and absent fields fail validation
   assert.equal(ledger.entries()[0].value, null);
   assert.throws(() => poll(new FactLedger(), [feature({ mag: undefined })]), /magnitude/);
 });
+
+test('empty and unrelated polls reject a damaged earlier source version', () => {
+  const first = poll(new FactLedger(), [feature()]).ledger;
+  first.add({ id: 'note', subject: 'fixture:station', predicate: 'online', value: true,
+    source: 'fixture:operator', validFrom: 3000, validTo: null, recordedAt: 3000 });
+  const later = poll(first, [feature({ updated: 5000, mag: 3 })], 6000).ledger;
+  assert.deepEqual(poll(later, [], 7000).ledger.entries(), later.entries());
+  const data = JSON.parse(encodeJournal(later)); data.records[0].source = 'fixture:wrong';
+  const damaged = decodeJournal(JSON.stringify(data));
+  for (const features of [[], [{ ...feature(), id: 'independent' }]])
+    assert.throws(() => poll(damaged, features, 7000), /inconsistent/);
+});
+
+test('a successful poll always fits the journal byte budget', () => {
+  const many = Array.from({ length: 96 }, (_, n) => ({ ...feature({ place: '\u0000'.repeat(4096) }), id: 'event' + n }));
+  const before = new FactLedger();
+  assert.throws(() => poll(before, many), /byte budget/);
+  assert.equal(before.size, 0);
+});

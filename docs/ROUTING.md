@@ -51,7 +51,8 @@ meaning; prose cannot narrow them. Missing required values fail validation.
 | read hypothesis | lalo_reading |
 | read janus calendar | lalo_calendar |
 
-The corpus contains 40 English examples, including no-call examples.
+The routing examples are in [router/examples.jsonl](../router/examples.jsonl)
+and include no-call examples.
 The native field also derives examples from tool names/descriptions. Routing
 is statistical: paraphrases can abstain or select incorrectly. The native gate
 exercises all seven heads with held-out phrasings; this is not a general

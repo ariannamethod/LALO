@@ -115,5 +115,20 @@ export async function checkCameraField({ call, evaluate, shot, click, reload, na
   assert.equal(await evaluate('document.getElementById("camera-start").disabled'), true);
   assert.match(await evaluate('document.getElementById("error").textContent'), /digest mismatch/);
   assert.equal(JSON.parse((await evaluate(`(${readStore})()`)).journal).records[2].value, '0'.repeat(64));
+  const partial = await evaluate(`(async () => {
+    const { actionWorld } = await import('/web/action-world.js');
+    const { FactLedger } = await import('/src/ledger.js');
+    const { createToolHost } = await import('/src/tools.js');
+    const ledger = new FactLedger(), root = document.createElement('section');
+    ledger.add({ id: 'camera:partial:camera.width', subject: 'device:this-browser', predicate: 'camera.width',
+      value: 16, source: 'browser:camera', validFrom: 1, validTo: 2, recordedAt: 1 });
+    const call = { name: 'lalo_facts', arguments: { validAt: 1, knownAt: 1 } };
+    const action = { format: 'lalo/action', version: 1, status: 'executed', call, result: createToolHost(ledger).call(call.name, call.arguments) };
+    await actionWorld(root, { receipt: { sequence: 1, action }, journal: { format: 'lalo/journal', version: 1, records: ledger.entries() } });
+    root.querySelector('#world-replay').click(); await Promise.resolve();
+    return { text: root.textContent, replay: root.dataset.comparison, images: root.querySelectorAll('img').length };
+  })()`);
+  assert.match(partial.text, /Camera preview unavailable/); assert.match(partial.text, /camera:partial:camera.width/);
+  assert.equal(partial.replay, 'match'); assert.equal(partial.images, 0);
   console.log('PASS: camera permissions, late-grant cleanup, real JPEG from synthetic video, stopped tracks, atomic save, rewind/reload, C facts, AML original image/replay, corrupt digest and 390px layout');
 }

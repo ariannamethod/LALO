@@ -27,3 +27,8 @@ test('transport rejects declared and streamed oversize, HTTP errors and timeouts
   }) }), { name: 'AbortError' });
   await assert.rejects(fetchUSGS({ maxBytes: 0 }), /invalid/);
 });
+
+test('broken UTF-8 in a source string cannot become a replacement character in a receipt', async () => {
+  for (const bytes of [[34, 0xff, 34], [34, 0xe2, 0x82]])
+    await assert.rejects(fetchUSGS({ fetchImpl: async () => new Response(Uint8Array.from(bytes)) }), TypeError);
+});

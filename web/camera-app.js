@@ -1,3 +1,4 @@
+import { receiptTime as when } from './calendar.js';
 import { FactLedger } from '../src/ledger.js';
 import { encodeJournal, decodeJournal } from '../src/journal.js';
 import { appendCamera, cameraFrames, CAMERA_BUDGET, CAMERA_SUBJECT } from '../src/sources/camera.js';
@@ -7,7 +8,6 @@ import { actionPanel } from './actions.js';
 
 const $ = id => document.getElementById(id), preview = $('preview');
 const store = worldStore(globalThis.indexedDB, { key: 'camera-v1', maxBytes: CAMERA_BUDGET.maxBytes });
-const when = t => new Date(t).toISOString().replace('T', ' ').replace('Z', ' UTC');
 const element = (tag, text) => { const node = document.createElement(tag); node.textContent = text; return node; };
 let ledger = new FactLedger(CAMERA_BUDGET), revision = 0, busy = true, blocked = false;
 let frames = [], visible = [], times = [], selected, knownAt = 0, actions, stream, generation = 0, opening = false;

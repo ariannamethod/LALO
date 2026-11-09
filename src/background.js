@@ -2,8 +2,8 @@
 import { FactLedger } from './ledger.js';
 import { encodeJournal, decodeJournal } from './journal.js';
 import { ingestUSGS, validateUSGSJournal } from './sources/usgs.js';
-import { appendLocation, locationSamples, LOCATION_SOURCE } from './sources/geolocation.js';
-import { appendCamera, cameraFrames, CAMERA_SOURCE } from './sources/camera.js';
+import { appendLocation, locationSamples, LOCATION_SOURCE, LOCATION_BUDGET } from './sources/geolocation.js';
+import { appendCamera, cameraFrames, CAMERA_SOURCE, CAMERA_BUDGET } from './sources/camera.js';
 import { calendarOrigins, isAgent, originFact, ORIGIN_SOURCE } from './calendar-origin.js';
 
 export const BACKGROUND_BUDGET = Object.freeze({ capacity: 1024, maxBytes: 2_000_000, maxEvents: 64 });
@@ -28,11 +28,11 @@ export const INSTRUMENTS = Object.freeze({
         { receivedAt: frame.receivedAt, capacity: budget.capacity, maxEvents: budget.maxEvents });
       return { facts: appended(own, ledger), summary };
     } },
-  location: { owns: f => f.source === LOCATION_SOURCE, check: locationSamples,
+  location: { budget: LOCATION_BUDGET, owns: f => f.source === LOCATION_SOURCE, check: locationSamples,
     async receive(own, frame) {
       return { facts: appended(own, appendLocation(own, frame.position, { id: frame.id, receivedAt: frame.receivedAt })) };
     } },
-  camera: { owns: f => f.source === CAMERA_SOURCE, check: cameraFrames,
+  camera: { budget: CAMERA_BUDGET, owns: f => f.source === CAMERA_SOURCE, check: cameraFrames,
     async receive(own, frame) {
       return { facts: appended(own, await appendCamera(own, frame.image, { id: frame.id, receivedAt: frame.receivedAt })) };
     } },
@@ -56,20 +56,31 @@ function actionFact(signals, world, origins, frame) {
   if (trace.status !== 'executed') return null;
   const args = trace.call?.arguments;
   let subject = args?.subject;
+  const data = trace.result?.data;
   if (trace.call?.name === 'lalo_calendar') {
     // A pairwise read supplies two peers and identifies no single attention subject.
     if (args?.compareToId !== undefined) return null;
-    const calendar = trace.result?.data?.calendar, assertion = calendar?.assertion;
+    const calendar = data?.calendar, assertion = calendar?.assertion;
     const target = Number.isSafeInteger(args?.knownAt) && world.entries().find(f => f.id === args.id && f.recordedAt <= args.knownAt);
     // Calendar provenance carries every ledger field except the observed value.
-    const witnessed = trace.result?.ok && target && assertion
+    const witnessed = trace.result?.ok === true && target && assertion
       && Object.keys(target).every(key => key === 'value' || target[key] === assertion[key]);
     if (args?.chooseOrigin === true) return originFact(frame, witnessed ? target : null, origins.get(agent)?.choice);
     if (!witnessed) return null;
     subject = target.subject;
   }
   if (!isQuake(subject)) return null;
-  if (!/^lalo_[a-z]{1,32}$/.test(trace.call.name)) throw new TypeError('action names an unknown tool');
+  if (trace.result?.ok !== true || !data) return null;
+  if (!['lalo_facts', 'lalo_history', 'lalo_reading', 'lalo_calendar'].includes(trace.call.name))
+    throw new TypeError('tool cannot produce subject attention');
+  const resultCutoff = trace.call.name === 'lalo_reading' ? data.reading?.knownAt : data.knownAt;
+  if (!Number.isSafeInteger(args.knownAt) || resultCutoff !== args.knownAt || args.knownAt > receivedAt)
+    throw new Error('Action cutoff differs from the read result or follows its receipt');
+  const wrongReading = trace.call.name === 'lalo_reading' && data.reading.subject !== subject;
+  const wrongRows = ['lalo_facts', 'lalo_history'].includes(trace.call.name)
+    && (!Array.isArray(data.items) || data.items.some(f => f?.subject !== subject));
+  if (wrongReading || wrongRows)
+    throw new Error('Action subject differs from its result');
   const all = signals.entries(), replaced = new Set(all.map(f => f.supersedes));
   const head = all.filter(f => f.subject === agent && f.predicate === 'attention_subject'
     && f.source.startsWith('lalo:action/') && !replaced.has(f.id)).at(-1);
@@ -81,13 +92,20 @@ function actionFact(signals, world, origins, frame) {
 // shared receipt order and passes its own validator.
 export async function readBackground(journal, budget = BACKGROUND_BUDGET) {
   const world = decodeJournal(journal, budget), parts = {}, views = {};
-  for (const kind of kinds) parts[kind] = new FactLedger({ capacity: budget.capacity });
+  const capacity = budget.capacity ?? BACKGROUND_BUDGET.capacity;
+  for (const kind of kinds) parts[kind] = new FactLedger({
+    capacity: Math.min(capacity, INSTRUMENTS[kind].budget?.capacity ?? capacity),
+  });
   for (const fact of world.entries()) {
     const owners = kinds.filter(kind => INSTRUMENTS[kind].owns(fact));
     if (owners.length !== 1) throw new TypeError(`receipt ${fact.id} belongs to ${owners.length ? 'several instruments' : 'no instrument'}`);
     parts[owners[0]].add(fact);
   }
-  for (const kind of kinds) views[kind] = await INSTRUMENTS[kind].check(parts[kind]);
+  for (const kind of kinds) {
+    const instrument = INSTRUMENTS[kind];
+    if (instrument.budget && parts[kind].size) encodeJournal(parts[kind], instrument.budget);
+    views[kind] = await instrument.check(parts[kind]);
+  }
   return { world, parts, views, origins: calendarOrigins(world.entries()) };
 }
 
@@ -109,6 +127,8 @@ export async function createBackground(journal = encodeJournal(new FactLedger())
     }
     if (frame?.kind === 'signal' && frame.fact?.source === ORIGIN_SOURCE)
       throw new Error('A calendar origin requires its executed calendar action');
+    if (frame?.kind === 'signal' && typeof frame.fact?.source === 'string' && frame.fact.source.startsWith('lalo:action/'))
+      throw new Error('An action source requires its executed action');
     return appendFrame(frame);
   }
   async function appendFrame(frame) {
@@ -131,7 +151,16 @@ export async function createBackground(journal = encodeJournal(new FactLedger())
   return Object.freeze({
     journal: () => encodeJournal(world, budget),
     receive(frame) {
-      const run = queue.then(() => arrive(frame));
+      // Take ownership at submission. Device positions expose prototype getters.
+      let submitted;
+      try {
+        if (frame?.kind === 'location') {
+          const { timestamp, coords } = frame.position ?? {};
+          submitted = { kind: 'location', id: frame.id, receivedAt: frame.receivedAt, position: { timestamp,
+            coords: { latitude: coords?.latitude, longitude: coords?.longitude, accuracy: coords?.accuracy } } };
+        } else submitted = structuredClone(frame);
+      } catch (error) { return Promise.reject(error); }
+      const run = queue.then(() => arrive(submitted));
       queue = run.catch(() => {});
       return run;
     },

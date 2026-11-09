@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { createBackground } from '../src/background.js';
+import { createBackground, readBackground } from '../src/background.js';
 import { selectBackground, replayBackground } from '../src/background-context.js';
 import { decodeJournal } from '../src/journal.js';
 import { createToolHost } from '../src/tools.js';
@@ -233,4 +233,58 @@ test('overlapping arrivals are serialized; a failed arrival between them leaves 
   assert.deepEqual(results.map(r => r.status), ['fulfilled', 'rejected', 'fulfilled', 'fulfilled']);
   assert.deepEqual(results.filter(r => r.value).map(r => r.value.records), [8, 11, 12]);
   assert.equal(decodeJournal(world.journal()).size, 12);
+});
+
+test('the receiver owns submitted values across queueing and accepts device coordinate getters', async () => {
+  const world = await createBackground(), frame = signalFrame(), original = structuredClone(frame.fact);
+  const pending = world.receive(frame);
+  frame.fact.value = 'usgs:changed'; frame.fact.source = 'fixture:changed';
+  const coords = Object.create({ latitude: 10, longitude: 20, accuracy: 30 });
+  const fix = world.receive({ kind: 'location', id: 'getter', receivedAt: t + 3100,
+    position: Object.create({ timestamp: t, coords }) });
+  coords.latitude = 40;
+  await Promise.all([pending, fix]);
+  const facts = decodeJournal(world.journal()).entries();
+  assert.deepEqual(facts[0], { ...original, supersedes: null });
+  assert.equal(facts[1].value, 10);
+});
+
+test('only successful, time-consistent subject reads can become action-derived attention', async () => {
+  const world = await first(), original = world.journal(), cutoff = t + 2200;
+  const args = { subject: 'usgs:synthetic1', knownAt: cutoff };
+  const result = createToolHost(decodeJournal(original)).call('lalo_history', args);
+  const trace = { format: 'lalo/action', version: 1, status: 'executed', call: { name: 'lalo_history', arguments: args }, result };
+  const act = (input, receivedAt = cutoff) => world.receive({ kind: 'action', agent: request().agent, id: 'act', receivedAt, trace: input });
+  for (const result of [null, { ok: false, error: { code: 'TOOL_FAILURE' } }])
+    assert.equal((await act({ ...trace, result })).receipts, 0);
+  await assert.rejects(act({ ...trace, call: { ...trace.call, name: 'lalo_invented' } }), /tool/);
+  await assert.rejects(act(trace, cutoff - 1), /cutoff/);
+  await assert.rejects(act({ ...trace, call: { ...trace.call, arguments: { ...args, knownAt: cutoff - 1 } } }), /cutoff/);
+  await assert.rejects(act({ ...trace, call: { ...trace.call, arguments: { ...args, subject: 'usgs:other' } } }), /subject/);
+  const readingArgs = { ...args, validAt: t, rule: 'magnitude-at-least/v1', predicate: 'magnitude', threshold: 2 };
+  const reading = await createToolHost(decodeJournal(original)).call('lalo_reading', readingArgs);
+  assert.equal(reading.ok, true);
+  await assert.rejects(act({ ...trace, call: { name: 'lalo_reading', arguments: { ...readingArgs, subject: 'usgs:other' } },
+    result: reading }), /subject/);
+  await assert.rejects(world.receive(signalFrame({ source: 'lalo:action/lalo_history' })), /action/);
+  assert.equal(world.journal(), original);
+  assert.equal((await act(trace)).receipts, 1);
+});
+
+test('restarting or selecting a mixed journal enforces each device instrument budget', async () => {
+  const world = await createBackground();
+  await world.receive(location('original', t + 100));
+  assert.equal((await readBackground(world.journal(), { maxBytes: 4096 })).parts.location.size, 3);
+  const sample = decodeJournal(world.journal()).entries(), many = [];
+  for (let i = 0; i < 257; i++) for (const f of sample) many.push({ ...f, id: f.id.replace('original', String(i)) });
+  const raw = JSON.stringify({ format: 'lalo/journal', version: 1, records: many });
+  await assert.rejects(createBackground(raw), /capacity|budget/);
+  await assert.rejects(selectBackground(raw, request()), /capacity|budget/);
+  const cam = await createBackground();
+  await cam.receive({ ...camera('original', t + 100), image: { width: 320, height: 240, capturedAt: t, jpeg: jpeg(48000) } });
+  const frame = decodeJournal(cam.journal()).entries(), images = [];
+  for (let i = 0; i < 24; i++) for (const f of frame) images.push({ ...f, id: f.id.replace('original', String(i)) });
+  const oversized = JSON.stringify({ format: 'lalo/journal', version: 1, records: images });
+  assert.ok(Buffer.byteLength(oversized) > 1_500_000 && Buffer.byteLength(oversized) < 2_000_000);
+  await assert.rejects(createBackground(oversized), /byte budget/);
 });

@@ -1,3 +1,8 @@
+export function receiptTime(value) {
+  const date = new Date(value);
+  return Number.isNaN(date.valueOf()) ? `${value} ms` : date.toISOString().replace('T', ' ').replace('Z', ' UTC');
+}
+
 export function calendarSummary({ civil, assertion, lag, perspective, originChoice, comparison }, proposal) {
   const gregorian = [civil.gregorian_year, civil.gregorian_month, civil.gregorian_day].join('-');
   const hebrew = [civil.hebrew_year, civil.hebrew_month, civil.hebrew_day].join('-');

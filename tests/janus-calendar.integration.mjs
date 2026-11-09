@@ -28,3 +28,21 @@ test('Don returns the native AML bridge records for each clock, duration, civil 
     assert.deepEqual(reading.perspective.coordinates, await native.subject(anchor.utc_civil_day, civil.utc_civil_day));
   }
 });
+
+test('Gregorian boundaries and signed millisecond lags agree with integer arithmetic across the JANUS range', async () => {
+  const native = nativeCalendar();
+  const times = [-62135596800000, Date.UTC(1900, 2, 1) - 1, -1, 0, Date.UTC(2000, 1, 29),
+    Date.UTC(2000, 2, 1) - 1, 253402300799999];
+  for (const validFrom of times) {
+    const date = new Date(validFrom);
+    for (const recordedAt of times) {
+      const fact = { id: 'synthetic:bounds', source: 'fixture:clock', validFrom, recordedAt };
+      const { civil, occurred, known, lag } = await receiptCalendar(fact);
+      assert.deepEqual([civil.gregorian_year, civil.gregorian_month, civil.gregorian_day],
+        [date.getUTCFullYear(), date.getUTCMonth() + 1, date.getUTCDate()]);
+      const elapsed = BigInt(lag.sign) * ((BigInt(lag.days) * 86400n + BigInt(lag.seconds)) * 1000n + BigInt(lag.milliseconds));
+      assert.equal(elapsed, BigInt(recordedAt) - BigInt(validFrom));
+      assert.deepEqual(lag, await native.duration(occurred, known));
+    }
+  }
+});

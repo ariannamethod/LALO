@@ -121,3 +121,66 @@ test('comparison clips by bytes without dropping peer receipts or changing their
   } while (offset !== null);
   assert.deepEqual(ids, now.entries().slice(1).map(f => f.id));
 });
+
+test('two-clock readings and saved-world changes match an independent append-only reference', async () => {
+  // The reference retires predecessors in order before testing world intervals.
+  // It uses neither ledger.asOf nor any production rule or calendar function.
+  function reference(records, at, args) {
+    const active = new Map();
+    for (const f of records) {
+      if (f.recordedAt > at || f.subject !== args.subject) continue;
+      active.delete(f.supersedes);
+      if (f.validFrom <= args.validAt && (f.validTo === null || args.validAt < f.validTo)) active.set(f.id, f);
+    }
+    const roles = new Map();
+    for (const [id, f] of active) {
+      const supports = args.rule === RULE ? f.value === args.expected : f.value >= args.threshold;
+      roles.set(id, f.value === null ? 'unknown' : supports ? 'supporting' : 'opposing');
+    }
+    const values = new Set(roles.values());
+    const state = values.has('supporting') && values.has('opposing') ? 'contested'
+      : !values.size || values.has('unknown') ? 'unsettled' : values.has('supporting') ? 'supported' : 'contradicted';
+    return { state, roles };
+  }
+  for (let seed = 1; seed <= 16; seed++) {
+    let rng = seed;
+    const random = n => { rng = (Math.imul(rng, 1664525) + 1013904223) >>> 0; return Math.floor(rng / 2 ** 32 * n); };
+    const numeric = seed % 2 === 0;
+    const args = { subject: 'fixture:audit', validAt: seed % 5, predicate: numeric ? 'magnitude' : 'open',
+      ...(numeric ? { rule: MAGNITUDE_RULE, threshold: 2 } : { rule: RULE, expected: seed % 3 === 0 }) };
+    const rows = [], heads = new Map();
+    for (let i = 0; i < 18; i++) {
+      const lane = random(6), recordedAt = Math.floor(i / 3) + 1, prior = heads.get(lane), validFrom = random(5);
+      const value = numeric ? [null, 1, 2, 3][random(4)] : Boolean(random(2));
+      const fact = { id: 'receipt-' + i, subject: lane === 5 ? 'fixture:other' : args.subject, predicate: args.predicate,
+        source: 'fixture:source-' + lane, value, recordedAt, validFrom, validTo: random(2) ? null : validFrom + 1,
+        supersedes: prior && prior.recordedAt < recordedAt && random(3) ? prior.id : null };
+      heads.set(lane, fact); rows.push(fact);
+    }
+    const live = ledgerOf(rows);
+    for (const size of [4, 9, 18]) for (const baseline of [2, 4]) {
+      const prefix = rows.slice(0, size), original = await saved(ledgerOf(prefix), { ...args, knownAt: baseline });
+      const compare = comparison(live, original);
+      for (const end of [4, 7]) {
+        const label = JSON.stringify({ seed, size, baseline, end });
+        const { data } = await compare({ knownAt: end });
+        const old = reference(prefix, baseline, args), final = reference(rows, end, args);
+        assert.equal(data.savedReading.state, old.state, label); assert.equal(data.reading.state, final.state, label);
+        assert.equal(data.comparison.samePremises, old.roles.size === final.roles.size && [...old.roles.keys()].every(id => final.roles.has(id)), label);
+        const unseen = rows.filter((f, i) => f.recordedAt <= end && (i >= size || f.recordedAt > baseline));
+        let previous = old, changes = 0, verdicts = 0;
+        const witnesses = [];
+        for (const at of new Set(unseen.map(f => f.recordedAt))) {
+          const current = reference(rows, at, args);
+          const causes = unseen.filter(f => f.recordedAt === at && (current.roles.has(f.id) || previous.roles.has(f.supersedes)));
+          if (causes.length) changes++;
+          if (previous.state !== current.state) verdicts++;
+          for (const f of causes) witnesses.push([changes, f.id, current.roles.get(f.id) ?? null, previous.roles.get(f.supersedes) ?? null, current.state]);
+          previous = current;
+        }
+        assert.deepEqual(data.items.map(r => [r.step, r.fact.id, r.role, r.removedRole, r.state]), witnesses, label);
+        assert.deepEqual([data.timeline.changeCount, data.comparison.verdictChanges], [changes, verdicts], label);
+      }
+    }
+  }
+});
