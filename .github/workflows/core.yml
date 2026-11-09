@@ -58,3 +58,20 @@ jobs:
       - run: node --test tests/janus-calendar.integration.mjs
       - run: node --test tests/action-memory.integration.mjs
       - run: node scripts/wolfe-diff.mjs
+      - run: node examples/gev-weather.js
+      - name: Check out the GEV weather provider for the interoperability test
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          repository: bilawalsidhu/gods-eye-view
+          ref: 027c9616a5245bd5e0725cd03d62fce41d54c691
+          path: build/gods-eye-view
+          persist-credentials: false
+          sparse-checkout-cone-mode: false
+          sparse-checkout: |
+            /package.json
+            /server/providers/weather.js
+            /server/providers/common/http.js
+            /src/sources/httpBody.js
+            /src/sources/windBody.js
+            /src/i18n/marker.js
+      - run: node --test tests/gev-weather.contract.mjs

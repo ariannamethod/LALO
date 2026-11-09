@@ -4,11 +4,14 @@ import { dirname, resolve } from 'node:path';
 import { createBackground, BACKGROUND_BUDGET } from '../src/background.js';
 import { selectBackground, replayBackground } from '../src/background-context.js';
 import { fetchUSGS } from '../src/sources/usgs-http.js';
+import { fetchText } from '../src/sources/http.js';
+import { manifestUrl } from '../src/sources/gev-weather.js';
 import { boundedTextFile, jsonLines } from './io.mjs';
 
-const usage = 'background.mjs ingest|poll|select|replay --journal FILE [--request FILE] [--context FILE] [--memory DIR] [--sequence N] [--head SHA256]';
+const usage = 'background.mjs ingest|poll|poll-weather|select|replay --journal FILE [--gev-origin URL --product NAME] [--request FILE] [--context FILE] [--memory DIR] [--sequence N] [--head SHA256]';
 const [mode, ...args] = process.argv.slice(2), options = {};
 const allowed = { ingest: ['--journal'], poll: ['--journal'], select: ['--journal', '--request', '--memory'],
+  'poll-weather': ['--journal', '--gev-origin', '--product'],
   replay: ['--journal', '--context', '--memory', '--sequence', '--head'] };
 const emit = value => new Promise((done, reject) => process.stdout.write(JSON.stringify(value) + '\n', error => error ? reject(error) : done()));
 
@@ -59,11 +62,17 @@ try {
   }
   if (mode !== 'replay' && !options['--journal']) throw new Error(usage);
   if (mode === 'select' && !options['--request']) throw new Error(usage);
-  if (mode === 'ingest' || mode === 'poll') {
+  if (mode === 'ingest' || mode === 'poll' || mode === 'poll-weather') {
     await writer(options['--journal'], async append => {
       if (mode === 'poll') {
         const feed = JSON.parse(await fetchUSGS());
         await append({ kind: 'usgs', feed, receivedAt: Date.now() });
+      } else if (mode === 'poll-weather') {
+        const origin = options['--gev-origin'], product = options['--product'];
+        const url = manifestUrl(origin, product);
+        const manifest = JSON.parse(await fetchText(url, 'GEV weather', { maxBytes: 32_768, redirect: 'error' }));
+        if (manifest?.product !== product) throw new Error('weather product differs from the requested product');
+        await append({ kind: 'gev-weather', origin, manifest, receivedAt: Date.now() });
       } else {
         for await (const frame of jsonLines(process.stdin, BACKGROUND_BUDGET.maxBytes)) {
           if (frame.error) throw new Error(frame.error);

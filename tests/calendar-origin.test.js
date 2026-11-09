@@ -113,7 +113,12 @@ test('saved v3 and v4 contexts replay under the policy that produced them', asyn
   await world.receive(await proposal(world));
   const legacy = await replayBackground(world.journal(), v3);
   assert.equal(legacy.result.items[0].calendar.perspective, null);
-  const v4 = await selectBackground(world.journal(), request);
+  // Captured with the v4 selector in c937561, after Don chose his origin.
+  const v4 = JSON.parse(await readFile(new URL('./fixtures/background-v4.json', import.meta.url), 'utf8'));
   assert.equal(v4.items[0].calendar.perspective.coordinates.age_days, 2);
-  assert.equal((await replayBackground(world.journal(), v4)).comparison, 'match');
+  const replay = await replayBackground(world.journal(), v4);
+  const expected4 = structuredClone(v4);
+  expected4.items[0].calendar.wasmSha256 = currentDigest;
+  assert.deepEqual(replay.result, expected4);
+  assert.equal(replay.comparison, v4.items[0].calendar.wasmSha256 === currentDigest ? 'match' : 'changed');
 });
