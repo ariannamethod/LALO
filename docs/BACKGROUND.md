@@ -14,7 +14,7 @@ The portable boundary has no network, timer, native process or ambient clock:
 - `src/background.js`: one door, `receive(frame)`, for every instrument. Each
   instrument owns its receipts and validates them with its own source adapter.
 - `src/background-context.js`: select by an explicit request and replay a saved
-  selection under its recorded policy. New selections use `regional-events-janus/v6`.
+  selection under its recorded policy. New selections use `device-region-janus/v7`.
 - `scripts/background.mjs`: persist an input stream, request one live poll,
   select locally, or replay from a journal or a verified AML snapshot.
 
@@ -211,10 +211,52 @@ the requested subject. The `lalo:action/` source prefix belongs to action
 frames. The host's own sources can supply additional predicates, which are
 preserved as sourced state evidence.
 
-Model-internal state has no channel. No receipt here claims to come from inside
-a model, and none is inferred. A future channel enters as another source on
-the same `agent:` subject and becomes a new policy version when selection
-starts reading it.
+A runtime can submit a measured scalar through `signal`. Set the subject to
+the measured agent, give the probe its own source and timestamp both measurement
+and receipt. A query naming that agent carries its active receipts in `state`
+alongside external observations in `items`. The route fixture exercises this
+boundary with a synthetic KV-cache token count. Its one-millisecond validity
+keeps the sample tied to the step that produced it.
+
+## Nearby events from a device fix
+
+Add `"nearDevice": {"radiusMeters": 500, "maxFixAgeMs": 900000}` to a selection
+request. Don picks the latest fix measured by `stateAt` and received by
+`knownAt`. Ties go to the latest receipt time and then the smallest latitude
+receipt ID in code-unit order. Age is measured from the fix to `stateAt`;
+the event window applies to the events themselves. Missing and overly old
+fixes raise `LOCATION_UNAVAILABLE` and `LOCATION_STALE` respectively.
+
+`locationAnchor.facts` holds the original latitude, longitude and accuracy
+receipts. `ageMs` gives the age and `calendar` holds the JANUS reading of the
+latitude receipt. All three measurements share both clocks. The anchor counts
+toward `maxBytes` even in an empty region. Each selected point carries
+`distanceMeters`, the great-circle distance between reported centers rounded to
+the nearest metre. An event qualifies through the stated radius inclusive.
+The phone's reported accuracy in metres is available alongside that distance.
+Events still rank by attention and receipt time. Unlocated weather manifests
+and camera frames stay outside a device radius. `otherInstruments.location`
+counts other in-radius fixes in the event window. Use one spatial filter per
+request, either `bbox` or `nearDevice`.
+
+Run `node examples/device-route.js` after building AML. The same noon
+request returns a FIRMS detection from the first stop, then a USGS event
+when the second stop's 11:59 fix arrives at 12:07. AML reopens the first
+answer with its original evidence. To use the CLI on the synthetic stream:
+
+```sh
+mkdir -p build
+node examples/device-route.js --frames | node scripts/background.mjs ingest --journal build/device-route.json
+node examples/device-route.js --request > build/device-noon.json
+node scripts/background.mjs select --journal build/device-route.json --request build/device-noon.json --memory build/device-memory
+node scripts/background.mjs replay --memory build/device-memory --sequence 1
+```
+
+Use fresh paths for the fixture. A Device field **Export receipts** file can
+also serve as the starting journal. Select with times covering its actual
+measurements, or append later instrument arrivals to a working copy. Browser
+fixes keep the source `browser:geolocation`. The browser API supplies accuracy
+and coordinates without naming the underlying location provider.
 
 ## Personal calendar origin
 
@@ -260,6 +302,7 @@ An explicit `originId` overrides the origin for one request.
 | `worldFrom`, `worldTo` | Half-open interval of observed instants. |
 | `subject` | Optional exact USGS, nowCOAST or FIRMS subject. |
 | `bbox` | Optional inclusive point bounds, `[west,south,east,north]`. |
+| `nearDevice` | Optional device region with positive whole `radiusMeters` and nonnegative whole `maxFixAgeMs`. |
 | `originId` | Optional receipt known at `knownAt`. Its occurrence day anchors the personal calendar view for this request. |
 | `maxEvents` | Whole event versions in the result; default 8, range 1–64. |
 | `maxSignals` | Don's active receipts in the result; default 8, range 0–64. |
@@ -301,7 +344,7 @@ read of a single USGS, weather or FIRMS receipt in the background world can beco
 signal. A comparison with `compareToId` reads both revisions and leaves Don's
 attention as it was.
 
-Historical v2 through v5 contexts replay with their original projection and byte budget.
+Historical v2 through v6 contexts replay with their original projection and byte budget.
 New contexts save the coordinates and calculator's WASM digest. Replay compares
 both against a fresh reading of the saved world.
 
