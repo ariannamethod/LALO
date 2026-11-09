@@ -7,6 +7,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { actionMemory, AML_BINARY } from '../scripts/action-memory.mjs';
 import { serve } from '../scripts/serve.mjs';
+import { friday, fridayQuery, lateReports } from './fixtures/late-reports.js';
 import { FactLedger } from '../src/ledger.js';
 import { decodeJournal, encodeJournal } from '../src/journal.js';
 import { createActionReplay } from '../src/action-replay.js';
@@ -122,6 +123,39 @@ test('native router compares late receipts, AML code agrees on both clocks and A
   const restored = await (await actionMemory(memoryPath)).recall({ sequence: ack.sequence, head: ack.head, snapshot: true });
   const replay = await createActionReplay(decodeJournal(JSON.stringify(restored.journal)), restored.receipt.action).read();
   assert.equal(replay.comparison, 'match'); assert.deepEqual(replay.result, trace.result);
+});
+
+test('native history route selects a Friday correction and AML replays its original page after a rewind', async t => {
+  const dir = await directory(t), journal = JSON.parse(encodeJournal(lateReports()));
+  const server = await serve({ port: 0, router: true, memoryDirectory: dir });
+  t.after(async () => { await server.closeActions(); await new Promise(done => server.close(done)); });
+  const origin = 'http://127.0.0.1:' + server.address().port;
+  async function ask(args) {
+    const res = await fetch(origin + '/api/action', { method: 'POST', headers: { Origin: origin, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ journal, request: { text: 'what did I learn yesterday about earlier events', arguments: args } }) });
+    assert.equal(res.status, 200);
+    const trace = await res.json();
+    assert.equal(trace.status, 'executed');
+    assert.equal(trace.call.name, 'lalo_history');
+    assert.equal(trace.memory.state, 'saved');
+    return trace;
+  }
+  const selected = await ask({ ...fridayQuery, limit: 1 });
+  assert.equal(selected.result.data.items[0].supersedes, 'original');
+  assert.equal(selected.result.data.total, 2);
+  const rewind = await ask({ knownAt: friday - 1, occurredBefore: friday });
+  assert.deepEqual(rewind.result.data.items.map(f => f.id), ['original']);
+
+  const { sequence, head } = selected.memory;
+  const saved = await (await actionMemory(dir)).recall({ sequence, head, snapshot: true });
+  const replay = createActionReplay(decodeJournal(JSON.stringify(saved.journal)), saved.receipt.action);
+  const first = await replay.read();
+  assert.equal(first.comparison, 'match');
+  assert.deepEqual(first.result, selected.result);
+  const next = await replay.read(first.result.data.nextOffset);
+  const ids = [...first.result.data.items, ...next.result.data.items].map(row => row.id);
+  const aml = execFileSync(AML_BINARY, ['examples/history-window.aml'], { encoding: 'utf8' });
+  assert.deepEqual(ids, aml.trimEnd().split('\n'));
 });
 
 test('real AML persists exact UTF-8 and both integer clocks; a fresh host verifies all receipts', async t => {

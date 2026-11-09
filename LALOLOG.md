@@ -3,6 +3,44 @@
 The engineering record. New entries first. README keeps the pulse; this file
 keeps the measurements, decisions, sources and scars.
 
+## 2026-11-09 — Find late reports without receipt IDs
+
+On `f5fcebe`, Don could compare two named receipts. His history tool now
+finds revisions by their own receipt and occurrence timestamps. The inclusive
+knowledge cutoff applies first. The receipt window includes its start and
+excludes its end. `occurredBefore` compares the beginning of the assertion's
+world interval with a strict cutoff. Each bound also works on its own.
+
+* AML `8f577e8` supplies `calendar_span`, `calendar_contains` and
+  `calendar_compare`. The filtered call loads the local WASM, keeps receipt
+  order, and pages the matching revisions. Each page records the bounds and
+  the calculator’s digest. Plain history keeps its synchronous response.
+* The synthetic Friday window returns Tuesday’s correction at its lower edge
+  and another report one millisecond before Saturday. Rewinding to Thursday
+  shows the original. The correction retains its own ID, both clocks, source,
+  value and predecessor. An update at midnight on Saturday belongs to the
+  next window.
+* A browser action can seed the search from the two displayed clocks. The
+  native selector recognizes questions about reports that arrived later.
+  A routed HTTP action saved through AML reproduces its original first page
+  and retrieves the next page from the same snapshot.
+
+Local checks on Linux x86_64 with Node v24.22.1 and GCC 14.2.0:
+
+* `node --test tests/*.test.js` passed 89/89. Coverage includes cutoffs,
+  individual bounds, empty and reversed windows, ties, millisecond edges,
+  corrections, metadata filters, result budgets and MCP stdio.
+* Built the router, AML runner and calendar bridge. The native integration
+  suites passed 24/24. The IDs from the two replayed pages matched the output
+  of `deps/aml/runner/aml examples/history-window.aml`. Both AML examples
+  and the four JavaScript examples ran offline.
+* WOLFE's C and AML routes matched on 79/79 decisions and 79/79 evidence
+  results. The previous 75 intents retained their status and called tool.
+  In a checkout without the submodule, ordinary history worked and a windowed
+  call returned `CALENDAR_UNAVAILABLE`.
+* Local Chromium stopped before page load when the sandbox denied its process
+  singleton socket. The browser CI gate exercises the view-clock preset.
+
 ## 2026-11-08 — What happened first, and what reached Don first?
 
 The calendar on `d087128` reads the two clocks of a single revision. With a

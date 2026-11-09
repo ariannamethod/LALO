@@ -7,6 +7,7 @@ const intents = {
   reading: ['Read this hypothesis', 'please check the conflicting evidence'],
   facts: ['Read active facts', 'get the active observations please'],
   history: ['Read receipt history', 'please inspect earlier observations'],
+  late: ['Late reports since the world clock', 'which reports arrived about earlier events'],
   lineage: ['Follow selected revision', 'follow the correction chain please'],
   calendar: ['Read selected receipt in JANUS', 'show the janus calendar coordinates please'],
   compare: ['Compare occurrence and receipt order', 'compare janus calendar clocks'],
@@ -114,6 +115,10 @@ export function actionPanel({ getContext, select, highlight, presets = Object.ke
     if (['reading', 'facts'].includes(preset)) args.validAt = c.validAt;
     if (['reading', 'facts', 'history'].includes(preset) && c.subject) {
       args.subject = c.subject; args.predicate = c.predicate;
+    }
+    if (preset === 'late') {
+      args.receivedFrom = c.validAt;
+      args.occurredBefore = c.validAt;
     }
     if (preset === 'reading') { args.rule = c.rule; Object.assign(args, c.ruleArguments); }
     if (['lineage', 'calendar', 'compare'].includes(preset) && c.selected) args.id = c.selected;
