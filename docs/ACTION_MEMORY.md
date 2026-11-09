@@ -43,8 +43,8 @@ Rejected HTTP envelopes are not action traces and are not saved.
 
 ## Read it back
 
-Both visual fields have **Recall last saved action**. Recall is explicit; it
-does not start the neural selector or rerun the tool. The restored trace shows
+**Recall saved action** opens the action with the given sequence number, or
+the latest when the number is empty. The restored trace shows
 its original result and snapshot identity. **Open original world** loads the
 verified journal into a separate read-only panel: browse its receipts, inspect
 their exact clocks and follow lineage. The live field and IndexedDB journal
@@ -57,6 +57,17 @@ the saved result, ignoring object-key order; a match or change is visible.
 **Next reproduced page** keeps the tool, clocks, filters and complete inference,
 changing only the evidence offset. The original action remains available above.
 An abstaining action has an inspectable world and no tool call to reproduce.
+
+For a successful `lalo_reading`, **Compare with current view** uses the live
+journal and its displayed receipt cutoff at the moment of the click. The
+original world time and rule come from the saved action. Paging keeps the
+captured comparison world. Expand a change to inspect the source fact.
+
+The loopback endpoint `POST /api/memory/compare` accepts
+`{journal, arguments: {sequence, knownAt, head?, offset?, limit?}}` and returns
+the same bounded tool result as MCP's `lalo_compare_reading`. This read
+opens the selected memory slot and leaves the chain head intact.
+[Comparison fields and errors](TOOLS.md#compare-a-saved-answer-with-a-later-journal).
 
 `POST /api/memory` with `{}` returns `lalo/action-recall`, version 1, with the
 latest verified receipt or `null` for an empty memory. It is host-wide: crossing

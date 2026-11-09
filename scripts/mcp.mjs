@@ -1,4 +1,5 @@
 // A local stdio process: stdout is JSON-RPC only. The journal is fixed at startup.
+import { actionMemory } from './action-memory.mjs';
 import { createToolHost, listTools, TOOL_BUDGET } from '../src/tools.js';
 import { decodeJournal } from '../src/journal.js';
 import { createMCPSession } from '../src/mcp.js';
@@ -16,9 +17,11 @@ try {
   if (args.length === 1 && args[0] === '--definitions') {
     process.stdout.write(JSON.stringify(listTools(), null, 2) + '\n');
   } else {
-    if (args.length !== 2 || args[0] !== '--journal') throw new Error('usage: node scripts/mcp.mjs --journal journal.json | --definitions');
+    if (args[0] !== '--journal' || !(args.length === 2 || args.length === 4 && args[2] === '--memory'))
+      throw new Error('usage: node scripts/mcp.mjs --journal journal.json [--memory DIRECTORY] | --definitions');
     const world = decodeJournal(await boundedTextFile(args[1], TOOL_BUDGET.maxBytes), TOOL_BUDGET);
-    const session = createMCPSession(createToolHost(world));
+    const memory = args[2] ? await actionMemory(args[3]) : undefined;
+    const session = createMCPSession(createToolHost(world, { recall: memory?.recall }));
     console.error(`LALO MCP: ${world.size} receipts, fixed snapshot, stdio ready`);
     for await (const frame of jsonLines(process.stdin)) {
       let response;

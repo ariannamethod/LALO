@@ -22,3 +22,8 @@ export function decodeJournal(text, { capacity = 1024, maxBytes = 2_000_000 } = 
   for (const record of data.records) ledger.add(record);
   return ledger;
 }
+
+export function extendsJournal(candidate, original) {
+  const before = original.entries(), after = candidate.entries();
+  return after.length >= before.length && before.every((f, i) => JSON.stringify(f) === JSON.stringify(after[i]));
+}

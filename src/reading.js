@@ -14,15 +14,16 @@ export function readRule(ledger, query) {
     counts: { supporting: supporting.length, opposing: opposing.length, unknown: unknown.length } } };
 }
 
-export async function readingTimeline(ledger, query) {
+export async function readingTimeline(ledger, query, savedWorld) {
   const { sinceKnownAt, knownAt, subject, predicate } = query;
   const records = ledger.entries().filter(f => f.subject === subject && f.predicate === predicate);
-  const { batches, api, wasmSha256 } = await readingBatches(records, sinceKnownAt, knownAt);
-  let previous = readRule(ledger, { ...query, knownAt: sinceKnownAt });
-  const baselineState = previous.summary.state;
-  const rows = previous.premises.map(id => ({ step: 0, knownAt: sinceKnownAt, kind: 'baseline',
+  const savedIDs = savedWorld && new Set(savedWorld.entries().map(f => f.id));
+  const { batches, api, wasmSha256 } = await readingBatches(records, sinceKnownAt, knownAt, savedIDs);
+  let previous = readRule(savedWorld ?? ledger, { ...query, knownAt: sinceKnownAt });
+  const baseline = previous, baselineState = previous.summary.state;
+  const rows = savedWorld ? [] : previous.premises.map(id => ({ step: 0, knownAt: sinceKnownAt, kind: 'baseline',
     state: baselineState, ...previous.evidence.get(id) }));
-  let changeCount = 0;
+  let changeCount = 0, verdictChanges = 0;
   for (const [at, batch] of batches) {
     const current = readRule(ledger, { ...query, knownAt: at });
     const previousState = previous.summary.state, state = current.summary.state;
@@ -32,11 +33,18 @@ export async function readingTimeline(ledger, query) {
       const removedRole = previous.evidence.get(fact.supersedes)?.role ?? null;
       if (role === null && removedRole === null) continue;
       rows.push({ step, knownAt: at, kind: previousState === state ? 'evidence' : 'verdict',
-        previousState, state, role, removedRole, fact });
+        previousState, state, role, removedRole, fact,
+        ...(savedIDs ? { origin: savedIDs.has(fact.id) ? 'saved_snapshot' : 'appended' } : {}) });
       changeCount = step;
     }
+    if (previousState !== state) verdictChanges++;
     previous = current;
   }
-  return { rows, reading: { ...previous.summary, knownAt },
+  const result = { rows, reading: { ...previous.summary, knownAt },
     timeline: { sinceKnownAt, baselineState, changeCount, api, wasmSha256 } };
+  if (savedWorld) result.comparison = {
+    samePremises: baseline.evidence.size === previous.evidence.size && baseline.premises.every(id => previous.evidence.has(id)),
+    sameVerdict: baselineState === previous.summary.state, verdictChanges,
+  };
+  return result;
 }

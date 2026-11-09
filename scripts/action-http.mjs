@@ -37,7 +37,7 @@ export function actionHandler({ enabled = false, routerFactory = createNativeRou
     res.end(content);
   }
   return {
-    async handle(req, res, recall = false) {
+    async handle(req, res, operation = 'action') {
       let ownsSlot = false;
       try {
         if (!enabled || closed) throw failure(503, 'Local router unavailable. Start the host with --router after building its C body.');
@@ -51,17 +51,24 @@ export function actionHandler({ enabled = false, routerFactory = createNativeRou
           throw failure(413, 'Action exceeds the upload budget');
         busy = true; ownsSlot = true;
         const input = await body(req);
-        if (recall) {
-          if (!memory) throw failure(503, 'Action memory is disabled. Start the host with --router --memory DIRECTORY.');
+        if (operation !== 'action' && !memory)
+          throw failure(503, 'Action memory is disabled. Start the host with --router --memory DIRECTORY.');
+        if (operation === 'recall') {
           const saved = await memory.recall(input);
           reply(res, 200, { format: 'lalo/action-recall', version: 1, ...saved });
           return;
         }
+        const field = operation === 'compare' ? 'arguments' : 'request';
         if (!input || typeof input !== 'object' || Array.isArray(input)
-          || Object.keys(input).length !== 2 || !Object.hasOwn(input, 'journal') || !Object.hasOwn(input, 'request'))
-          throw failure(400, 'Expected journal and request');
-        const request = routeRequest(input.request);
+          || Object.keys(input).length !== 2 || !Object.hasOwn(input, 'journal') || !Object.hasOwn(input, field))
+          throw failure(400, `Expected journal and ${field}`);
+        const request = operation === 'action' ? routeRequest(input.request) : null;
         const ledger = decodeJournal(JSON.stringify(input.journal), TOOL_BUDGET);
+        if (operation === 'compare') {
+          const host = createToolHost(ledger, { recall: memory.recall });
+          reply(res, 200, await host.call('lalo_compare_reading', input.arguments));
+          return;
+        }
         const hostSession = createToolHost(ledger);
         if (closed || res.destroyed) throw failure(503, 'Action connection closed');
         router ||= Promise.resolve().then(routerFactory);

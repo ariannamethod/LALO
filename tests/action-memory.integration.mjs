@@ -160,43 +160,85 @@ test('native history route selects a Friday correction and AML replays its origi
   assert.deepEqual(ids, aml.trimEnd().split('\n'));
 });
 
+async function startMemoryHost(t, dir) {
+  const child = spawn(process.execPath, ['scripts/serve.mjs', '--router', '--memory', dir],
+    { env: { ...process.env, HOST: '127.0.0.1', PORT: '0' }, stdio: ['ignore', 'pipe', 'inherit'] });
+  const exited = once(child, 'exit');
+  async function stop() { child.kill(); await exited; }
+  t.after(stop);
+  const lines = createInterface({ input: child.stdout });
+  for await (const line of lines) {
+    const ready = /^LALO: (http:\/\/127\.0\.0\.1:\d+)$/.exec(line);
+    if (ready) return { origin: ready[1], stop };
+  }
+  throw new Error('Action host exited before listening');
+}
+async function postJSON(origin, path, payload) {
+  const res = await fetch(origin + path, { method: 'POST', headers: { Origin: origin, 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload) });
+  assert.equal(res.status, 200);
+  return res.json();
+}
+
 test('Don replays the same Tuesday conclusion revisions after an AML memory host restart', async t => {
   const dir = await directory(t);
-  async function start() {
-    const child = spawn(process.execPath, ['scripts/serve.mjs', '--router', '--memory', dir],
-      { env: { ...process.env, HOST: '127.0.0.1', PORT: '0' }, stdio: ['ignore', 'pipe', 'inherit'] });
-    const exited = once(child, 'exit');
-    async function stop() { child.kill(); await exited; }
-    t.after(stop);
-    const lines = createInterface({ input: child.stdout });
-    for await (const line of lines) {
-      const ready = /^LALO: (http:\/\/127\.0\.0\.1:\d+)$/.exec(line);
-      if (ready) return { origin: ready[1], stop };
-    }
-    throw new Error('Action host exited before listening');
-  }
-  async function post(origin, path, payload) {
-    const res = await fetch(origin + path, { method: 'POST', headers: { Origin: origin, 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload) });
-    assert.equal(res.status, 200);
-    return res.json();
-  }
   const journal = JSON.parse(encodeJournal(lateReports()));
   const request = { text: 'show which evidence changed my conclusion', arguments: { subject: 'fixture:crossing',
     predicate: 'open', rule: 'unanimous-boolean/v1', validAt: tuesday, sinceKnownAt: friday - 1, knownAt: saturday } };
-  const firstHost = await start();
-  const saved = await post(firstHost.origin, '/api/action', { journal, request });
+  const firstHost = await startMemoryHost(t, dir);
+  const saved = await postJSON(firstHost.origin, '/api/action', { journal, request });
   assert.equal(saved.status, 'executed'); assert.equal(saved.call.name, 'lalo_reading');
   assert.equal(saved.memory.state, 'saved');
   assert.deepEqual(saved.result.data.items.map(r => [r.fact.id, r.state]), [
     ['original', 'supported'], ['correction', 'contradicted'], ['saturday-update', 'supported']]);
   await firstHost.stop();
-  const secondHost = await start();
+  const secondHost = await startMemoryHost(t, dir);
   const { sequence, head } = saved.memory;
-  const original = await post(secondHost.origin, '/api/memory', { sequence, head, snapshot: true });
+  const original = await postJSON(secondHost.origin, '/api/memory', { sequence, head, snapshot: true });
   assert.deepEqual(original.journal, journal);
   const replay = await createActionReplay(decodeJournal(JSON.stringify(original.journal)), original.receipt.action).read();
   assert.equal(replay.comparison, 'match'); assert.deepEqual(replay.result, saved.result);
+});
+
+test('an older AML receipt can be compared with an extended journal after process restart via HTTP and MCP', async t => {
+  const dir = await directory(t), memory = join(dir, 'memory'), path = join(dir, 'current.json');
+  const journal = JSON.parse(encodeJournal(lateReports()));
+  const original = { ...journal, records: journal.records.slice(0, 1) };
+  const request = { text: 'read hypothesis', arguments: { subject: 'fixture:crossing',
+    predicate: 'open', rule: 'unanimous-boolean/v1', validAt: tuesday, knownAt: friday - 1 } };
+  const first = await startMemoryHost(t, memory);
+  const saved = await postJSON(first.origin, '/api/action', { journal: original, request });
+  assert.equal(saved.memory.state, 'saved'); assert.equal(saved.result.data.reading.state, 'supported');
+  const newer = await postJSON(first.origin, '/api/action', { journal, request: { ...request,
+    arguments: { ...request.arguments, knownAt: saturday } } });
+  assert.equal(newer.memory.sequence, saved.memory.sequence + 1);
+  await first.stop();
+
+  const next = await startMemoryHost(t, memory);
+  const { sequence, head } = saved.memory, args = { sequence, head, knownAt: saturday };
+  const compare = args => postJSON(next.origin, '/api/memory/compare', { journal, arguments: args });
+  const actual = await compare(args);
+  assert.equal(actual.ok, true); assert.deepEqual(actual.data.savedReading, saved.result.data.reading);
+  assert.deepEqual(actual.data.items.map(r => [r.fact.id, r.state]), [
+    ['correction', 'contradicted'], ['saturday-update', 'supported']]);
+  assert.equal(actual.data.comparison.head, head); assert.equal(actual.data.comparison.snapshotSha256, saved.memory.snapshot.sha256);
+  assert.equal((await compare({ ...args, head: newer.memory.head })).error.code, 'MEMORY_HEAD');
+  const recall = await postJSON(next.origin, '/api/memory', { sequence, head, snapshot: true });
+  assert.deepEqual(recall.receipt.action.result, saved.result); assert.deepEqual(recall.journal, original);
+  assert.equal((await postJSON(next.origin, '/api/memory', {})).receipt.head, newer.memory.head);
+
+  await writeFile(path, JSON.stringify(journal));
+  const frames = [
+    { id: 1, method: 'initialize', params: { protocolVersion: '2025-11-25', capabilities: {}, clientInfo: { name: 'fixture', version: '1' } } },
+    { method: 'notifications/initialized' }, { id: 2, method: 'tools/list' },
+    { id: 3, method: 'tools/call', params: { name: 'lalo_compare_reading', arguments: args } },
+  ].map(frame => JSON.stringify({ jsonrpc: '2.0', ...frame })).join('\n') + '\n';
+  const messages = execFileSync(process.execPath, ['scripts/mcp.mjs', '--journal', path, '--memory', memory],
+    { input: frames, encoding: 'utf8', stdio: ['pipe', 'pipe', 'pipe'] }).trim().split('\n').map(JSON.parse);
+  assert.ok(messages[1].result.tools.some(tool => tool.name === 'lalo_compare_reading'));
+  assert.deepEqual(messages[2].result.structuredContent, actual);
+  await writeFile(join(bundle(memory, sequence), 'world.json'), JSON.stringify(original).replace('original', 'tampered'));
+  assert.equal((await compare(args)).error.code, 'MEMORY_AML');
 });
 
 test('real AML persists exact UTF-8 and both integer clocks; a fresh host verifies all receipts', async t => {

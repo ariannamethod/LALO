@@ -1,5 +1,6 @@
 import { routeRequest, ROUTE_BUDGET } from '../src/route.js';
 import { TOOL_BUDGET } from '../src/tools.js';
+import { compareReadingPanel } from './compare-reading.js';
 import { actionWorld } from './action-world.js';
 import { evidenceSource, stepHeading, timelineSummary } from './reading-timeline.js';
 import { calendarSummary } from './calendar.js';
@@ -44,7 +45,7 @@ export function actionPanel({ getContext, select, highlight, presets = Object.ke
   root.innerHTML = `
     <div class="action-heading"><p class="eyebrow">LALO / INTENT → CALL → RECEIPTS</p><h2>Ask. Follow the marks.</h2>
     <p class="small">Calls read a snapshot of this journal on the local host. With host memory enabled, their receipts survive a restart.</p></div>
-    <form id="action-form">
+    <div class="action-inputs"><form id="action-form">
       <label for="action-preset">START FROM THIS VIEW</label>
       <div class="action-seed"><select id="action-preset"></select><button id="action-fill" type="button">Use current view ↗</button></div>
       <div id="action-pair" hidden><label for="action-other">Compare the selected receipt with</label><select id="action-other"></select></div>
@@ -53,8 +54,10 @@ export function actionPanel({ getContext, select, highlight, presets = Object.ke
       <label for="action-args" class="small">Clocks are integer Unix milliseconds. These values stay as you entered them.</label>
       <textarea id="action-args" rows="7" spellcheck="false" maxlength="32768">{}</textarea></details>
       <button id="action-run" class="primary" type="submit">Call LALO ↗</button>
-      <button id="action-recall" type="button">Recall last saved action ↗</button>
     </form>
+    <label for="action-sequence">Saved action number</label>
+    <div class="action-seed"><input id="action-sequence" type="number" min="1" max="64" step="1" placeholder="Latest">
+      <button id="action-recall" type="button">Recall saved action ↗</button></div></div>
     <div class="action-output"><p id="action-status" role="status">Choose a starting point, then call.</p>
       <p id="action-scope" class="small"></p><div id="action-trace"></div>
       <button id="action-next" type="button" hidden>Next evidence page ↗</button>
@@ -207,12 +210,13 @@ export function actionPanel({ getContext, select, highlight, presets = Object.ke
     } finally { clearTimeout(timer); busy = false; refresh(); }
   }
   async function recall() {
-    if (busy) return;
+    if (busy || !$('action-sequence').reportValidity()) return;
     busy = true; submitted = undefined; trace = undefined; show(); refresh();
     root.dataset.status = 'pending'; $('action-status').textContent = 'Reading host memory…';
     const controller = new AbortController(), timer = setTimeout(() => controller.abort(), 20000);
     try {
-      const result = await askHost('/api/memory', {}, controller.signal);
+      const selection = $('action-sequence').value ? { sequence: $('action-sequence').valueAsNumber } : {};
+      const result = await askHost('/api/memory', selection, controller.signal);
       if (result.format !== 'lalo/action-recall' || result.version !== 1) throw new Error('Unrecognized recall format');
       const receipt = result.receipt;
       if (!receipt) { root.dataset.status = 'empty'; $('action-status').textContent = 'Host memory has no saved actions.'; return; }
@@ -236,7 +240,10 @@ export function actionPanel({ getContext, select, highlight, presets = Object.ke
         TOOL_BUDGET.maxBytes + ROUTE_BUDGET.maxTraceBytes + 8192);
       if (result.format !== 'lalo/action-recall' || result.version !== 1 || !result.journal
         || result.receipt?.sequence !== sequence || result.receipt.head !== head) throw new Error('Unrecognized original world');
-      await actionWorld($('action-world'), result); $('action-world').hidden = false;
+      await actionWorld($('action-world'), result);
+      if (result.receipt.action.call?.name === 'lalo_reading' && result.receipt.action.result?.ok)
+        compareReadingPanel($('action-world'), result.receipt, getContext, askHost);
+      $('action-world').hidden = false;
       $('action-world-status').textContent = `Original world opened · action #${sequence}`;
     } catch (error) {
       controller.abort(); $('action-world-status').textContent = `Original world unavailable · ${error.name === 'AbortError' ? 'Readback timed out' : error.message}`;
