@@ -85,9 +85,10 @@ existing adapter's source claims; a stream frame is never upgraded to an
 authenticated fetch. The CLI refuses a receipt time ahead of its own clock. One
 future-stamped frame would otherwise block every honest receipt after it.
 
-Arrivals are serialized. Overlapping `receive` calls commit one after another
-against the latest world. A failed arrival changes nothing and does not block
-the next one.
+The receiver copies each frame when `receive` is called, including the
+measurement and coordinates from a browser position. The producer can then
+reuse its object. Overlapping calls commit in submission order against the
+latest world. After a rejected frame the queue continues from the last commit.
 
 One explicit network acquisition exists:
 
@@ -107,14 +108,18 @@ Don has identity `agent:<identifier>` in the same world as `usgs:<event>` and
 scalar value, source, world interval, receipt time, optional predecessor.
 
 Two channels exist. An `action` frame takes an executed `lalo/action` trace,
-the same trace the router and action memory already keep. When an ordinary read targets
-a USGS subject, the trace becomes an `attention_subject` receipt with source
+the same trace the router and action memory already keep. A successful
+`lalo_facts`, `lalo_history`, `lalo_reading` or single-receipt `lalo_calendar`
+read of a USGS subject becomes an `attention_subject` receipt with source
 `lalo:action/<tool>`, valid from its receipt time. The next action-derived
 attention supersedes the previous one, so Don's focus moves and its lineage
 stays. An abstention, an error or a read of any other subject names no
 attention and appends nothing. A `signal` frame takes an explicit receipt from
-the host. Its predicates stay open: unknown ones are kept and shown as sourced
-state evidence.
+the host. The read's knowledge cutoff must match the result and precede or
+equal the action receipt time. Returned facts and readings must agree with
+the requested subject. The `lalo:action/` source prefix belongs to action
+frames. The host's own sources can supply additional predicates, which are
+preserved as sourced state evidence.
 
 Model-internal state has no channel. No receipt here claims to come from inside
 a model, and none is inferred. A future channel enters as another source on

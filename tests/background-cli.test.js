@@ -5,6 +5,8 @@ import { mkdtemp, readFile, writeFile, rm, readdir } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { once } from 'node:events';
+import { createToolHost } from '../src/tools.js';
+import { decodeJournal } from '../src/journal.js';
 import { collection, quake, QUAKETIME as t } from './fixtures/usgs.js';
 
 const script = new URL('../scripts/background.mjs', import.meta.url);
@@ -71,12 +73,15 @@ test('location and action frames share the receiver; a receipt ahead of its cloc
   const journal = join(dir, 'world.json'), req = join(dir, 'request.json');
   const fix = { kind: 'location', id: 'fixture1', receivedAt: t + 2100,
     position: { timestamp: t + 5, coords: { latitude: 12.5, longitude: -34.25, accuracy: 7 } } };
-  const trace = { format: 'lalo/action', version: 1, status: 'executed', request: null, route: null,
-    call: { name: 'lalo_history', arguments: { subject: 'usgs:synthetic1', knownAt: t + 2100 } }, result: null };
+  const inputs = await run(['ingest', '--journal', journal], frame() + JSON.stringify(fix) + '\n');
+  assert.equal(inputs.code, 0, inputs.stderr);
+  const host = createToolHost(decodeJournal(await readFile(journal, 'utf8')));
+  const call = { name: 'lalo_history', arguments: { subject: 'usgs:synthetic1', knownAt: t + 2100 } };
+  const trace = { format: 'lalo/action', version: 1, status: 'executed', call, result: await host.call(call.name, call.arguments) };
   const action = { kind: 'action', agent: 'agent:don-eduardo', id: 'don:act:1', receivedAt: t + 2200, trace };
-  const ingested = await run(['ingest', '--journal', journal], [frame(), JSON.stringify(fix) + '\n', JSON.stringify(action) + '\n'].join(''));
+  const ingested = await run(['ingest', '--journal', journal], JSON.stringify(action) + '\n');
   assert.equal(ingested.code, 0, ingested.stderr);
-  assert.deepEqual(ingested.stdout.trim().split('\n').map(line => JSON.parse(line).kind), ['usgs', 'location', 'action']);
+  assert.deepEqual((inputs.stdout + ingested.stdout).trim().split('\n').map(line => JSON.parse(line).kind), ['usgs', 'location', 'action']);
   await writeFile(req, JSON.stringify({ agent: 'agent:don-eduardo', knownAt: t + 3000, stateAt: t + 3000, worldFrom: t, worldTo: t + 10 }));
   const selected = JSON.parse((await run(['select', '--journal', journal, '--request', req])).stdout);
   assert.deepEqual(selected.otherInstruments, { location: 1, camera: 0 });

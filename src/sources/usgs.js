@@ -33,7 +33,12 @@ function event(feature) {
 
 // The standalone source field accepts complete adapter journals, including every old version.
 export function validateUSGSJournal(ledger) {
-  const rows = ledger.entries(), heads = new Map();
+  validateUSGSRecords(ledger.entries());
+  return ledger;
+}
+
+function validateUSGSRecords(rows) {
+  const heads = new Map();
   if (rows.length % fields.length) throw new Error('incomplete USGS journal version');
   for (let offset = 0; offset < rows.length; offset += fields.length) {
     const group = rows.slice(offset, offset + fields.length), first = group[0];
@@ -53,7 +58,6 @@ export function validateUSGSJournal(ledger) {
     }
     heads.set(subject, updated);
   }
-  return ledger;
 }
 
 // A whole poll is staged on a new ledger. On failure the caller retains its prior journal.
@@ -66,25 +70,18 @@ export function ingestUSGS(ledger, feed, { receivedAt, capacity = 1024, maxEvent
   const events = feed.features.map(event);
   if (new Set(events.map(e => e.id)).size !== events.length) throw new Error('duplicate event in USGS feed');
   const candidate = decodeJournal(encodeJournal(ledger), { capacity });
-  const existing = new Map(candidate.entries().map(f => [f.id, f]));
+  const prior = candidate.entries();
+  validateUSGSRecords(prior.filter(f => f.subject.startsWith('usgs:')));
+  const existing = new Map(prior.map(f => [f.id, f]));
   const latest = new Map();
-  for (const fact of candidate.entries()) {
+  for (const fact of prior) {
     if (fact.subject.startsWith('usgs:') && fact.predicate === 'source_updated_at') latest.set(fact.subject, fact);
   }
   const summary = { events: events.length, added: 0, revised: 0, unchanged: 0, stale: 0 };
   for (const e of events) {
     const subject = `usgs:${e.id}`, source = `https://earthquake.usgs.gov/earthquakes/eventpage/${e.id}`;
     const previous = latest.get(subject);
-    if (previous) {
-      if (!Number.isSafeInteger(previous.value) || previous.source !== source)
-        throw new Error('invalid prior USGS source revision');
-      for (const field of fields) {
-        const old = existing.get(`${subject}:${previous.value}:${field}`);
-        if (!old || old.subject !== subject || old.predicate !== field || old.source !== source)
-          throw new Error('incomplete prior USGS event revision');
-      }
-      if (e.updated < previous.value) { summary.stale++; continue; }
-    }
+    if (previous && e.updated < previous.value) { summary.stale++; continue; }
     if (previous?.value === e.updated) {
       for (let i = 0; i < fields.length; i++) {
         const old = existing.get(`${subject}:${e.updated}:${fields[i]}`);
@@ -101,5 +98,6 @@ export function ingestUSGS(ledger, feed, { receivedAt, capacity = 1024, maxEvent
     }
     summary[previous ? 'revised' : 'added']++;
   }
+  encodeJournal(candidate);
   return { ledger: candidate, summary };
 }

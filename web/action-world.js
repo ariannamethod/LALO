@@ -2,7 +2,7 @@ import { decodeJournal } from '../src/journal.js';
 import { TOOL_BUDGET } from '../src/tools.js';
 import { createActionReplay } from '../src/action-replay.js';
 import { evidenceSource, stepHeading, timelineSummary } from './reading-timeline.js';
-import { calendarSummary } from './calendar.js';
+import { calendarSummary, receiptTime } from './calendar.js';
 import { cameraFrames, CAMERA_SOURCE } from '../src/sources/camera.js';
 
 const element = (tag, text, className) => {
@@ -14,11 +14,14 @@ const element = (tag, text, className) => {
 // An original world is a separate read-only surface. It never opens the live store.
 export async function actionWorld(root, { receipt, journal }) {
   const ledger = decodeJournal(JSON.stringify(journal), TOOL_BUDGET), records = ledger.entries();
-  const images = await cameraFrames({ entries: () => records.filter(f => f.source === CAMERA_SOURCE) });
+  let images = [], imageError;
+  try { images = await cameraFrames({ entries: () => records.filter(f => f.source === CAMERA_SOURCE) }); }
+  catch (error) { imageError = error.message; }
   const replay = createActionReplay(ledger, receipt.action);
   root.replaceChildren(); root.className = 'action-world'; root.dataset.sequence = receipt.sequence;
   root.append(element('p', `ORIGINAL WORLD / ACTION ${receipt.sequence}`, 'eyebrow'), element('h3', 'The world he read.'),
     element('p', `${records.length} receipts in the submitted journal. Select a source to inspect its clocks and lineage.`, 'small'));
+  if (imageError) root.append(element('p', `Camera preview unavailable · ${imageError}`, 'small'));
   const count = element('p', '', 'small'), list = element('ol', '', 'action-receipts');
   const previous = element('button', 'Previous receipts'), next = element('button', 'More receipts ↗');
   previous.id = 'world-previous'; next.id = 'world-next';
@@ -33,7 +36,7 @@ export async function actionWorld(root, { receipt, journal }) {
     const frame = images.find(f => f.records.some(r => r.id === id));
     if (frame) {
       const image = document.createElement('img'); image.className = 'world-photo';
-      image.alt = `Retained camera frame from ${new Date(frame.capturedAt).toISOString()}`;
+      image.alt = `Retained camera frame from ${receiptTime(frame.capturedAt)}`;
       image.src = `data:image/jpeg;base64,${frame.jpeg}`; inspector.prepend(image);
     }
     inspector.append(element('p', `Lineage: ${ledger.lineage(id).map(f => f.id).join(' → ')}`, 'small'));

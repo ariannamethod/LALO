@@ -3,6 +3,27 @@
 The engineering record. New entries first. README keeps the pulse; this file
 keeps the measurements, decisions, sources and scars.
 
+## 2026-11-09 — Don Eduardo runtime audit
+
+Starting at `453c2fa`, traced how a source becomes a receipt, shapes
+attention, survives a host restart and appears in a reproduced reading.
+Six new regression tests failed on that revision across intake, provenance,
+device limits and USGS history. A separate fault injection made the old
+C/AML parity check pass after the selected call was removed.
+
+The receiver now owns frame contents at submission, validates action-derived
+attention and checks device budgets on restoration. USGS validates prior
+versions and the final encoded size, and rejects malformed UTF-8 from HTTP
+and browser imports. Raw receipts and replay stay available when a snapshot
+has incomplete camera data. The parity gate compares calls and evidence.
+
+On Debian 13 x86_64, Node 24.22.1 and AML `8f577e8`, 111 core tests and
+27 native integrations passed. The independent reading model agreed on
+192 comparisons. The native and portable calendars agreed on 49 boundary
+pairs. All six examples ran. The local Chromium launch stopped at its
+process singleton socket. The PR browser job runs the visual regressions.
+See the [audit report and reproduction commands](docs/AUDIT-2026-11-09.md).
+
 ## 2026-11-09 — Revisit a saved answer after new receipts arrive
 
 Starting from `b4096a2`, Don can open a numbered AML action, reproduce its

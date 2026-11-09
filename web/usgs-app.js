@@ -1,3 +1,4 @@
+import { receiptTime as when } from './calendar.js';
 import { FactLedger } from '../src/ledger.js';
 import { encodeJournal, decodeJournal } from '../src/journal.js';
 import { ingestUSGS, validateUSGSJournal } from '../src/sources/usgs.js';
@@ -14,10 +15,6 @@ const store = worldStore(globalThis.indexedDB, { key: 'usgs-v1', maxBytes: QUAKE
 let ledger = new FactLedger(QUAKE_BUDGET), revision = 0, busy = true, blocked = false;
 let times = [], subject, selected, view, versions = [], nodes = [], width = 1, height = 1, animation = 0;
 let actions, actionIDs = [];
-const when = value => {
-  const date = new Date(value);
-  return Number.isNaN(date.valueOf()) ? `${value} ms` : date.toISOString().replace('T', ' ').replace('Z', ' UTC');
-};
 function element(tag, text, className) {
   const node = document.createElement(tag); node.textContent = text;
   if (className) node.className = className;
@@ -157,7 +154,8 @@ $('import').addEventListener('change', async () => {
   const file = $('import').files[0]; if (!file) return;
   await update(async () => {
     if (file.size > QUAKE_BUDGET.maxBytes) throw new RangeError('Import exceeds the 2 MB byte budget');
-    const candidate = extendQuakeJournal(ledger, await file.text());
+    const text = new TextDecoder('utf-8', { fatal: true }).decode(await file.arrayBuffer());
+    const candidate = extendQuakeJournal(ledger, text);
     return { ledger: candidate, note: `Imported ${candidate.size - ledger.size} receipts. Original receipt times preserved.` };
   });
   $('import').value = '';
