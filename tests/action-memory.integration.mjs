@@ -7,11 +7,13 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { actionMemory, AML_BINARY } from '../scripts/action-memory.mjs';
 import { serve } from '../scripts/serve.mjs';
-import { friday, fridayQuery, lateReports } from './fixtures/late-reports.js';
+import { tuesday, friday, saturday, fridayQuery, lateReports } from './fixtures/late-reports.js';
 import { FactLedger } from '../src/ledger.js';
 import { decodeJournal, encodeJournal } from '../src/journal.js';
 import { createActionReplay } from '../src/action-replay.js';
-import { execFile, execFileSync } from 'node:child_process';
+import { execFile, execFileSync, spawn } from 'node:child_process';
+import { once } from 'node:events';
+import { createInterface } from 'node:readline';
 import { promisify } from 'node:util';
 import { createBackground } from '../src/background.js';
 import { collection, quake, QUAKETIME } from './fixtures/usgs.js';
@@ -156,6 +158,45 @@ test('native history route selects a Friday correction and AML replays its origi
   const ids = [...first.result.data.items, ...next.result.data.items].map(row => row.id);
   const aml = execFileSync(AML_BINARY, ['examples/history-window.aml'], { encoding: 'utf8' });
   assert.deepEqual(ids, aml.trimEnd().split('\n'));
+});
+
+test('Don replays the same Tuesday conclusion revisions after an AML memory host restart', async t => {
+  const dir = await directory(t);
+  async function start() {
+    const child = spawn(process.execPath, ['scripts/serve.mjs', '--router', '--memory', dir],
+      { env: { ...process.env, HOST: '127.0.0.1', PORT: '0' }, stdio: ['ignore', 'pipe', 'inherit'] });
+    const exited = once(child, 'exit');
+    async function stop() { child.kill(); await exited; }
+    t.after(stop);
+    const lines = createInterface({ input: child.stdout });
+    for await (const line of lines) {
+      const ready = /^LALO: (http:\/\/127\.0\.0\.1:\d+)$/.exec(line);
+      if (ready) return { origin: ready[1], stop };
+    }
+    throw new Error('Action host exited before listening');
+  }
+  async function post(origin, path, payload) {
+    const res = await fetch(origin + path, { method: 'POST', headers: { Origin: origin, 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload) });
+    assert.equal(res.status, 200);
+    return res.json();
+  }
+  const journal = JSON.parse(encodeJournal(lateReports()));
+  const request = { text: 'show which evidence changed my conclusion', arguments: { subject: 'fixture:crossing',
+    predicate: 'open', rule: 'unanimous-boolean/v1', validAt: tuesday, sinceKnownAt: friday - 1, knownAt: saturday } };
+  const firstHost = await start();
+  const saved = await post(firstHost.origin, '/api/action', { journal, request });
+  assert.equal(saved.status, 'executed'); assert.equal(saved.call.name, 'lalo_reading');
+  assert.equal(saved.memory.state, 'saved');
+  assert.deepEqual(saved.result.data.items.map(r => [r.fact.id, r.state]), [
+    ['original', 'supported'], ['correction', 'contradicted'], ['saturday-update', 'supported']]);
+  await firstHost.stop();
+  const secondHost = await start();
+  const { sequence, head } = saved.memory;
+  const original = await post(secondHost.origin, '/api/memory', { sequence, head, snapshot: true });
+  assert.deepEqual(original.journal, journal);
+  const replay = await createActionReplay(decodeJournal(JSON.stringify(original.journal)), original.receipt.action).read();
+  assert.equal(replay.comparison, 'match'); assert.deepEqual(replay.result, saved.result);
 });
 
 test('real AML persists exact UTF-8 and both integer clocks; a fresh host verifies all receipts', async t => {

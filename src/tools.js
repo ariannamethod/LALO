@@ -1,5 +1,6 @@
 import { encodeJournal, decodeJournal } from './journal.js';
-import { hypothesis, magnitudeHypothesis, RULE, MAGNITUDE_RULE } from './hypothesis.js';
+import { RULE, MAGNITUDE_RULE } from './hypothesis.js';
+import { readRule, readingTimeline } from './reading.js';
 import { historyWindow, knownReceipt, receiptCalendar } from './janus-calendar.js';
 import { calendarOrigins, DON_EDUARDO, isAgent } from './calendar-origin.js';
 
@@ -31,6 +32,7 @@ const definitions = [
     { id: name('Receipt ID.'), knownAt: clocks.knownAt, ...paging }, ['id', 'knownAt']),
   define('lalo_reading', 'Evaluate a named rule over ALL active premises. Page through its evidence; the conclusion always uses the complete premise set. Boolean uses expected (default true); magnitude uses threshold (default 3) and predicate magnitude.',
     { ...clocks, subject: filters.subject, predicate: filters.predicate,
+      sinceKnownAt: timestamp('Return the baseline reading at this receipt time and its changes through knownAt, inclusive.'),
       rule: { type: 'string', enum: [RULE, MAGNITUDE_RULE] }, expected: { type: 'boolean' }, threshold: { type: 'number' }, ...paging },
     ['knownAt', 'validAt', 'subject', 'predicate', 'rule']),
   define('lalo_calendar', 'Read JANUS calendar coordinates, the Hebrew and Gregorian dates and the exact elapsed time from occurrence to receipt.',
@@ -144,14 +146,10 @@ export function createToolHost(world, { maxResultBytes = TOOL_BUDGET.maxResultBy
     if (a.rule === RULE && a.threshold !== undefined) invalid('threshold belongs to magnitude-at-least/v1');
     if (a.rule === MAGNITUDE_RULE && (a.expected !== undefined || a.predicate !== 'magnitude'))
       invalid('magnitude-at-least/v1 requires predicate magnitude and uses threshold, not expected');
-    let reading;
-    try { reading = a.rule === RULE ? hypothesis(ledger, a) : magnitudeHypothesis(ledger, a); }
-    catch (error) { throw new ToolError('INVALID_PREMISES', error.message); }
-    const { supporting, opposing, unknown = [], premises, ...summary } = reading;
-    const roles = new Map([...supporting.map(f => [f.id, 'supporting']), ...opposing.map(f => [f.id, 'opposing']), ...unknown.map(f => [f.id, 'unknown'])]);
-    const byID = new Map(all.map(f => [f.id, f]));
-    return page(premises.map(id => ({ role: roles.get(id), fact: byID.get(id) })), a,
-      { reading: { ...summary, premiseCount: premises.length, counts: { supporting: supporting.length, opposing: opposing.length, unknown: unknown.length } } });
+    if (a.sinceKnownAt !== undefined)
+      return readingTimeline(ledger, a).then(({ rows, reading, timeline }) => page(rows, a, { reading, timeline }));
+    const { premises, evidence, summary } = readRule(ledger, a);
+    return page(premises.map(id => evidence.get(id)), a, { reading: summary });
   }
   function checked(result) {
     if (bytes(result) > maxResultBytes) throw new ToolError('RESULT_BUDGET', 'Result exceeds the host byte budget');

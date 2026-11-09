@@ -65,12 +65,14 @@ test('real stdio process serves discovery and two-clock calls, recovers from bad
     const lines = [init, initialized, request(2, 'tools/list'), request(3, 'tools/call', { name: 'lalo_facts', arguments: { knownAt: 100, validAt: 10 } }),
       request(4, 'tools/call', { name: 'lalo_lineage', arguments: { id: 'a2', knownAt: 200 } }),
       request(9, 'tools/call', { name: 'lalo_calendar', arguments: { id: 'a2', knownAt: 200, compareToId: 'a1' } }),
-      request(10, 'tools/call', { name: 'lalo_history', arguments: { knownAt: 200, receivedFrom: 200, receivedTo: 201, occurredBefore: 11 } })].map(JSON.stringify).join('\n');
+      request(10, 'tools/call', { name: 'lalo_history', arguments: { knownAt: 200, receivedFrom: 200, receivedTo: 201, occurredBefore: 11 } }),
+      request(11, 'tools/call', { name: 'lalo_reading', arguments: { subject: 'synthetic:crossing', predicate: 'open',
+        rule: 'unanimous-boolean/v1', validAt: 10, sinceKnownAt: 100, knownAt: 200 } })].map(JSON.stringify).join('\n');
     const input = lines + '\n' + 'x'.repeat(40_000) + '\n{bad json}\n' + JSON.stringify(request(5, 'ping')) + '\n';
     const child = spawnSync(process.execPath, ['scripts/mcp.mjs', '--journal', file], { input, encoding: 'utf8', timeout: 10000, maxBuffer: 1_000_000 });
     assert.equal(child.status, 0, child.stderr); assert.match(child.stderr, /2 receipts, fixed snapshot/);
     const messages = child.stdout.trim().split('\n').map(JSON.parse);
-    assert.equal(messages.length, 9); assert.equal(messages[1].result.tools.length, 7);
+    assert.equal(messages.length, 10); assert.equal(messages[1].result.tools.length, 7);
     assert.equal(messages[2].result.structuredContent.data.items[0].id, 'a1');
     assert.deepEqual(messages[3].result.structuredContent.data.items.map(f => f.id), ['a1', 'a2']);
     const calendar = messages[4].result.structuredContent.data.calendar;
@@ -81,8 +83,10 @@ test('real stdio process serves discovery and two-clock calls, recovers from bad
     const history = messages[5].result.structuredContent.data;
     assert.deepEqual(history.items.map(row => [row.id, row.supersedes]), [['a2', 'a1']]);
     assert.equal(history.window.receivedFrom, 200);
-    assert.equal(messages[6].error.code, -32700); assert.equal(messages[7].error.code, -32700);
-    assert.deepEqual(messages[8], { jsonrpc: '2.0', id: 5, result: {} });
+    const revisions = messages[6].result.structuredContent.data;
+    assert.deepEqual(revisions.items.map(r => [r.fact.id, r.state]), [['a1', 'supported'], ['a2', 'contradicted']]);
+    assert.equal(messages[7].error.code, -32700); assert.equal(messages[8].error.code, -32700);
+    assert.deepEqual(messages[9], { jsonrpc: '2.0', id: 5, result: {} });
     assert.equal(await boundedTextFile(file), encodeJournal(fixture()));
     await writeFile(file, Buffer.from([0xff]));
     const broken = spawnSync(process.execPath, ['scripts/mcp.mjs', '--journal', file], { input: '', encoding: 'utf8', timeout: 10000 });

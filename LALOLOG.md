@@ -3,6 +3,32 @@
 The engineering record. New entries first. README keeps the pulse; this file
 keeps the measurements, decisions, sources and scars.
 
+## 2026-11-09 — What made Don change his reading?
+
+Starting from `b76cd6b`, `lalo_reading` can trace the same rule at one world
+instant across receipt time. On the synthetic crossing, Thursday's
+`original` supports “open on Tuesday”, Friday's `correction` contradicts
+it, and Saturday's `saturday-update` supports it again.
+
+* AML JANUS `calendar_compare` selects distinct receipt instants after the
+  baseline through the closing cutoff. The deployed boolean and magnitude
+  rules evaluate each complete batch. Evidence rows identify the incoming
+  source and the role of any active predecessor it displaced. The crossing
+  and USGS panels display these same revisions in live and reproduced actions.
+* Debian 13 x86_64, Node 24.22.1, AML `8f577e8`. After building the native
+  router, AML and the calendar bridge, `node --test tests/*.test.js` passed
+  95/95 and `node --test tests/*.integration.mjs` passed 25/25. Coverage
+  includes a same-millisecond conflict across pages, another independent
+  witness, a withdrawn premise, a null magnitude, both cutoff boundaries,
+  byte budgets, and MCP stdio. The HTTP test stops the first Node process,
+  starts a second one on the saved AML memory and reproduces the exact result.
+* `node scripts/wolfe-diff.mjs` passed 83/83 C/AML route decisions with
+  matching evidence. All previous 79 intents retained their status and
+  called tool. All four JavaScript and both AML examples ran offline.
+* Local Chromium stopped at process singleton creation (socket permission
+  denied). The browser CI test exercises the timeline preset and the step
+  headings in the original-world replay for both views.
+
 ## 2026-11-09 — Find late reports without receipt IDs
 
 On `f5fcebe`, Don could compare two named receipts. His history tool now

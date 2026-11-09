@@ -39,16 +39,16 @@ world interval. Null magnitude remains unknown.
 | `lalo_history` | `knownAt` | Receipt history including corrections, with optional subject, predicate, source and time filters |
 | `lalo_lineage` | `knownAt`, `id` | Original assertion through the requested known revision |
 | `lalo_calendar` | `knownAt`, `id` | JANUS coordinates and personal origin. Optional `compareToId` compares two receipts on both clocks. |
-| `lalo_reading` | `knownAt`, `validAt`, `subject`, `predicate`, `rule` | Complete rule conclusion and paginated, classified premises |
+| `lalo_reading` | `knownAt`, `validAt`, `subject`, `predicate`, `rule` | Complete rule conclusion and paginated evidence, with optional revision history |
 
 `lalo_status` describes the whole loaded snapshot. The other tools apply the
 requested receipt cutoff to all returned rows and counts. A future receipt ID
 and an absent ID both return `NOT_FOUND` at that cutoff.
 
 Use `await host.call('lalo_calendar', { id, knownAt, originId })` in JavaScript.
-Ordinary history reads retain their synchronous results. Calendar reads and
-history with time filters load the local JANUS WASM on demand. Generic clients
-can await every call. The calendar result includes the source assertion, both POSIX instants, the signed
+Plain history and single-cutoff readings return synchronously. Calendar calls,
+filtered history and reading timelines load the local JANUS WASM on demand.
+Generic clients can await every call. The calendar result includes the source assertion, both POSIX instants, the signed
 receipt lag, the occurrence's UTC civil view and the WASM SHA-256. The UTC
 midnight policy applies to the civil date. The JANUS epoch turns over at noon.
 After the background receiver records an origin for `agent` (default
@@ -97,6 +97,41 @@ true), or `magnitude-at-least/v1` with predicate `magnitude` and optional
 The visual field and tools execute the same rule implementations. Each evidence
 row contains its role and the full fact, including ID, source and predecessor.
 The reading includes premise counts and the intersection of their intervals.
+
+## Follow revisions of one conclusion
+
+Add `sinceKnownAt` to `lalo_reading` to start with what Don knew at that instant.
+JANUS selects later receipt instants through `knownAt`, including its endpoint.
+The world instant, subject, predicate, rule and expected value or threshold
+stay fixed. In the crossing and earthquake views, **What changed this reading?**
+seeds the baseline from the first known receipt for the selected predicate.
+Both receipt cutoffs are editable UTC Unix milliseconds in JANUS years 1–9999.
+
+```js
+const result = await host.call('lalo_reading', {
+  subject: 'fixture:crossing', predicate: 'open', rule: 'unanimous-boolean/v1',
+  validAt: Date.UTC(2026, 10, 3, 12),
+  sinceKnownAt: Date.UTC(2026, 10, 5, 23, 59, 59, 999),
+  knownAt: Date.UTC(2026, 10, 7),
+});
+```
+
+In the late-reports fixture the baseline is supported by `original`. The
+Friday receipt `correction` contradicts it. The Saturday receipt
+`saturday-update` replaces the correction and supports the reading again.
+
+* `data.timeline` gives the baseline state, time, change count and JANUS
+  version and digest. An empty baseline is `unsettled` with zero baseline rows.
+  Equal cutoffs return only the baseline. `data.reading` gives the complete
+  conclusion at the closing cutoff.
+* Evidence rows at step zero contain the active baseline facts. Each later
+  row names the incoming fact, its role, and the removed role if its
+  `supersedes` displaced an active premise. A correction that withdraws a
+  premise by moving its world interval has a null incoming role.
+* All rows with the same step describe one atomic receipt instant. A
+  `verdict` step changes the conclusion. An `evidence` step changes the
+  premises while preserving that conclusion. Pages can split the receipts
+  for a step. The step number and complete verdict stay the same on each page.
 
 ## Find reports by receipt and occurrence time
 
