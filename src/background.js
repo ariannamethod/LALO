@@ -52,8 +52,8 @@ export const INSTRUMENTS = Object.freeze({
 });
 const kinds = Object.keys(INSTRUMENTS);
 
-// The agent's own executed read is an act LALO observes. It is the one agent
-// state channel available today; model-internal state has no channel here.
+// A read supplies evidence of attention. A host can report a runtime measurement
+// separately through the signal instrument, with its own source and clocks.
 function actionFact(signals, world, origins, frame) {
   const { agent, id, receivedAt, trace } = frame;
   if (!isAgent(agent)) throw new TypeError('agent must be agent:<identifier>');

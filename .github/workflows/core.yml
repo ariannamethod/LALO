@@ -60,6 +60,7 @@ jobs:
       - run: node scripts/wolfe-diff.mjs
       - run: node examples/gev-weather.js
       - run: node examples/gev-firms.js
+      - run: node examples/device-route.js
       - name: Check out the GEV providers for the interoperability tests
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:

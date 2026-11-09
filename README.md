@@ -157,6 +157,12 @@ reopens the noon answer from AML memory and identifies the earlier overpass
 that reached Don at 12:07. A live `poll-firms` reads the same GEV server.
 [Regional polling and replay](docs/BACKGROUND.md#regional-firms-observations).
 
+To ask what was near the device, run `node examples/device-route.js` after
+building AML. Don shows the fix he used, its reported accuracy and the
+distance to each selected event. A delayed fix can change a retrospective
+answer. AML can reopen the answer Don actually gave at noon.
+[Device radius and synthetic route](docs/BACKGROUND.md#nearby-events-from-a-device-fix).
+
 Don reads each selected event through AML's local C/WASM calendar.
 Don can choose a known receipt as his calendar origin. Once his choice reaches
 the background journal, future reads count from that event across restarts.

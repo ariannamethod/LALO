@@ -3,6 +3,39 @@
 The engineering record. New entries first. README keeps the pulse; this file
 keeps the measurements, decisions, sources and scars.
 
+## 2026-11-10 — Which device fix grounded Don's noon answer?
+
+Starting at `64aab35`, projection v7 accepts a device radius and an explicit
+maximum fix age. The latest measurement by the state instant must already
+have reached Don by the knowledge cutoff. The three sensor receipts and
+their JANUS clock reading travel inside the byte budget. A missing or old
+fix returns its own error. Replay still dispatches v2–v6 to their saved
+policies. The v6 regional fixture was captured before the change.
+
+* In the synthetic route, both external observations arrived before noon.
+  At noon a fix from 11:49 selected one FIRMS detection 85 m away. At 12:07
+  a fix measured at 11:59 arrived. Repeating the noon question selected a
+  USGS event 85 m from that fix. Another delayed sample, measured at 11:52,
+  left that choice intact. Both readings also carried the same point sample
+  of 128 KV-cache tokens under `agent:route-model` from `fixture:model-runtime`.
+* `node examples/device-route.js` saved the first answer, reopened its world
+  through AML memory and reproduced it. The standalone CLI ingest, select
+  and replay commands also returned `match`. The scripted measurements come
+  from fixtures. The browser gate separately exercises an emulated location
+  through the Device field and its actual IndexedDB store.
+* Geometry reuses the unmodified MIT-licensed GEV
+  [distance module](https://github.com/bilawalsidhu/gods-eye-view/blob/e5da073d33c76a6fe8f56d676b13b4a12152e0ce/src/geoDistance.js)
+  with its license in `src/vendor/gods-eye-view`. JANUS runs through the pinned
+  AML C/WASM module. The mobile reference was molequla's
+  [place instrument](https://github.com/ariannamethod/molequla/blob/c1cbc4792c422be4a5515cc68daad2b6c6603158/phone1/senses.sh#L853-L880),
+  which tries the network provider, then GPS. Don's current browser instrument
+  carries the source the Geolocation API exposes.
+* Debian 13 x86_64, Node 24.22.1, GCC 14.2.0, AML `8f577e8`.
+  `node --test tests/*.test.js` passed 125/125, native integration 27/27,
+  both pinned GEV contracts passed and C/AML route parity was 83/83.
+  Local Chromium stopped at startup when its singleton socket was denied.
+  The PR browser job runs the Device check in Chrome on GitHub's runner.
+
 ## 2026-11-09 — What had reached Don from this region by noon?
 
 Starting at `50f215b`, Don receives satellite thermal detections through

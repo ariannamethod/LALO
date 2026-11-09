@@ -22,6 +22,16 @@ export async function checkLocationField({ call, evaluate, shot, click, reload, 
   assert.deepEqual(records.map(f => f.value), [12.5, -34.25, 7]);
   assert.ok(records.every(f => f.source === 'browser:geolocation' && f.validTo === f.validFrom + 1));
   assert.ok(records[0].recordedAt >= records[0].validFrom);
+  const nearby = await evaluate(`(async () => {
+    const { selectBackground } = await import('/src/background-context.js');
+    const { journal } = await (${readStore})();
+    const [latitude] = JSON.parse(journal).records;
+    return selectBackground(journal, { agent: 'agent:don-eduardo', stateAt: latitude.validFrom,
+      knownAt: latitude.recordedAt, worldFrom: latitude.validFrom, worldTo: latitude.validTo,
+      nearDevice: { radiusMeters: 500, maxFixAgeMs: 0 } });
+  })()`);
+  assert.deepEqual(nearby.locationAnchor.facts, records);
+  assert.equal(nearby.locationAnchor.calendar.civil.schema, 'janus.calendar/1');
   await call('Emulation.setGeolocationOverride', { latitude: 15, longitude: -30, accuracy: 11 });
   await click('locate');
   const second = await evaluate(`(${readStore})()`);

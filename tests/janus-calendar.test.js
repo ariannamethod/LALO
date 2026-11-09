@@ -81,7 +81,7 @@ test('Don rewinds a revised occurrence, and the pre-calendar v2 world still repr
   const request = { ...saved.request, originId: saved.state[0].id };
   const past = await selectBackground(world.journal(), request);
   const current = await selectBackground(world.journal(), { ...request, knownAt: t + 5000 });
-  assert.equal(past.version, 6);
+  assert.equal(past.version, 7);
   const before = past.items[0].calendar, after = current.items[0].calendar;
   assert.equal(before.assertion.id, past.items[0].facts[0].id);
   assert.equal(after.assertion.supersedes, before.assertion.id);
