@@ -1,0 +1,18 @@
+# UTC, November 2026. Read reports received on Friday about events before Friday.
+friday = calendar_instant(20763, 0, 0)
+saturday = calendar_instant(20764, 0, 0)
+tuesday = calendar_instant(20760, 43200, 0)
+end_of_thursday = calendar_instant(20762, 86399, 999)
+end_of_friday = calendar_instant(20763, 86399, 999)
+received_on_friday = calendar_span(friday, saturday)
+
+def report(id, occurred, received):
+    if calendar_contains(received_on_friday, received) and calendar_compare(occurred, friday) < 0:
+        PRINT id
+
+# The Friday correction retains its Tuesday occurrence.
+report("original", tuesday, end_of_thursday)
+report("correction", tuesday, friday)
+report("friday-event", friday, friday)
+report("other-report", end_of_thursday, end_of_friday)
+report("saturday-update", tuesday, saturday)

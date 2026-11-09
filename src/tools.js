@@ -1,6 +1,6 @@
 import { encodeJournal, decodeJournal } from './journal.js';
 import { hypothesis, magnitudeHypothesis, RULE, MAGNITUDE_RULE } from './hypothesis.js';
-import { knownReceipt, receiptCalendar } from './janus-calendar.js';
+import { historyWindow, knownReceipt, receiptCalendar } from './janus-calendar.js';
 import { calendarOrigins, DON_EDUARDO, isAgent } from './calendar-origin.js';
 
 export const TOOL_BUDGET = Object.freeze({ capacity: 1024, maxBytes: 2_000_000,
@@ -23,7 +23,10 @@ const definitions = [
   define('lalo_facts', 'Read active facts through both clocks, retaining source and predecessor IDs.',
     { ...clocks, ...filters, ...paging }, ['knownAt', 'validAt']),
   define('lalo_history', 'Read the append-only receipt history up to knownAt, including superseded assertions and their world intervals.',
-    { knownAt: clocks.knownAt, ...filters, ...paging }, ['knownAt']),
+    { knownAt: clocks.knownAt, ...filters,
+      receivedFrom: timestamp('Inclusive lower bound on receipt time (recordedAt).'),
+      receivedTo: timestamp('Exclusive upper bound on receipt time (recordedAt).'),
+      occurredBefore: timestamp('Exclusive upper bound on occurrence time (validFrom).'), ...paging }, ['knownAt']),
   define('lalo_lineage', 'Follow a known receipt from its original assertion to the requested revision. Future and unknown IDs return NOT_FOUND.',
     { id: name('Receipt ID.'), knownAt: clocks.knownAt, ...paging }, ['id', 'knownAt']),
   define('lalo_reading', 'Evaluate a named rule over ALL active premises. Page through its evidence; the conclusion always uses the complete premise set. Boolean uses expected (default true); magnitude uses threshold (default 3) and predicate magnitude.',
@@ -45,7 +48,7 @@ class ToolError extends Error {
   constructor(code, message) { super(message); this.code = code; }
 }
 function invalid(message) { throw new ToolError('INVALID_ARGUMENTS', message); }
-// Existing reads are synchronous. The calendar loads its C/WASM body on demand.
+// Reads that use JANUS load its C/WASM body on demand.
 export const mapToolResult = (result, project) => result instanceof Promise ? result.then(project) : project(result);
 function argumentsFor(tool, input) {
   if (!object(input)) invalid('arguments must be an object');
@@ -109,7 +112,12 @@ export function createToolHost(world, { maxResultBytes = TOOL_BUDGET.maxResultBy
       return page(rows, a, { knownAt: a.knownAt });
     }
     if (tool === 'lalo_facts') return page(ledger.asOf(a).filter(f => match(f, a)), a, { validAt: a.validAt, knownAt: a.knownAt });
-    if (tool === 'lalo_history') return page(known(a.knownAt).filter(f => match(f, a)), a, { knownAt: a.knownAt });
+    if (tool === 'lalo_history') {
+      const candidates = known(a.knownAt).filter(f => match(f, a));
+      if (a.receivedFrom === undefined && a.receivedTo === undefined && a.occurredBefore === undefined)
+        return page(candidates, a, { knownAt: a.knownAt });
+      return historyWindow(candidates, a).then(({ rows, window }) => page(rows, a, { knownAt: a.knownAt, window }));
+    }
     if (tool === 'lalo_lineage') {
       if (!known(a.knownAt).some(f => f.id === a.id)) throw new ToolError('NOT_FOUND', 'Receipt is not known at this cutoff');
       return page(ledger.lineage(a.id), a, { id: a.id, knownAt: a.knownAt });

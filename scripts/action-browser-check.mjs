@@ -145,6 +145,18 @@ export async function checkActionField({ evaluate, call, shot, reload, kind }) {
       await new Promise(resolve => setTimeout(resolve, 50));
     assert.equal(await value("document.getElementById('action-world').dataset.comparison"), 'match');
     assert.match(await value("document.querySelector('#action-world .world-reading').textContent"), /Occurred.*Received/);
+
+    await click('present');
+    const since = calendar.assertion.validFrom + 60_000;
+    await value(`{const clock=document.getElementById('world');clock.value=${since};clock.dispatchEvent(new Event('input'))}`);
+    await value("document.getElementById('action-preset').value='late'");
+    await click('action-fill'); await click('action-run'); await idle();
+    const late = await trace();
+    assert.equal(late.status, 'executed'); assert.equal(late.call.name, 'lalo_history');
+    assert.equal(late.call.arguments.receivedFrom, since);
+    assert.equal(late.result.data.window.occurredBefore, since);
+    assert.ok(late.result.data.items.length > 0);
+    assert.ok(late.result.data.items.every(f => f.validFrom < since && f.recordedAt >= since && f.recordedAt <= late.call.arguments.knownAt));
   }
   console.log(`PASS: ${kind} real C calls, explicit clocks, complete inference, evidence selection, fixed-snapshot paging, stale/late responses, abstention, argument failures, AML readback, original-world reproduction after reload and phone layout`);
 }

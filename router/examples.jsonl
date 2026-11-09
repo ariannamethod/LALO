@@ -41,3 +41,6 @@
 {"text":"which event happened first","tool":"lalo_calendar","arguments":{}}
 {"text":"which event did I learn about first","tool":"lalo_calendar","arguments":{}}
 {"text":"do not compare occurrence and receipt times","tool":null,"arguments":{}}
+{"text":"which reports arrived about earlier events","tool":"lalo_history","arguments":{}}
+{"text":"what did I learn on Friday about earlier events","tool":"lalo_history","arguments":{}}
+{"text":"do not search for late reports","tool":null,"arguments":{}}

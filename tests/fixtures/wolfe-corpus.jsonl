@@ -73,3 +73,7 @@
 {"text":"which event did I learn about first"}
 {"text":"compare janus calendar clocks"}
 {"text":"do not compare occurrence and receipt times"}
+{"text":"which reports arrived about earlier events"}
+{"text":"what did I learn on Friday about earlier events"}
+{"text":"what did I learn yesterday about earlier events"}
+{"text":"do not search for late reports"}

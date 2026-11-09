@@ -5,7 +5,14 @@ function loadCalendar() {
     const bytes = module.bundledBytes();
     const digest = new Uint8Array(await crypto.subtle.digest('SHA-256', bytes));
     const wasmSha256 = Array.from(digest, byte => byte.toString(16).padStart(2, '0')).join('');
-    return { api: module.API, split: module.splitUnixMilliseconds, calendar: await module.wasmCalendar(bytes), wasmSha256 };
+    const calendar = await module.wasmCalendar(bytes);
+    const parts = at => {
+      if (!calendarTimestampSupported(at))
+        throw Object.assign(new RangeError('Timestamp outside JANUS.CALENDAR years 1..9999'), { code: 'CALENDAR_RANGE' });
+      return module.splitUnixMilliseconds(at);
+    };
+    const instant = ({ unixDay, second, millisecond }) => calendar.instant(unixDay, second, millisecond);
+    return { api: module.API, parts, instant, calendar, wasmSha256 };
   }).catch(cause => {
     runtime = undefined;
     throw Object.assign(new Error('JANUS.CALENDAR unavailable. Initialize deps/aml and enable WebAssembly and Web Crypto.',
@@ -38,13 +45,8 @@ export async function receiptCalendar(fact, origin, choice, compareTo) {
   // A ledger accepts a wider timestamp range than AML's Gregorian years 1..9999.
   // Keep the source visible even when a coordinate cannot be calculated.
   try {
-    const { api, split, calendar, wasmSha256 } = await loadCalendar();
+    const { api, parts, instant, calendar, wasmSha256 } = await loadCalendar();
     Object.assign(reading, { api, wasmSha256 });
-    function parts(at) {
-      if (!calendarTimestampSupported(at)) throw new RangeError('Timestamp outside JANUS.CALENDAR years 1..9999');
-      return split(at);
-    }
-    const instant = ({ unixDay, second, millisecond }) => calendar.instant(unixDay, second, millisecond);
     const event = parts(fact.validFrom);
     const occurred = await instant(event), known = await instant(parts(fact.recordedAt));
     const civil = await calendar.local(event.unixDay, event.second, 0, -1);
@@ -66,4 +68,31 @@ export async function receiptCalendar(fact, origin, choice, compareTo) {
     if (!(error instanceof RangeError) && error.code !== 'CALENDAR_UNAVAILABLE') throw error;
     return { ...reading, error: { code: error.code ?? 'CALENDAR_RANGE', message: error.message } };
   }
+}
+
+export async function historyWindow(records, { receivedFrom, receivedTo, occurredBefore }) {
+  const { parts, instant, calendar, api, wasmSha256 } = await loadCalendar();
+  const at = ms => instant(parts(ms));
+  const start = receivedFrom === undefined ? null : await at(receivedFrom);
+  const end = receivedTo === undefined ? null : await at(receivedTo);
+  const before = occurredBefore === undefined ? null : await at(occurredBefore);
+  const rows = [], window = { receivedFrom, receivedTo, occurredBefore, api, wasmSha256 };
+  let acceptsReceipt;
+  if (start && end) {
+    const order = await calendar.compare(start, end);
+    if (order > 0) throw Object.assign(new RangeError('receivedTo precedes receivedFrom'), { code: 'INVALID_ARGUMENTS' });
+    if (order === 0) return { rows, window };
+    const span = await calendar.span(start, end);
+    acceptsReceipt = receipt => calendar.contains(span, receipt);
+  } else if (start) {
+    acceptsReceipt = async receipt => (await calendar.compare(receipt, start)) >= 0;
+  } else if (end) {
+    acceptsReceipt = async receipt => (await calendar.compare(receipt, end)) < 0;
+  }
+  for (const fact of records) {
+    if (acceptsReceipt && !await acceptsReceipt(await at(fact.recordedAt))) continue;
+    if (before && await calendar.compare(await at(fact.validFrom), before) >= 0) continue;
+    rows.push(fact);
+  }
+  return { rows, window };
 }

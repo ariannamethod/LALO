@@ -36,7 +36,7 @@ world interval. Null magnitude remains unknown.
 | `lalo_status` | none | Snapshot size, first/latest receipt and budgets |
 | `lalo_subjects` | `knownAt` | Known subjects, receipt counts and minimum/maximum origin times; optional `prefix` |
 | `lalo_facts` | `knownAt`, `validAt` | Active facts; optional exact `subject`, `predicate`, `source` filters |
-| `lalo_history` | `knownAt` | Receipt history including superseded facts; the same optional filters |
+| `lalo_history` | `knownAt` | Receipt history including corrections, with optional subject, predicate, source and time filters |
 | `lalo_lineage` | `knownAt`, `id` | Original assertion through the requested known revision |
 | `lalo_calendar` | `knownAt`, `id` | JANUS coordinates and personal origin. Optional `compareToId` compares two receipts on both clocks. |
 | `lalo_reading` | `knownAt`, `validAt`, `subject`, `predicate`, `rule` | Complete rule conclusion and paginated, classified premises |
@@ -46,9 +46,9 @@ requested receipt cutoff to all returned rows and counts. A future receipt ID
 and an absent ID both return `NOT_FOUND` at that cutoff.
 
 Use `await host.call('lalo_calendar', { id, knownAt, originId })` in JavaScript.
-The existing six reads retain their synchronous results. Generic clients can await
-every call. JANUS loads the embedded WASM from `deps/aml` on the first calendar
-read. Its result includes the source assertion, both POSIX instants, the signed
+Ordinary history reads retain their synchronous results. Calendar reads and
+history with time filters load the local JANUS WASM on demand. Generic clients
+can await every call. The calendar result includes the source assertion, both POSIX instants, the signed
 receipt lag, the occurrence's UTC civil view and the WASM SHA-256. The UTC
 midnight policy applies to the civil date. The JANUS epoch turns over at noon.
 After the background receiver records an origin for `agent` (default
@@ -97,6 +97,44 @@ true), or `magnitude-at-least/v1` with predicate `magnitude` and optional
 The visual field and tools execute the same rule implementations. Each evidence
 row contains its role and the full fact, including ID, source and predecessor.
 The reading includes premise counts and the intersection of their intervals.
+
+## Find reports by receipt and occurrence time
+
+All three time filters on `lalo_history` are optional. Times are integer Unix
+milliseconds. For example, find reports received on Friday, November 6, 2026
+UTC about events before that day:
+
+```js
+const friday = Date.UTC(2026, 10, 6), saturday = Date.UTC(2026, 10, 7);
+const result = await host.call('lalo_history', {
+  knownAt: saturday, receivedFrom: friday, receivedTo: saturday, occurredBefore: friday
+});
+```
+
+| Argument | Match |
+| --- | --- |
+| `knownAt` (required) | Only receipts already recorded at this instant, inclusive |
+| `receivedFrom` | Receipt time at or after this instant |
+| `receivedTo` | Receipt time strictly before this instant |
+| `occurredBefore` | The revision's `validFrom` is strictly before this instant |
+
+Equal receipt bounds describe an empty interval. Reversed bounds return
+`INVALID_ARGUMENTS`. A later correction has its own receipt time and names
+its predecessor in `supersedes`. Earlier revisions stay searchable. A rewind
+to Thursday can still find the original report even after Friday's correction.
+
+Subject, predicate, source and knowledge filters narrow the candidates before
+JANUS evaluates the requested clocks. Bounds and clocks evaluated by JANUS
+use Gregorian years 1–9999. Outside that range the call returns
+`CALENDAR_RANGE`. Results use the usual ledger order, counts and pagination.
+Filtered pages include the requested bounds, JANUS API and WASM digest in
+`data.window`. A plain history read works without loading AML.
+
+In the action panel, **Late reports since the world clock** uses the displayed
+world time for `receivedFrom` and `occurredBefore`, and the displayed
+knowledge cutoff for `knownAt`. Edit the explicit arguments to set a different
+window. Run the synthetic Friday example in the native interpreter with
+`deps/aml/runner/aml examples/history-window.aml`.
 
 ## Pages and budgets
 

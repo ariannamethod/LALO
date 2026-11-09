@@ -149,7 +149,10 @@ the background journal, future reads count from that event across restarts.
 Rewinding to before the choice restores his earlier perspective. An explicit
 `originId` overrides the origin for one read. Give `lalo_calendar` a second
 receipt as `compareToId` to ask which event happened first and which report
-reached Don first. JANUS compares both clocks to the millisecond.
+reached Don first. JANUS compares both clocks to the millisecond. To find
+reports without their IDs, ask `lalo_history` what reached Don during a
+receipt window about events before a given instant. A late correction
+returns its own receipt and the ID of the assertion it revises.
 The AML submodule supplies both JANUS and action memory. Dependabot checks its
 `main` branch daily at 03:17 UTC and opens update PRs. After pulling a merged update, run
 `git submodule update --init deps/aml` to use that revision locally.
