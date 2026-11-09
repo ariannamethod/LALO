@@ -14,7 +14,7 @@ The portable boundary has no network, timer, native process or ambient clock:
 - `src/background.js`: one door, `receive(frame)`, for every instrument. Each
   instrument owns its receipts and validates them with its own source adapter.
 - `src/background-context.js`: select by an explicit request and replay a saved
-  selection under its recorded policy. New selections use `usgs-nowcoast-attention-janus/v5`.
+  selection under its recorded policy. New selections use `regional-events-janus/v6`.
 - `scripts/background.mjs`: persist an input stream, request one live poll,
   select locally, or replay from a journal or a verified AML snapshot.
 
@@ -55,6 +55,7 @@ restart and every selection.
 | --- | --- | --- | --- |
 | `usgs` | subject `usgs:<event>` | `validateUSGSJournal` | 64 events per batch |
 | `gev-weather` | subject `nowcoast:<product>` | `weatherFrames` | 13 times per manifest, 32 KiB per HTTP response |
+| `gev-firms` | subject `firms:<satellite>:<instrument>:<minute-ms>:<latitude>:<longitude>` | `firmsGroups` | 64 regional rows per poll by default |
 | `location` | source `browser:geolocation` | `locationSamples` | 768 receipts, 512000 bytes |
 | `camera` | source `browser:camera` | `cameraFrames` (SHA-256) | 32 frames, 1500000 bytes |
 | `signal` | subject `agent:<identifier>` | attention values and calendar origin references | one fact per frame |
@@ -64,6 +65,7 @@ Frames:
 ```js
 { kind: 'usgs', receivedAt, feed: geojsonFeatureCollection }
 { kind: 'gev-weather', receivedAt, origin, manifest }
+{ kind: 'gev-firms', receivedAt, origin, bbox: [west, south, east, north], feed }
 { kind: 'location', id, receivedAt, position: { timestamp, coords: { latitude, longitude, accuracy } } }
 { kind: 'camera', id, receivedAt, image: { jpeg, width, height, capturedAt } }
 { kind: 'signal', fact: { id, subject: 'agent:don-eduardo', predicate, value, source,
@@ -140,6 +142,55 @@ use a new journal path:
 node examples/gev-weather.js --frames | node scripts/background.mjs ingest --journal build/weather-simulation.json
 ```
 
+## Regional FIRMS observations
+
+GEV serves NASA FIRMS thermal detections from VIIRS and MODIS at `/api/firms`.
+The operator configures `FIRMS_MAP_KEY` on the GEV server. Set `GEV_ORIGIN`
+to that server's origin, then request an area. This example covers part of
+northern California and Nevada.
+
+```sh
+mkdir -p build
+node scripts/background.mjs poll-firms --gev-origin "$GEV_ORIGIN" --bbox -122,38,-119,40 --journal build/regional.json
+```
+
+The endpoint returns a global JSON feed. The CLI caps the HTTP response at
+64 MiB and 300,000 rows. It checks each location, filters to the requested
+box and queues at most 64 regional rows. A larger regional result rejects
+the poll so the operator can narrow the box. The acknowledgment gives
+global count, outside count, added and repeated detections, failed products,
+and the GEV cache timestamp and stale flag. A successful empty selection
+adds zero receipts. An HTTP error or invalid response leaves the journal intact.
+
+Each detection keeps ten facts: `thermal_detection`, both coordinates,
+satellite, instrument, source confidence, fire radiative power in MW, proxy
+fetch time, cache status, and the products unavailable at first receipt.
+FIRMS publishes the acquisition minute in UTC. Its ledger interval spans
+that minute, and JANUS uses the start as its time anchor. Don stamps receipt
+independently. GEV's CSV parser encodes missing or malformed power as zero.
+Don records that ambiguous zero as `null`. Confidence retains the supplied
+category or numeric text. [GEV parser](https://github.com/bilawalsidhu/gods-eye-view/blob/e5da073d33c76a6fe8f56d676b13b4a12152e0ce/src/data/firmsCsv.js) · [NASA VIIRS guide](https://www.earthdata.nasa.gov/s3fs-public/2024-07/VIIRS_C2_AF-375m_User_Guide_1.0.pdf)
+
+Identity includes the relay endpoint, satellite, instrument, acquisition
+minute and pixel-center coordinates. Repeated rows preserve their first
+receipt. A change to measured values at that identity rejects the whole poll
+because GEV supplies no revision ID. Distinct satellites keep separate
+observations even when they report the same point and minute.
+
+Both poll and selection use inclusive box edges. A west longitude greater
+than the east longitude crosses the antimeridian. Regional context includes
+FIRMS and USGS groups with coordinates inside the box. A USGS correction uses
+the coordinates known at the requested cutoff. Camera frames and weather
+manifests carry no point location. Device fixes are counted at their own
+coordinates. Omit `bbox` to read across the world.
+
+After building the AML runner, run the offline simulation with
+`node examples/gev-firms.js`. To keep its synthetic inputs for other tools:
+
+```sh
+node examples/gev-firms.js --frames | node scripts/background.mjs ingest --journal build/regional-simulation.json
+```
+
 ## Don in the world
 
 Don has identity `agent:<identifier>` in the same world as `usgs:<event>` and
@@ -149,7 +200,7 @@ scalar value, source, world interval, receipt time, optional predecessor.
 Two channels exist. An `action` frame takes an executed `lalo/action` trace,
 the same trace the router and action memory already keep. A successful
 `lalo_facts`, `lalo_history`, `lalo_reading` or single-receipt `lalo_calendar`
-read of a USGS event or a nowCOAST product becomes an `attention_subject` receipt with source
+read of a USGS event, a nowCOAST product or a FIRMS detection becomes an `attention_subject` receipt with source
 `lalo:action/<tool>`, valid from its receipt time. The next action-derived
 attention supersedes the previous one, so Don's focus moves and its lineage
 stays. An abstention, an error or a read of any other subject names no
@@ -207,7 +258,8 @@ An explicit `originId` overrides the origin for one request.
 | `knownAt` | Receipt cutoff for every instrument and for Don's receipts. |
 | `stateAt` | World instant at which Don's receipts apply. |
 | `worldFrom`, `worldTo` | Half-open interval of observed instants. |
-| `subject` | Optional exact USGS event or nowCOAST product subject. |
+| `subject` | Optional exact USGS, nowCOAST or FIRMS subject. |
+| `bbox` | Optional inclusive point bounds, `[west,south,east,north]`. |
 | `originId` | Optional receipt known at `knownAt`. Its occurrence day anchors the personal calendar view for this request. |
 | `maxEvents` | Whole event versions in the result; default 8, range 1–64. |
 | `maxSignals` | Don's active receipts in the result; default 8, range 0–64. |
@@ -229,7 +281,7 @@ routing-activation score.
 
 The context carries the normalized request, the policy, Don's carried receipts,
 the selected complete event versions and their reasons. Each event keeps all
-eight USGS facts or three weather facts, both clocks and predecessor IDs. `stateEligible`,
+eight USGS facts, three weather facts or ten FIRMS facts, both clocks and predecessor IDs. `stateEligible`,
 `stateOmitted`, `eligible`, `omitted`, `complete` and `limitedBy` (the list of
 budgets that cut anything) mark the exact boundary of the reading.
 `otherInstruments` counts location and camera observations inside the window
@@ -239,17 +291,17 @@ lineage tools. Every selection is fresh: callers replace the previous context
 and never concatenate. A request envelope that cannot fit alone fails
 explicitly.
 
-Each selected group has one JANUS annotation anchored to its magnitude or
-`frame_listed` receipt. Companion facts share occurrence, receipt and validity clocks.
+Each selected group has one JANUS annotation anchored to its magnitude,
+`frame_listed` or `thermal_detection` receipt. Companion facts share occurrence, receipt and validity clocks.
 The complete annotation counts toward the context byte budget alongside the facts.
 An unavailable calendar or out-of-range timestamp leaves a structured error
 on that event alongside its source receipts. The separate `lalo_calendar` tool
 can also read individual device, camera and agent receipts. An executed calendar
-read of a single USGS or weather receipt in the background world can become Don's next attention
+read of a single USGS, weather or FIRMS receipt in the background world can become Don's next attention
 signal. A comparison with `compareToId` reads both revisions and leaves Don's
 attention as it was.
 
-Historical v2, v3 and v4 contexts replay with their original projection and byte budget.
+Historical v2 through v5 contexts replay with their original projection and byte budget.
 New contexts save the coordinates and calculator's WASM digest. Replay compares
 both against a fresh reading of the saved world.
 

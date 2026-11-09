@@ -6,12 +6,15 @@ import { selectBackground, replayBackground } from '../src/background-context.js
 import { fetchUSGS } from '../src/sources/usgs-http.js';
 import { fetchText } from '../src/sources/http.js';
 import { manifestUrl } from '../src/sources/gev-weather.js';
+import { firmsUrl } from '../src/sources/gev-firms.js';
+import { regionBounds } from '../src/region.js';
 import { boundedTextFile, jsonLines } from './io.mjs';
 
-const usage = 'background.mjs ingest|poll|poll-weather|select|replay --journal FILE [--gev-origin URL --product NAME] [--request FILE] [--context FILE] [--memory DIR] [--sequence N] [--head SHA256]';
+const usage = 'background.mjs ingest|poll|poll-weather|poll-firms|select|replay --journal FILE [--gev-origin URL] [--product NAME] [--bbox WEST,SOUTH,EAST,NORTH] [--request FILE] [--context FILE] [--memory DIR] [--sequence N] [--head SHA256]';
 const [mode, ...args] = process.argv.slice(2), options = {};
 const allowed = { ingest: ['--journal'], poll: ['--journal'], select: ['--journal', '--request', '--memory'],
   'poll-weather': ['--journal', '--gev-origin', '--product'],
+  'poll-firms': ['--journal', '--gev-origin', '--bbox'],
   replay: ['--journal', '--context', '--memory', '--sequence', '--head'] };
 const emit = value => new Promise((done, reject) => process.stdout.write(JSON.stringify(value) + '\n', error => error ? reject(error) : done()));
 
@@ -62,11 +65,16 @@ try {
   }
   if (mode !== 'replay' && !options['--journal']) throw new Error(usage);
   if (mode === 'select' && !options['--request']) throw new Error(usage);
-  if (mode === 'ingest' || mode === 'poll' || mode === 'poll-weather') {
+  if (['ingest', 'poll', 'poll-weather', 'poll-firms'].includes(mode)) {
     await writer(options['--journal'], async append => {
       if (mode === 'poll') {
         const feed = JSON.parse(await fetchUSGS());
         await append({ kind: 'usgs', feed, receivedAt: Date.now() });
+      } else if (mode === 'poll-firms') {
+        const origin = options['--gev-origin'];
+        const bbox = regionBounds(options['--bbox']?.split(',').map(s => s.trim() ? Number(s) : NaN));
+        const feed = JSON.parse(await fetchText(firmsUrl(origin), 'GEV FIRMS', { maxBytes: 64 * 1024 * 1024, redirect: 'error' }));
+        await append({ kind: 'gev-firms', origin, bbox, feed, receivedAt: Date.now() });
       } else if (mode === 'poll-weather') {
         const origin = options['--gev-origin'], product = options['--product'];
         const url = manifestUrl(origin, product);

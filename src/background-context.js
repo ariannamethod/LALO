@@ -1,10 +1,13 @@
 // Deterministic context projection. It cannot fetch, append or start a worker.
-import { readBackground, isAgent, isQuake, isEventSubject } from './background.js';
+import { readBackground, isAgent, isQuake } from './background.js';
 import { knownReceipt, receiptCalendar } from './janus-calendar.js';
+import { isWeatherSubject } from './sources/gev-weather.js';
+import { isFirmsSubject } from './sources/gev-firms.js';
+import { containsPoint, regionBounds } from './region.js';
 
 const policies = new Map([[2, 'usgs-attention-receipt/v2'], [3, 'usgs-attention-janus/v3'], [4, 'usgs-attention-janus/v4'],
-  [5, 'usgs-nowcoast-attention-janus/v5']]);
-export const BACKGROUND_POLICY = policies.get(5);
+  [5, 'usgs-nowcoast-attention-janus/v5'], [6, 'regional-events-janus/v6']]);
+export const BACKGROUND_POLICY = policies.get(6);
 export const CONTEXT_BUDGET = Object.freeze({ maxEvents: 8, maxSignals: 8, maxBytes: 32_768 });
 const bytes = value => new TextEncoder().encode(JSON.stringify(value)).length;
 const canonical = value => JSON.stringify(value, (_, v) => v && typeof v === 'object' && !Array.isArray(v)
@@ -14,9 +17,11 @@ const order = (a, b) => a < b ? -1 : a > b ? 1 : 0;
 function requestFor(input, version) {
   const keys = ['agent', 'knownAt', 'stateAt', 'worldFrom', 'worldTo', 'subject', 'maxEvents', 'maxSignals', 'maxBytes'];
   if (version >= 3) keys.push('originId');
+  if (version >= 6) keys.push('bbox');
   if (!input || typeof input !== 'object' || Array.isArray(input)
     || Object.keys(input).some(key => !keys.includes(key))) throw new TypeError('invalid background selection request');
   const request = { ...input };
+  if (request.bbox !== undefined) request.bbox = regionBounds(request.bbox);
   for (const key of ['maxEvents', 'maxSignals', 'maxBytes']) request[key] = input[key] ?? CONTEXT_BUDGET[key];
   if (!isAgent(request.agent)) throw new TypeError('agent must be agent:<identifier>');
   if (request.originId !== undefined && (typeof request.originId !== 'string'
@@ -24,8 +29,8 @@ function requestFor(input, version) {
   for (const key of ['knownAt', 'stateAt', 'worldFrom', 'worldTo'])
     if (!Number.isSafeInteger(request[key])) throw new TypeError(`${key} must be an integer timestamp`);
   if (request.worldTo <= request.worldFrom) throw new RangeError('worldTo must be after worldFrom');
-  const acceptsSubject = version >= 5 ? isEventSubject : isQuake;
-  if (request.subject !== undefined && !acceptsSubject(request.subject)) throw new TypeError('invalid background event subject');
+  if (request.subject !== undefined && !(isQuake(request.subject) || (version >= 5 && isWeatherSubject(request.subject))
+    || (version >= 6 && isFirmsSubject(request.subject)))) throw new TypeError('invalid background event subject');
   if (!Number.isSafeInteger(request.maxEvents) || request.maxEvents < 1 || request.maxEvents > 64
     || !Number.isSafeInteger(request.maxSignals) || request.maxSignals < 0 || request.maxSignals > 64
     || !Number.isSafeInteger(request.maxBytes) || request.maxBytes < 1024 || request.maxBytes > 65_536)
@@ -33,7 +38,7 @@ function requestFor(input, version) {
   return request;
 }
 
-export function selectBackground(journal, input) { return projectBackground(journal, input, 5); }
+export function selectBackground(journal, input) { return projectBackground(journal, input, 6); }
 
 async function projectBackground(journal, input, version) {
   const request = requestFor(input, version), { world, parts, views, origins } = await readBackground(journal);
@@ -56,15 +61,21 @@ async function projectBackground(journal, input, version) {
   // move an event out of the requested window without reviving its old version.
   const groups = [...heads.values()];
   if (version >= 5) groups.push(...views['gev-weather']);
-  const candidates = groups.filter(([f]) => inWindow(f.validFrom, f.recordedAt)
-    && (request.subject === undefined || f.subject === request.subject));
+  if (version >= 6) groups.push(...views['gev-firms']);
+  const candidates = groups.filter(facts => {
+    const f = facts[0];
+    if (!inWindow(f.validFrom, f.recordedAt) || (request.subject !== undefined && f.subject !== request.subject)) return false;
+    return !request.bbox || containsPoint(request.bbox,
+      facts.find(r => r.predicate === 'longitude')?.value, facts.find(r => r.predicate === 'latitude')?.value);
+  });
   const result = { format: 'lalo/background-context', version, policy: policies.get(version), request,
     state: [], stateEligible: active.length, stateOmitted: active.length,
     items: [], eligible: candidates.length, omitted: candidates.length, complete: false, limitedBy: [],
     // Instruments this policy does not select: observations inside the window, known at the cutoff.
     otherInstruments: {
-      location: views.location.filter(s => inWindow(s.observedAt, s.receivedAt)).length,
-      camera: views.camera.filter(f => inWindow(f.capturedAt, f.receivedAt)).length,
+      location: views.location.filter(s => inWindow(s.observedAt, s.receivedAt)
+        && (!request.bbox || containsPoint(request.bbox, s.longitude, s.latitude))).length,
+      camera: request.bbox ? 0 : views.camera.filter(f => inWindow(f.capturedAt, f.receivedAt)).length,
     } };
   // Reserve every limit reason while fitting the complete envelope.
   const fits = () => bytes({ ...result, limitedBy: ['maxSignals', 'maxEvents', 'maxBytes'], complete: false }) <= request.maxBytes;

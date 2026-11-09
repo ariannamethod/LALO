@@ -3,6 +3,7 @@ import { FactLedger } from './ledger.js';
 import { encodeJournal, decodeJournal } from './journal.js';
 import { ingestUSGS, validateUSGSJournal } from './sources/usgs.js';
 import { receiveWeather, isWeatherSubject, weatherFrames } from './sources/gev-weather.js';
+import { receiveFirms, scopeFirms, firmsGroups, isFirmsSubject } from './sources/gev-firms.js';
 import { appendLocation, locationSamples, LOCATION_SOURCE, LOCATION_BUDGET } from './sources/geolocation.js';
 import { appendCamera, cameraFrames, CAMERA_SOURCE, CAMERA_BUDGET } from './sources/camera.js';
 import { calendarOrigins, isAgent, originFact, ORIGIN_SOURCE } from './calendar-origin.js';
@@ -10,12 +11,12 @@ import { calendarOrigins, isAgent, originFact, ORIGIN_SOURCE } from './calendar-
 export const BACKGROUND_BUDGET = Object.freeze({ capacity: 1024, maxBytes: 2_000_000, maxEvents: 64 });
 export { isAgent };
 export const isQuake = value => typeof value === 'string' && /^usgs:[a-zA-Z0-9_-]{1,100}$/.test(value);
-export const isEventSubject = value => isQuake(value) || isWeatherSubject(value);
+export const isEventSubject = value => isQuake(value) || isWeatherSubject(value) || isFirmsSubject(value);
 
 function checkSignals(ledger) {
   for (const fact of ledger.entries())
     if (fact.predicate === 'attention_subject' && fact.value !== null && !isEventSubject(fact.value))
-      throw new TypeError('attention_subject must name a USGS event, nowCOAST product or explicit null');
+      throw new TypeError('attention_subject must name an event subject or explicit null');
   return ledger.entries();
 }
 const appended = (own, next) => next.entries().slice(own.size);
@@ -31,6 +32,7 @@ export const INSTRUMENTS = Object.freeze({
       return { facts: appended(own, ledger), summary };
     } },
   'gev-weather': { owns: f => isWeatherSubject(f.subject), check: weatherFrames, receive: receiveWeather },
+  'gev-firms': { owns: f => isFirmsSubject(f.subject), check: firmsGroups, receive: receiveFirms },
   location: { budget: LOCATION_BUDGET, owns: f => f.source === LOCATION_SOURCE, check: locationSamples,
     async receive(own, frame) {
       return { facts: appended(own, appendLocation(own, frame.position, { id: frame.id, receivedAt: frame.receivedAt })) };
@@ -161,7 +163,8 @@ export async function createBackground(journal = encodeJournal(new FactLedger())
           const { timestamp, coords } = frame.position ?? {};
           submitted = { kind: 'location', id: frame.id, receivedAt: frame.receivedAt, position: { timestamp,
             coords: { latitude: coords?.latitude, longitude: coords?.longitude, accuracy: coords?.accuracy } } };
-        } else submitted = structuredClone(frame);
+        } else if (frame?.kind === 'gev-firms') submitted = scopeFirms(frame, budget.maxEvents);
+        else submitted = structuredClone(frame);
       } catch (error) { return Promise.reject(error); }
       const run = queue.then(() => arrive(submitted));
       queue = run.catch(() => {});
