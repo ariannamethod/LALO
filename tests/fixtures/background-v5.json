@@ -1,0 +1,129 @@
+{
+  "format": "lalo/background-context",
+  "version": 5,
+  "policy": "usgs-nowcoast-attention-janus/v5",
+  "request": {
+    "agent": "agent:don-eduardo",
+    "worldFrom": 1791979200000,
+    "worldTo": 1792065600001,
+    "knownAt": 1792065600000,
+    "stateAt": 1792065600000,
+    "maxEvents": 8,
+    "maxSignals": 8,
+    "maxBytes": 32768
+  },
+  "state": [],
+  "stateEligible": 0,
+  "stateOmitted": 0,
+  "items": [
+    {
+      "subject": "nowcoast:clouds",
+      "reason": "receipt_order",
+      "facts": [
+        {
+          "id": "https://gev-simulation.invalid/api/weather/manifest?product=clouds#1792065540000/frame_listed",
+          "subject": "nowcoast:clouds",
+          "predicate": "frame_listed",
+          "value": true,
+          "source": "https://gev-simulation.invalid/api/weather/manifest?product=clouds",
+          "validFrom": 1792065540000,
+          "validTo": 1792065540001,
+          "recordedAt": 1792065600000,
+          "supersedes": null
+        },
+        {
+          "id": "https://gev-simulation.invalid/api/weather/manifest?product=clouds#1792065540000/manifest_fetched_at",
+          "subject": "nowcoast:clouds",
+          "predicate": "manifest_fetched_at",
+          "value": 1792065600000,
+          "source": "https://gev-simulation.invalid/api/weather/manifest?product=clouds",
+          "validFrom": 1792065540000,
+          "validTo": 1792065540001,
+          "recordedAt": 1792065600000,
+          "supersedes": null
+        },
+        {
+          "id": "https://gev-simulation.invalid/api/weather/manifest?product=clouds#1792065540000/manifest_stale",
+          "subject": "nowcoast:clouds",
+          "predicate": "manifest_stale",
+          "value": false,
+          "source": "https://gev-simulation.invalid/api/weather/manifest?product=clouds",
+          "validFrom": 1792065540000,
+          "validTo": 1792065540001,
+          "recordedAt": 1792065600000,
+          "supersedes": null
+        }
+      ],
+      "calendar": {
+        "assertion": {
+          "id": "https://gev-simulation.invalid/api/weather/manifest?product=clouds#1792065540000/frame_listed",
+          "subject": "nowcoast:clouds",
+          "predicate": "frame_listed",
+          "source": "https://gev-simulation.invalid/api/weather/manifest?product=clouds",
+          "supersedes": null,
+          "validFrom": 1792065540000,
+          "validTo": 1792065540001,
+          "recordedAt": 1792065600000
+        },
+        "originId": null,
+        "api": "janus.calendar/1",
+        "wasmSha256": "668bb46b05aa31b20d1be8a030feea4e4753d93900a4d00df18543af7bb384ae",
+        "occurred": {
+          "schema": "janus.instant/1",
+          "time_scale": "posix",
+          "unix_day": 20741,
+          "second": 43140,
+          "millisecond": 0
+        },
+        "known": {
+          "schema": "janus.instant/1",
+          "time_scale": "posix",
+          "unix_day": 20741,
+          "second": 43200,
+          "millisecond": 0
+        },
+        "civil": {
+          "schema": "janus.calendar/1",
+          "calendar_model": "hebrew.dr/1",
+          "day_policy": "midnight",
+          "drift_model": "metonic.legacy-trunc/1",
+          "day": 742,
+          "unix_day": 20741,
+          "gregorian_year": 2026,
+          "gregorian_month": 10,
+          "gregorian_day": 15,
+          "hebrew_year": 5787,
+          "hebrew_month": 8,
+          "hebrew_day": 4,
+          "gregorian_leap": 0,
+          "hebrew_leap": 1,
+          "metonic_year": 11,
+          "utc_second": 43140,
+          "offset_minutes": 0,
+          "sunset_second": -1,
+          "local_second": 43140,
+          "epoch_day": 741,
+          "utc_civil_day": 742,
+          "hebrew_civil_day": 742
+        },
+        "lag": {
+          "schema": "janus.duration/1",
+          "time_scale": "posix",
+          "sign": 1,
+          "days": 0,
+          "seconds": 60,
+          "milliseconds": 0
+        },
+        "perspective": null
+      }
+    }
+  ],
+  "eligible": 1,
+  "omitted": 0,
+  "complete": true,
+  "limitedBy": [],
+  "otherInstruments": {
+    "location": 0,
+    "camera": 0
+  }
+}

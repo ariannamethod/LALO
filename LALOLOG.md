@@ -3,6 +3,37 @@
 The engineering record. New entries first. README keeps the pulse; this file
 keeps the measurements, decisions, sources and scars.
 
+## 2026-11-09 — What had reached Don from this region by noon?
+
+Starting at `50f215b`, Don receives satellite thermal detections through
+God's Eye View's FIRMS endpoint. A poll names its geographic bounds.
+Projection v6 can read those points alongside USGS with a different area,
+occurrence window and knowledge cutoff. The endpoint, satellite, instrument,
+acquisition minute, coordinates and first receipt identify the evidence.
+Repeated detections preserve that first witness. Conflicting measurements at
+the same identity reject the poll. A saved v5 weather selection captured from
+the merged revision still reproduces after a same-cutoff FIRMS arrival.
+
+* `node examples/gev-firms.js` saved and reopened a noon selection through
+  real AML memory. It contained one NOAA-20 detection and one earthquake.
+  At 12:07 a NOAA-21 observation from 11:40 arrived. The renewed selection
+  contained three groups. JANUS placed the incoming observation before
+  the earthquake in world time and after it in receipt time. The example
+  uses synthetic measurements and an independent receipt clock.
+* Ran both GEV interoperability tests locally against the pinned providers
+  at `e5da073`. The upstream project's archived NOAA-20 CSV produced 45
+  detections. The real server and CLI admitted 11 in the requested rectangle,
+  excluded 34 and saved 110 facts. Missing-key, partial-product, cache-hit
+  and stale-cache paths ran with controlled upstream responses. A separate
+  synthetic 131,073-row feed admitted one local detection under a one-event
+  budget. No live NASA acquisition was used for these measurements.
+* Debian 13 x86_64, Node 24.22.1, GCC 14.2.0, AML `8f577e8`.
+  Built the native router, AML and calendar bridge. Core tests passed 120/120,
+  native integration tests 27/27, GEV contract tests 2/2 and the C/AML
+  routing comparison 83/83. Both regional and weather examples replayed.
+  The [background guide](docs/BACKGROUND.md#regional-firms-observations)
+  gives the live poll, precision, source budgets and simulation commands.
+
 ## 2026-11-09 — Receive God's Eye View weather manifests beside USGS
 
 From `c937561`, the background accepts GEV v1 manifests for radar, lightning,

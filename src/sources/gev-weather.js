@@ -1,15 +1,12 @@
 // God's Eye View NOAA nowCOAST manifest v1. Each listed time identifies an imagery frame.
+import { gevOrigin } from './gev-origin.js';
 const products = ['radar', 'lightning', 'clouds', 'clouds-regional'];
 const predicates = ['frame_listed', 'manifest_fetched_at', 'manifest_stale'];
 export const isWeatherSubject = value => products.some(product => value === 'nowcoast:' + product);
 
 export function manifestUrl(origin, product) {
   if (!products.includes(product)) throw new TypeError('unknown nowCOAST product');
-  const base = new URL(origin);
-  if (!['https:', 'http:'].includes(base.protocol) || base.username || base.password || base.pathname !== '/'
-    || base.search || base.hash || base.origin.length > 240)
-    throw new TypeError('expected an HTTP(S) origin for God\'s Eye View');
-  return base.origin + '/api/weather/manifest?product=' + product;
+  return gevOrigin(origin) + '/api/weather/manifest?product=' + product;
 }
 
 function observedTime(iso) {

@@ -151,6 +151,12 @@ earlier answer from AML memory and names the receipt that changed it. Run
 `background.mjs poll-weather` against a God's Eye View server to receive its
 radar, lightning or cloud imagery manifests. [Commands and source fields](docs/BACKGROUND.md#weather-from-gods-eye-view).
 
+To ask what Don knew about a particular area, run `node examples/gev-firms.js`.
+It puts satellite thermal detections and a USGS earthquake in one region,
+reopens the noon answer from AML memory and identifies the earlier overpass
+that reached Don at 12:07. A live `poll-firms` reads the same GEV server.
+[Regional polling and replay](docs/BACKGROUND.md#regional-firms-observations).
+
 Don reads each selected event through AML's local C/WASM calendar.
 Don can choose a known receipt as his calendar origin. Once his choice reaches
 the background journal, future reads count from that event across restarts.
