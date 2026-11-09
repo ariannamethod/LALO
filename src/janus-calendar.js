@@ -96,3 +96,34 @@ export async function historyWindow(records, { receivedFrom, receivedTo, occurre
   }
   return { rows, window };
 }
+
+// The baseline already includes receipts at sinceKnownAt. A receipt at the closing
+// cutoff belongs to the last reading, including when several sources arrive together.
+export async function readingBatches(records, sinceKnownAt, knownAt) {
+  const { parts, instant, calendar, api, wasmSha256 } = await loadCalendar();
+  const start = await instant(parts(sinceKnownAt)), end = await instant(parts(knownAt));
+  const order = await calendar.compare(start, end);
+  if (order > 0) throw Object.assign(new RangeError('sinceKnownAt exceeds knownAt'), { code: 'INVALID_ARGUMENTS' });
+  const batches = new Map();
+  if (order < 0) {
+    // Records are in receipt order. Compare each distinct instant just once.
+    let previous, batch;
+    for (const fact of records) {
+      if (fact.recordedAt !== previous) {
+        previous = fact.recordedAt;
+        batch = null;
+        // Both endpoints have been validated; an unrepresentable instant lies outside.
+        if (calendarTimestampSupported(previous)) {
+          const at = await instant(parts(previous));
+          if (await calendar.compare(at, end) > 0) break;
+          if (await calendar.compare(at, start) > 0) {
+            batch = [];
+            batches.set(previous, batch);
+          }
+        }
+      }
+      if (batch) batch.push(fact);
+    }
+  }
+  return { batches, api, wasmSha256 };
+}

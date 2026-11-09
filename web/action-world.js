@@ -1,6 +1,7 @@
 import { decodeJournal } from '../src/journal.js';
 import { TOOL_BUDGET } from '../src/tools.js';
 import { createActionReplay } from '../src/action-replay.js';
+import { evidenceSource, stepHeading, timelineSummary } from './reading-timeline.js';
 import { calendarSummary } from './calendar.js';
 import { cameraFrames, CAMERA_SOURCE } from '../src/sources/camera.js';
 
@@ -68,14 +69,18 @@ export async function actionWorld(root, { receipt, journal }) {
     const result = report.result, data = result.ok ? result.data : null;
     if (data?.reading) summary.append(element('p', data.reading.state, 'state'),
       element('p', `${data.reading.premiseCount} total premises · ${data.reading.rule}`, 'small'));
+    if (data?.timeline) summary.append(element('p', timelineSummary(data.timeline), 'timeline-summary'));
     if (data?.items) {
       summary.append(element('p', `${data.offset + data.items.length} / ${data.total} evidence rows · ${data.complete ? 'complete' : 'more pages'}`, 'small'));
+      let lastStep;
       for (const row of data.items) {
         const fact = row.fact || row, li = element('li', '');
+        if (data.timeline && row.step !== lastStep) li.append(element('strong', stepHeading(row), 'timeline-step'));
+        lastStep = row.step;
         if (typeof fact.id === 'string') {
-          const button = element('button', `${fact.id} · ${row.role || fact.predicate} · ${fact.predicate.startsWith('camera.jpeg.') ? 'Image data' : JSON.stringify(fact.value)}`);
+          const button = element('button', `${fact.id} · ${row.role || (row.removedRole ? 'outside interval' : fact.predicate)} · ${fact.predicate.startsWith('camera.jpeg.') ? 'Image data' : JSON.stringify(fact.value)}`);
           button.dataset.id = fact.id; button.addEventListener('click', () => inspect(fact.id));
-          li.append(button, element('p', `${fact.source} · received ${fact.recordedAt}`, 'small'));
+          li.append(button, element('p', evidenceSource(row, fact), 'small'));
         } else li.append(element('p', `${row.subject} · ${row.receipts} receipts`, 'small'));
         evidence.append(li);
       }

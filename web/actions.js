@@ -1,10 +1,12 @@
 import { routeRequest, ROUTE_BUDGET } from '../src/route.js';
 import { TOOL_BUDGET } from '../src/tools.js';
 import { actionWorld } from './action-world.js';
+import { evidenceSource, stepHeading, timelineSummary } from './reading-timeline.js';
 import { calendarSummary } from './calendar.js';
 
 const intents = {
   reading: ['Read this hypothesis', 'please check the conflicting evidence'],
+  timeline: ['What changed this reading?', 'show which evidence changed my conclusion'],
   facts: ['Read active facts', 'get the active observations please'],
   history: ['Read receipt history', 'please inspect earlier observations'],
   late: ['Late reports since the world clock', 'which reports arrived about earlier events'],
@@ -112,15 +114,19 @@ export function actionPanel({ getContext, select, highlight, presets = Object.ke
     const c = getContext(); if (!c) return;
     const preset = $('action-preset').value;
     const args = preset === 'status' ? {} : { knownAt: c.knownAt };
-    if (['reading', 'facts'].includes(preset)) args.validAt = c.validAt;
-    if (['reading', 'facts', 'history'].includes(preset) && c.subject) {
+    if (['reading', 'timeline', 'facts'].includes(preset)) args.validAt = c.validAt;
+    if (['reading', 'timeline', 'facts', 'history'].includes(preset) && c.subject) {
       args.subject = c.subject; args.predicate = c.predicate;
     }
     if (preset === 'late') {
       args.receivedFrom = c.validAt;
       args.occurredBefore = c.validAt;
     }
-    if (preset === 'reading') { args.rule = c.rule; Object.assign(args, c.ruleArguments); }
+    if (preset === 'reading' || preset === 'timeline') { args.rule = c.rule; Object.assign(args, c.ruleArguments); }
+    if (preset === 'timeline') {
+      const first = JSON.parse(c.journal).records.find(f => f.subject === c.subject && f.predicate === c.predicate && f.recordedAt <= c.knownAt);
+      args.sinceKnownAt = first?.recordedAt ?? c.knownAt;
+    }
     if (['lineage', 'calendar', 'compare'].includes(preset) && c.selected) args.id = c.selected;
     if (preset === 'compare') args.compareToId = $('action-other').value;
     $('action-intent').value = intents[preset][1];
@@ -150,18 +156,22 @@ export function actionPanel({ getContext, select, highlight, presets = Object.ke
       target.append(element('p', data.reading.state, 'state'),
         element('p', `${data.reading.premiseCount} total premises · ${data.reading.rule}`, 'small'));
     }
+    if (data?.timeline) target.append(element('p', timelineSummary(data.timeline), 'timeline-summary'));
     if (data?.items) {
       target.append(element('p', `${data.offset + data.items.length} / ${data.total} evidence rows · ${data.complete ? 'complete' : 'more pages'}`, 'small'));
       const list = element('ol', '', 'action-receipts');
+      let lastStep;
       for (const row of data.items) {
         const fact = row.fact || row, li = element('li', '');
+        if (data.timeline && row.step !== lastStep) li.append(element('strong', stepHeading(row), 'timeline-step'));
+        lastStep = row.step;
         if (typeof fact.id === 'string') {
-          const button = element('button', `${fact.id} · ${row.role || fact.predicate} · ${fact.predicate.startsWith('camera.jpeg.') ? 'Image data' : JSON.stringify(fact.value)}`);
+          const button = element('button', `${fact.id} · ${row.role || (row.removedRole ? 'outside interval' : fact.predicate)} · ${fact.predicate.startsWith('camera.jpeg.') ? 'Image data' : JSON.stringify(fact.value)}`);
           button.dataset.id = fact.id; button.addEventListener('click', () => {
             select(fact.id); document.getElementById('inspector').scrollIntoView({ block: 'center',
               behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth' });
           });
-          receiptButtons.push(button); li.append(button, element('p', `${fact.source} · received ${fact.recordedAt}`, 'small'));
+          receiptButtons.push(button); li.append(button, element('p', evidenceSource(row, fact), 'small'));
         } else li.append(element('p', `${row.subject} · ${row.receipts} receipts`));
         list.append(li);
       }

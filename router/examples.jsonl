@@ -44,3 +44,6 @@
 {"text":"which reports arrived about earlier events","tool":"lalo_history","arguments":{}}
 {"text":"what did I learn on Friday about earlier events","tool":"lalo_history","arguments":{}}
 {"text":"do not search for late reports","tool":null,"arguments":{}}
+{"text":"what changed my conclusion","tool":"lalo_reading","arguments":{}}
+{"text":"which evidence changed my reading","tool":"lalo_reading","arguments":{}}
+{"text":"do not trace my conclusion","tool":null,"arguments":{}}

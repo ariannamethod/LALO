@@ -158,5 +158,19 @@ export async function checkActionField({ evaluate, call, shot, reload, kind }) {
     assert.ok(late.result.data.items.length > 0);
     assert.ok(late.result.data.items.every(f => f.validFrom < since && f.recordedAt >= since && f.recordedAt <= late.call.arguments.knownAt));
   }
+  await click('present');
+  await value("document.getElementById('action-preset').value='timeline'");
+  await click('action-fill'); await click('action-run'); await idle();
+  const timeline = await trace();
+  assert.equal(timeline.status, 'executed'); assert.equal(timeline.call.name, 'lalo_reading');
+  assert.ok(timeline.result.data.items.some(row => row.kind !== 'baseline'));
+  const headings = selector => value(`Array.from(document.querySelectorAll('${selector} .timeline-step'), el => el.textContent)`);
+  const liveSteps = await headings('#action-trace');
+  assert.equal(liveSteps.length, new Set(timeline.result.data.items.map(row => row.step)).size);
+  await click('action-world-open'); await idle(); await click('world-replay');
+  for (let i = 0; i < 100 && !await value("document.getElementById('world-replay-result').textContent"); i++)
+    await new Promise(resolve => setTimeout(resolve, 50));
+  assert.equal(await value("document.getElementById('action-world').dataset.comparison"), 'match');
+  assert.deepEqual(await headings('#action-world'), liveSteps);
   console.log(`PASS: ${kind} real C calls, explicit clocks, complete inference, evidence selection, fixed-snapshot paging, stale/late responses, abstention, argument failures, AML readback, original-world reproduction after reload and phone layout`);
 }
