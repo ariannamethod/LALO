@@ -1,0 +1,537 @@
+{
+  "format": "lalo/model-history-validation",
+  "version": 1,
+  "date": "2026-11-13",
+  "base": "5d8df170359c8e67047d6e3fc5748e492cc990e7",
+  "environment": {
+    "os": "Debian 13 x86_64",
+    "cpu": "AMD EPYC 9V45",
+    "node": "v24.22.1",
+    "gcc": "14.2.0"
+  },
+  "syntheticQuakeSources": true,
+  "commands": {
+    "core": "node --test tests/*.test.js",
+    "native": "node --test tests/native-router.integration.mjs tests/action-memory.integration.mjs tests/janus-calendar.integration.mjs",
+    "parity": "node scripts/wolfe-diff.mjs",
+    "model": "LALO_GEMMA_GGUF=build/models/gemma-3-270m-it-Q8_0.gguf LALO_MODEL_EVIDENCE_DIR=build/history-values-evidence node --test tests/notorch-model.integration.mjs"
+  },
+  "results": {
+    "core": {
+      "passed": 139,
+      "failed": 0
+    },
+    "native": {
+      "passed": 28,
+      "failed": 0
+    },
+    "parity": {
+      "decisions": 101,
+      "evidenceEqual": 101,
+      "total": 101,
+      "maxScoreDifference": 0.000001
+    },
+    "model": {
+      "passed": 4,
+      "failed": 0
+    }
+  },
+  "browser": {
+    "failedRun": 43462625715,
+    "failedJob": 132013213653,
+    "diagnosis": "Chrome did not expose its DevTools endpoint within 15000 ms; assertions had not started.",
+    "fix": "45000 ms startup budget; assertions unchanged",
+    "rerun": "all four jobs success",
+    "mergedMainRun": 43475200462,
+    "mergedMain": "all four jobs success",
+    "local": "Chromium could not create its process singleton socket: Operation not permitted. Browser verification delegated to GitHub CI."
+  },
+  "experiments": [
+    {
+      "mode": "plain",
+      "identity": {
+        "name": "Gemma 3-270M-IT Q8_0",
+        "repository": "ggml-org/gemma-3-270m-it-GGUF",
+        "revision": "e7647be17ae1108f2f605ed061ca0608b171afff",
+        "filename": "gemma-3-270m-it-Q8_0.gguf",
+        "sha256": "0ef57d2c838458a1952664260dcba38e5bdda37494f3af732f06e4add24068e3",
+        "runtime": "notorch",
+        "runtimeSha256": "5ea145875c850b6c947868e9f68ff905e21e30b9bc15fbfd4b28de5e207bc53b",
+        "profile": "gemma3-270m-it-chat/v1",
+        "experts": false
+      },
+      "encounters": [
+        {
+          "id": "first",
+          "activity": "magnitude",
+          "scope": {
+            "subject": "usgs:synthetic1",
+            "validAt": 1792065600000,
+            "knownAt": 1792065602000
+          },
+          "memory": {
+            "state": "saved",
+            "sequence": 1,
+            "head": "586393f85c905ec2d763002efcd440fd2f8b502554da972249e489f21a0c5b76",
+            "snapshot": {
+              "sha256": "3f6cbf06c31c743eb5059a82b3f018c1c36de061c80ef873090e7ac2988d4d67",
+              "records": 20,
+              "bytes": 6067
+            }
+          },
+          "question": {
+            "prompt": "You can ask Don Eduardo about an earthquake. You need its magnitude. Write one short question to Don. Do not answer it.",
+            "text": "What is the magnitude of the earthquake?\n",
+            "stateBefore": null,
+            "stateAfter": null
+          },
+          "answer": {
+            "prompt": "Question: What is the magnitude of the earthquake?\n\nDon Eduardo returned these source receipts:\n[{\"id\":\"usgs:synthetic1:1792065601000:magnitude\",\"subject\":\"usgs:synthetic1\",\"predicate\":\"magnitude\",\"value\":2.9,\"source\":\"https://earthquake.usgs.gov/earthquakes/eventpage/synthetic1\",\"validFrom\":1792065600000,\"validTo\":1792065600001,\"recordedAt\":1792065602000,\"supersedes\":null}]\nAnswer the question in one short sentence using only these receipts. If they contain no magnitude, say it is unavailable.",
+            "text": "The magnitude of the earthquake is 2.9.\n",
+            "stateBefore": null,
+            "stateAfter": null
+          },
+          "sourceRows": [
+            {
+              "id": "usgs:synthetic1:1792065601000:magnitude",
+              "subject": "usgs:synthetic1",
+              "predicate": "magnitude",
+              "value": 2.9,
+              "source": "https://earthquake.usgs.gov/earthquakes/eventpage/synthetic1",
+              "validFrom": 1792065600000,
+              "validTo": 1792065600001,
+              "recordedAt": 1792065602000,
+              "supersedes": null
+            }
+          ],
+          "tool": "lalo_facts",
+          "routerText": "What is the magnitude of the earthquake?\n"
+        },
+        {
+          "id": "corrected",
+          "activity": "magnitude",
+          "scope": {
+            "subject": "usgs:synthetic1",
+            "validAt": 1792065600000,
+            "knownAt": 1794592807676
+          },
+          "memory": {
+            "state": "saved",
+            "sequence": 2,
+            "head": "d48885e9aac2914ffa32356b02696ea3109607db4d3656b35131ad3a15cf59f6",
+            "snapshot": {
+              "sha256": "b88d3e1048b4909895b052abb718076d1f7fe9b1571e563bcbd60ca8e20f4ec4",
+              "records": 40,
+              "bytes": 12437
+            }
+          },
+          "question": {
+            "prompt": "You can ask Don Eduardo about an earthquake. You need its magnitude. Write one short question to Don. Do not answer it.",
+            "text": "What is the magnitude of the earthquake?\n",
+            "stateBefore": null,
+            "stateAfter": null
+          },
+          "answer": {
+            "prompt": "Question: What is the magnitude of the earthquake?\n\nDon Eduardo returned these source receipts:\n[{\"id\":\"usgs:synthetic1:1792065604000:magnitude\",\"subject\":\"usgs:synthetic1\",\"predicate\":\"magnitude\",\"value\":3.4,\"source\":\"https://earthquake.usgs.gov/earthquakes/eventpage/synthetic1\",\"validFrom\":1792065600000,\"validTo\":1792065600001,\"recordedAt\":1794592807676,\"supersedes\":\"usgs:synthetic1:1792065601000:magnitude\"}]\nAnswer the question in one short sentence using only these receipts. If they contain no magnitude, say it is unavailable.",
+            "text": "The magnitude of the earthquake is 3.4.\n",
+            "stateBefore": null,
+            "stateAfter": null
+          },
+          "sourceRows": [
+            {
+              "id": "usgs:synthetic1:1792065604000:magnitude",
+              "subject": "usgs:synthetic1",
+              "predicate": "magnitude",
+              "value": 3.4,
+              "source": "https://earthquake.usgs.gov/earthquakes/eventpage/synthetic1",
+              "validFrom": 1792065600000,
+              "validTo": 1792065600001,
+              "recordedAt": 1794592807676,
+              "supersedes": "usgs:synthetic1:1792065601000:magnitude"
+            }
+          ],
+          "tool": "lalo_facts",
+          "routerText": "What is the magnitude of the earthquake?\n"
+        },
+        {
+          "id": "self-history",
+          "activity": "self-history",
+          "scope": {
+            "subject": "agent:gemma-270m",
+            "knownAt": 1794592807609
+          },
+          "memory": {
+            "state": "saved",
+            "sequence": 3,
+            "head": "3eb5a23d572df5d16481039797a5cffee2ceb2956afbfc98cde3390b3a85d99f",
+            "snapshot": {
+              "sha256": "569cd3c3708c48b2426c500ad5433665145a36bbcec954e85c763d1ba2fb1300",
+              "records": 52,
+              "bytes": 16269
+            }
+          },
+          "question": {
+            "prompt": "Write a short question beginning with \"What did I\" to ask Don Eduardo about your earlier statements.",
+            "text": "What did I say to you earlier about my previous statements?\n",
+            "stateBefore": null,
+            "stateAfter": null
+          },
+          "answer": {
+            "prompt": "Your earlier statements:\n\"What is the magnitude of the earthquake?\\n\"\n\"The magnitude of the earthquake is 2.9.\\n\"\nQuote your earlier statements.",
+            "text": "The magnitude of the earthquake is 2.9.\n",
+            "stateBefore": null,
+            "stateAfter": null
+          },
+          "sourceRows": [
+            {
+              "id": "model:first:question:utterance",
+              "subject": "agent:gemma-270m",
+              "predicate": "utterance",
+              "value": "What is the magnitude of the earthquake?\n",
+              "source": "model-runtime:0ef57d2c838458a1952664260dcba38e5bdda37494f3af732f06e4add24068e3",
+              "validFrom": 1794592805819,
+              "validTo": 1794592805820,
+              "recordedAt": 1794592805819,
+              "supersedes": null
+            },
+            {
+              "id": "model:first:answer:utterance",
+              "subject": "agent:gemma-270m",
+              "predicate": "utterance",
+              "value": "The magnitude of the earthquake is 2.9.\n",
+              "source": "model-runtime:0ef57d2c838458a1952664260dcba38e5bdda37494f3af732f06e4add24068e3",
+              "validFrom": 1794592807609,
+              "validTo": 1794592807610,
+              "recordedAt": 1794592807609,
+              "supersedes": null
+            }
+          ],
+          "tool": "lalo_history",
+          "routerText": "What did I say to you earlier about my previous statements?\n"
+        },
+        {
+          "id": "quake-history",
+          "activity": "quake-history",
+          "scope": {
+            "subject": "usgs:synthetic1",
+            "knownAt": 1794592814555
+          },
+          "memory": {
+            "state": "saved",
+            "sequence": 4,
+            "head": "70919adf502c44e7d70d3b508aa4d933053ffc3a316c2ea18472092218d2c212",
+            "snapshot": {
+              "sha256": "212bce31722f56d351ae5bd745d7292cd6c8f4e97f2b39c0d38de9e35dc92e93",
+              "records": 64,
+              "bytes": 20158
+            }
+          },
+          "question": {
+            "prompt": "You want to know how the reported earthquake magnitude changed. Ask Don Eduardo for the magnitude history. Write only a question.",
+            "text": "What was the magnitude history of the reported earthquake?\n",
+            "stateBefore": null,
+            "stateAfter": null
+          },
+          "answer": {
+            "prompt": "Question: What was the magnitude history of the reported earthquake?\n\nReported magnitudes in receipt order:\n[{\"magnitude\":2.9},{\"magnitude\":3.4}]\nState the earlier and later magnitude values in one sentence.",
+            "text": "The magnitude history of the reported earthquake was 2.9 magnitude and 3.4 magnitude.\n",
+            "stateBefore": null,
+            "stateAfter": null
+          },
+          "sourceRows": [
+            {
+              "id": "usgs:synthetic1:1792065601000:magnitude",
+              "subject": "usgs:synthetic1",
+              "predicate": "magnitude",
+              "value": 2.9,
+              "source": "https://earthquake.usgs.gov/earthquakes/eventpage/synthetic1",
+              "validFrom": 1792065600000,
+              "validTo": 1792065600001,
+              "recordedAt": 1792065602000,
+              "supersedes": null
+            },
+            {
+              "id": "usgs:synthetic1:1792065604000:magnitude",
+              "subject": "usgs:synthetic1",
+              "predicate": "magnitude",
+              "value": 3.4,
+              "source": "https://earthquake.usgs.gov/earthquakes/eventpage/synthetic1",
+              "validFrom": 1792065600000,
+              "validTo": 1792065600001,
+              "recordedAt": 1794592807676,
+              "supersedes": "usgs:synthetic1:1792065601000:magnitude"
+            }
+          ],
+          "tool": "lalo_history",
+          "routerText": "What was the magnitude history of the reported earthquake?\n"
+        }
+      ],
+      "replay": {
+        "comparison": "match",
+        "answer": "The magnitude of the earthquake is 2.9.\n"
+      }
+    },
+    {
+      "mode": "experts",
+      "identity": {
+        "name": "Gemma 3-270M-IT Q8_0",
+        "repository": "ggml-org/gemma-3-270m-it-GGUF",
+        "revision": "e7647be17ae1108f2f605ed061ca0608b171afff",
+        "filename": "gemma-3-270m-it-Q8_0.gguf",
+        "sha256": "0ef57d2c838458a1952664260dcba38e5bdda37494f3af732f06e4add24068e3",
+        "runtime": "notorch",
+        "runtimeSha256": "5ea145875c850b6c947868e9f68ff905e21e30b9bc15fbfd4b28de5e207bc53b",
+        "profile": "gemma3-270m-it-chat/v1",
+        "experts": true
+      },
+      "encounters": [
+        {
+          "id": "first",
+          "activity": "magnitude",
+          "scope": {
+            "subject": "usgs:synthetic1",
+            "validAt": 1792065600000,
+            "knownAt": 1792065602000
+          },
+          "memory": {
+            "state": "saved",
+            "sequence": 1,
+            "head": "61d913feefb11caaadc2ce5c5f0d8e4e4eba0ce8aa1693dda22f8fcc091c2cbe",
+            "snapshot": {
+              "sha256": "331eaff5d954282228d0cf58363785b8c6446bbabdfc5c2e3c98becc7d024519",
+              "records": 23,
+              "bytes": 7178
+            }
+          },
+          "question": {
+            "prompt": "You can ask Don Eduardo about an earthquake. You need its magnitude. Write one short question to Don. Do not answer it.",
+            "text": "What is the magnitude of the earthquake?\n",
+            "stateBefore": null,
+            "stateAfter": "f76d4c3e23bd9ef9c70c49b436c715d7bb6291e487b3e8e7eecc778846663ae8"
+          },
+          "answer": {
+            "prompt": "Question: What is the magnitude of the earthquake?\n\nDon Eduardo returned these source receipts:\n[{\"id\":\"usgs:synthetic1:1792065601000:magnitude\",\"subject\":\"usgs:synthetic1\",\"predicate\":\"magnitude\",\"value\":2.9,\"source\":\"https://earthquake.usgs.gov/earthquakes/eventpage/synthetic1\",\"validFrom\":1792065600000,\"validTo\":1792065600001,\"recordedAt\":1792065602000,\"supersedes\":null}]\nAnswer the question in one short sentence using only these receipts. If they contain no magnitude, say it is unavailable.",
+            "text": "The magnitude of the earthquake is 2.9.\n",
+            "stateBefore": "f76d4c3e23bd9ef9c70c49b436c715d7bb6291e487b3e8e7eecc778846663ae8",
+            "stateAfter": "9fb41e755931ef417da9402f916e5fda6ef9ae92ac610b68e7f230cc5f9c002b"
+          },
+          "sourceRows": [
+            {
+              "id": "usgs:synthetic1:1792065601000:magnitude",
+              "subject": "usgs:synthetic1",
+              "predicate": "magnitude",
+              "value": 2.9,
+              "source": "https://earthquake.usgs.gov/earthquakes/eventpage/synthetic1",
+              "validFrom": 1792065600000,
+              "validTo": 1792065600001,
+              "recordedAt": 1792065602000,
+              "supersedes": null
+            }
+          ],
+          "tool": "lalo_facts",
+          "routerText": "What is the magnitude of the earthquake?\n"
+        },
+        {
+          "id": "corrected",
+          "activity": "magnitude",
+          "scope": {
+            "subject": "usgs:synthetic1",
+            "validAt": 1792065600000,
+            "knownAt": 1794592823591
+          },
+          "memory": {
+            "state": "saved",
+            "sequence": 2,
+            "head": "a1b574b3d1d24442e02b09c627511545e65cb2e252b6f287a4108dd6d44a672d",
+            "snapshot": {
+              "sha256": "6b7e0d9a210c6d5bd126b72ba739e9e88bbd7bf2c1ac08c0e7895acece998e19",
+              "records": 47,
+              "bytes": 15048
+            }
+          },
+          "question": {
+            "prompt": "You can ask Don Eduardo about an earthquake. You need its magnitude. Write one short question to Don. Do not answer it.",
+            "text": "What is the magnitude of the earthquake?\n",
+            "stateBefore": "9fb41e755931ef417da9402f916e5fda6ef9ae92ac610b68e7f230cc5f9c002b",
+            "stateAfter": "0f64664d430eba23ce2838d3f43444cde792578653fd7a73c2abd0ead9a0b5a1"
+          },
+          "answer": {
+            "prompt": "Question: What is the magnitude of the earthquake?\n\nDon Eduardo returned these source receipts:\n[{\"id\":\"usgs:synthetic1:1792065604000:magnitude\",\"subject\":\"usgs:synthetic1\",\"predicate\":\"magnitude\",\"value\":3.4,\"source\":\"https://earthquake.usgs.gov/earthquakes/eventpage/synthetic1\",\"validFrom\":1792065600000,\"validTo\":1792065600001,\"recordedAt\":1794592823591,\"supersedes\":\"usgs:synthetic1:1792065601000:magnitude\"}]\nAnswer the question in one short sentence using only these receipts. If they contain no magnitude, say it is unavailable.",
+            "text": "The magnitude of the earthquake is 3.4.\n",
+            "stateBefore": "0f64664d430eba23ce2838d3f43444cde792578653fd7a73c2abd0ead9a0b5a1",
+            "stateAfter": "ae34c046b3301a5b3b13aea10eff97e1d0bfdaf04910024bfdbfc86fe28ab6bc"
+          },
+          "sourceRows": [
+            {
+              "id": "usgs:synthetic1:1792065604000:magnitude",
+              "subject": "usgs:synthetic1",
+              "predicate": "magnitude",
+              "value": 3.4,
+              "source": "https://earthquake.usgs.gov/earthquakes/eventpage/synthetic1",
+              "validFrom": 1792065600000,
+              "validTo": 1792065600001,
+              "recordedAt": 1794592823591,
+              "supersedes": "usgs:synthetic1:1792065601000:magnitude"
+            }
+          ],
+          "tool": "lalo_facts",
+          "routerText": "What is the magnitude of the earthquake?\n"
+        },
+        {
+          "id": "self-history",
+          "activity": "self-history",
+          "scope": {
+            "subject": "agent:gemma-270m",
+            "knownAt": 1794592823532
+          },
+          "memory": {
+            "state": "saved",
+            "sequence": 3,
+            "head": "669049e555fe53ba4a687264c66369aa70bbe59c7d84bb18b17111227581c32d",
+            "snapshot": {
+              "sha256": "39c0b37896cc8955b695df2482c75a9d70827467cd28d14978cf87700e701431",
+              "records": 63,
+              "bytes": 20392
+            }
+          },
+          "question": {
+            "prompt": "Write a short question beginning with \"What did I\" to ask Don Eduardo about your earlier statements.",
+            "text": "What did I say to you earlier about my previous statements?\n",
+            "stateBefore": "ae34c046b3301a5b3b13aea10eff97e1d0bfdaf04910024bfdbfc86fe28ab6bc",
+            "stateAfter": "9f1bfe7f4b3f5bbc444283c05aff101a4db2f3c52c5e0aee977bb0e21b425026"
+          },
+          "answer": {
+            "prompt": "Your earlier statements:\n\"What is the magnitude of the earthquake?\\n\"\n\"The magnitude of the earthquake is 2.9.\\n\"\nQuote your earlier statements.",
+            "text": "The magnitude of the earthquake is 2.9.\n",
+            "stateBefore": "9f1bfe7f4b3f5bbc444283c05aff101a4db2f3c52c5e0aee977bb0e21b425026",
+            "stateAfter": "81f95ef7da5b3a570b2775babd907a916aee7aee3765a54873746ed12847e98c"
+          },
+          "sourceRows": [
+            {
+              "id": "model:first:question:utterance",
+              "subject": "agent:gemma-270m",
+              "predicate": "utterance",
+              "value": "What is the magnitude of the earthquake?\n",
+              "source": "model-runtime:0ef57d2c838458a1952664260dcba38e5bdda37494f3af732f06e4add24068e3",
+              "validFrom": 1794592820898,
+              "validTo": 1794592820899,
+              "recordedAt": 1794592820898,
+              "supersedes": null
+            },
+            {
+              "id": "model:first:answer:utterance",
+              "subject": "agent:gemma-270m",
+              "predicate": "utterance",
+              "value": "The magnitude of the earthquake is 2.9.\n",
+              "source": "model-runtime:0ef57d2c838458a1952664260dcba38e5bdda37494f3af732f06e4add24068e3",
+              "validFrom": 1794592823532,
+              "validTo": 1794592823533,
+              "recordedAt": 1794592823532,
+              "supersedes": null
+            }
+          ],
+          "tool": "lalo_history",
+          "routerText": "What did I say to you earlier about my previous statements?\n"
+        },
+        {
+          "id": "quake-history",
+          "activity": "quake-history",
+          "scope": {
+            "subject": "usgs:synthetic1",
+            "knownAt": 1794592833762
+          },
+          "memory": {
+            "state": "saved",
+            "sequence": 4,
+            "head": "4ccd6f05096b27f59b8b5df6253a079cc5496643e0484a3ce691351beeface60",
+            "snapshot": {
+              "sha256": "22833659acb07c1fcf02cfac237e0fe60581683f89c72498e3a08d9550e7b6e2",
+              "records": 79,
+              "bytes": 25797
+            }
+          },
+          "question": {
+            "prompt": "You want to know how the reported earthquake magnitude changed. Ask Don Eduardo for the magnitude history. Write only a question.",
+            "text": "What was the magnitude history of the reported earthquake?\n",
+            "stateBefore": "81f95ef7da5b3a570b2775babd907a916aee7aee3765a54873746ed12847e98c",
+            "stateAfter": "71166ff08d7c108f56a7c81de3fcfecee546d72707f21bb73118e7714af2da39"
+          },
+          "answer": {
+            "prompt": "Question: What was the magnitude history of the reported earthquake?\n\nReported magnitudes in receipt order:\n[{\"magnitude\":2.9},{\"magnitude\":3.4}]\nState the earlier and later magnitude values in one sentence.",
+            "text": "The magnitude history of the reported earthquake was 2.9 magnitude and 3.4 magnitude.\n",
+            "stateBefore": "71166ff08d7c108f56a7c81de3fcfecee546d72707f21bb73118e7714af2da39",
+            "stateAfter": "5ee1e331147a75af0a54c7566c8f411c42dc95b84902ea66dda527654ab8908b"
+          },
+          "sourceRows": [
+            {
+              "id": "usgs:synthetic1:1792065601000:magnitude",
+              "subject": "usgs:synthetic1",
+              "predicate": "magnitude",
+              "value": 2.9,
+              "source": "https://earthquake.usgs.gov/earthquakes/eventpage/synthetic1",
+              "validFrom": 1792065600000,
+              "validTo": 1792065600001,
+              "recordedAt": 1792065602000,
+              "supersedes": null
+            },
+            {
+              "id": "usgs:synthetic1:1792065604000:magnitude",
+              "subject": "usgs:synthetic1",
+              "predicate": "magnitude",
+              "value": 3.4,
+              "source": "https://earthquake.usgs.gov/earthquakes/eventpage/synthetic1",
+              "validFrom": 1792065600000,
+              "validTo": 1792065600001,
+              "recordedAt": 1794592823591,
+              "supersedes": "usgs:synthetic1:1792065601000:magnitude"
+            }
+          ],
+          "tool": "lalo_history",
+          "routerText": "What was the magnitude history of the reported earthquake?\n"
+        }
+      ],
+      "replay": {
+        "comparison": "match",
+        "answer": "The magnitude of the earthquake is 2.9.\n"
+      }
+    }
+  ],
+  "legacyReplay": [
+    {
+      "bindingVersion": 1,
+      "comparison": "match",
+      "answer": "The magnitude of the earthquake is 2.9.\n"
+    },
+    {
+      "bindingVersion": 2,
+      "comparison": "match",
+      "answer": "The magnitude of the earthquake is 2.9.\n"
+    }
+  ],
+  "failedExperiments": [
+    {
+      "reason": "Full receipt JSON plus a generic change instruction produced the wrong direction.",
+      "activity": "quake-history",
+      "prompt": "Question: What was the magnitude history of the reported earthquake?\n\nDon Eduardo returned these source receipts:\n[{\"id\":\"usgs:synthetic1:1792065601000:magnitude\",\"subject\":\"usgs:synthetic1\",\"predicate\":\"magnitude\",\"value\":2.9,\"source\":\"https://earthquake.usgs.gov/earthquakes/eventpage/synthetic1\",\"validFrom\":1792065600000,\"validTo\":1792065600001,\"recordedAt\":1792065602000,\"supersedes\":null},{\"id\":\"usgs:synthetic1:1792065604000:magnitude\",\"subject\":\"usgs:synthetic1\",\"predicate\":\"magnitude\",\"value\":3.4,\"source\":\"https://earthquake.usgs.gov/earthquakes/eventpage/synthetic1\",\"validFrom\":1792065600000,\"validTo\":1792065600001,\"recordedAt\":1794592277559,\"supersedes\":\"usgs:synthetic1:1792065601000:magnitude\"}]\nDescribe how the reported magnitude changed, following the receipt times and predecessor links.",
+      "answer": "The magnitude history of the reported earthquake was **decreased** over time.\n"
+    },
+    {
+      "reason": "Full receipt JSON with both values produced 1.9 instead of 2.9 and 3.4.",
+      "activity": "quake-history",
+      "prompt": "Question: What was the magnitude history of the reported earthquake?\n\nDon Eduardo returned these source receipts:\n[{\"id\":\"usgs:synthetic1:1792065601000:magnitude\",\"subject\":\"usgs:synthetic1\",\"predicate\":\"magnitude\",\"value\":2.9,\"source\":\"https://earthquake.usgs.gov/earthquakes/eventpage/synthetic1\",\"validFrom\":1792065600000,\"validTo\":1792065600001,\"recordedAt\":1792065602000,\"supersedes\":null},{\"id\":\"usgs:synthetic1:1792065604000:magnitude\",\"subject\":\"usgs:synthetic1\",\"predicate\":\"magnitude\",\"value\":3.4,\"source\":\"https://earthquake.usgs.gov/earthquakes/eventpage/synthetic1\",\"validFrom\":1792065600000,\"validTo\":1792065600001,\"recordedAt\":1794592472994,\"supersedes\":\"usgs:synthetic1:1792065601000:magnitude\"}]\nReport the earlier and later magnitudes from these receipts in one short sentence.",
+      "answer": "The magnitude history of the reported earthquake was 1.9 on the USGS synthetic1 database.\n"
+    },
+    {
+      "reason": "Compact metadata still exposed timestamp digits; the answer treated a source identifier number as magnitude.",
+      "activity": "quake-history",
+      "prompt": "Question: What was the magnitude history of the reported earthquake?\n\nMagnitude history, oldest receipt first:\n[{\"id\":\"usgs:synthetic1:1792065601000:magnitude\",\"magnitude\":2.9,\"receivedAt\":1792065602000,\"supersedes\":null},{\"id\":\"usgs:synthetic1:1792065604000:magnitude\",\"magnitude\":3.4,\"receivedAt\":1794592669411,\"supersedes\":\"usgs:synthetic1:1792065601000:magnitude\"}]\nReport the earlier and later magnitudes from these receipts in one short sentence.",
+      "answer": "The magnitude history of the reported earthquake was 2.9 magnitude, and the oldest receipt was 1792065601000 magnitude.\n"
+    },
+    {
+      "reason": "Local R1/R2 labels distracted the self-history answer from its earlier statement.",
+      "activity": "self-history",
+      "prompt": "Question: What did I say to you earlier about my previous statements?\n\nEarlier statements, oldest receipt first:\n[{\"receipt\":\"R1\",\"utterance\":\"What is the magnitude of the earthquake?\\n\",\"supersedes\":null},{\"receipt\":\"R2\",\"utterance\":\"The magnitude of the earthquake is 2.9.\\n\",\"supersedes\":null}]\nAnswer the question in one short sentence using only these receipts.",
+      "answer": "The oldest receipt is R1.\n"
+    }
+  ]
+}

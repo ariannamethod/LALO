@@ -45,6 +45,39 @@ const earlier = first.encounter.read.result.data.items[0], later = second.encoun
 assert.equal(later.value, 3.4); assert.equal(later.supersedes, earlier.id);
 assert.match(second.encounter.answer.output.text, /\b3\.4\b/);
 if (mode) assert.equal(second.encounter.question.output.metadata.stateBefore, first.encounter.answer.output.metadata.stateAfter);
+let preceding = second;
+const histories = {};
+for (const activity of ['self-history', 'quake-history']) {
+  const prior = await memory.recall({ sequence: preceding.memory.sequence, snapshot: true });
+  await save(activity + '-world.json', JSON.stringify(prior.journal));
+  await save(activity + '-scope.json', { subject: activity === 'self-history' ? 'agent:gemma-270m' : 'usgs:synthetic1',
+    knownAt: activity === 'self-history' ? first.encounter.answer.observedAt : Date.now() });
+  const encounter = await child([...base, '--journal', join(root, activity + '-world.json'),
+    '--scope', join(root, activity + '-scope.json'), '--id', activity, '--activity', activity,
+    ...(mode ? ['--experts-output', join(root, activity + '-experts'), '--spore-in', preceding.expertState] : [])]);
+  await save(activity + '.json', encounter);
+  assert.equal(encounter.status, 'executed');
+  assert.equal(encounter.encounter.read.call.name, 'lalo_history');
+  assert.equal(encounter.encounter.read.request.text, encounter.encounter.question.output.text);
+  assert.match(encounter.encounter.answer.output.text, /\b2\.9\b/);
+  if (activity === 'quake-history') {
+    assert.match(encounter.encounter.answer.output.text, /2\.9[\s\S]*3\.4/);
+    assert.doesNotMatch(encounter.encounter.answer.output.text, /decreas/i);
+  }
+  const evidence = encounter.encounter.read.result.data.items;
+  if (activity === 'self-history') assert.deepEqual(evidence.map(f => f.id), [
+    'model:first:question:utterance', 'model:first:answer:utterance']);
+  else assert.deepEqual(evidence.map(f => f.value), [2.9, 3.4]);
+  if (mode) assert.equal(encounter.encounter.question.output.metadata.stateBefore,
+    preceding.encounter.answer.output.metadata.stateAfter);
+  histories[activity] = { scope: encounter.encounter.scope, question: encounter.encounter.question.output.text,
+    answer: encounter.encounter.answer.output.text,
+    receipts: encounter.encounter.read.result.data.items.map(f => f.id) };
+  const opened = await child(['--memory', memoryPath, '--replay', String(encounter.memory.sequence)]);
+  assert.equal(opened.comparison, 'match');
+  assert.equal(opened.answer, encounter.encounter.answer.output.text);
+  preceding = encounter;
+}
 const replay = await child(['--memory', memoryPath, '--replay', String(first.memory.sequence)]);
 await save('replay.json', replay);
 assert.equal(replay.comparison, 'match');
@@ -54,6 +87,7 @@ const summary = { syntheticSources: true, liveModel: first.encounter.identity, e
   first: { question: first.encounter.question.output.text, answer: first.encounter.answer.output.text, receipt: earlier.id },
   corrected: { question: second.encounter.question.output.text, answer: second.encounter.answer.output.text, receipt: later.id,
     supersedes: later.supersedes }, replay: { comparison: replay.comparison, answer: replay.answer },
+  histories,
   expertStateRestored: mode ? second.encounter.question.output.metadata.stateBefore === first.encounter.answer.output.metadata.stateAfter : null,
   memory: { first: first.memory, second: second.memory } };
 await save('summary.json', summary);

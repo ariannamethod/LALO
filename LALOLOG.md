@@ -3,6 +3,61 @@
 The engineering record. New entries first. README keeps the pulse; this file
 keeps the measurements, decisions, sources and scars.
 
+## 2026-11-13 — Don returns the model's own past, and the source's revisions
+
+Starting at `5d8df17`, extend the optional native encounter with `self-history`
+and `quake-history`. The model generates an ordinary question; its complete,
+unchanged text crosses the C selector and selects `lalo_history`. Nine field
+examples add these requests and their negations while preserving all 95
+previously labeled decisions. Six new corpus rows bring C/AML decision and
+evidence agreement to 101/101 (maximum score delta 1e-6).
+
+The host supplies the subject and receipt cutoff. Self-history requires the
+querying agent's identity. No history scope accepts an unused validAt. Binding
+version 3 records activity, tool and argument provenance; encounter version 2
+records the chosen activity. Added constraints and mismatched questions fail
+explicitly. A 33-row speech history exceeds the 32-row read budget: the actual
+question is retained and answer generation does not begin. Complete source
+rows remain in the AML action. For the model's answer, the history presentation
+contains their ordered utterance strings or magnitude values.
+
+* Real Gemma 3-270M-IT Q8_0, both plain and with native learning experts: first
+  source 2.9, corrected source 3.4, then “What did I say to you earlier about my
+  previous statements?” The full world contains both answers, but the explicit
+  cutoff is the first answer's completion. Don returns precisely that first
+  question and answer; Gemma says “The magnitude of the earthquake is 2.9.”
+* A separate process then asks “What was the magnitude history of the reported
+  earthquake?” Don returns both source versions with their predecessor link.
+  Gemma says “The magnitude history of the reported earthquake was 2.9 magnitude
+  and 3.4 magnitude.” Each process restores the preceding expert state by hash.
+  Both new encounters replay from AML with identical speech and matching source
+  reads. Actual pre-change saved encounters with binding versions 1 and 2 also
+  replayed with comparison=match.
+* Failed experiments are retained in the validation record. Full source JSON
+  first elicited “decreased” for 2.9 → 3.4; another run with experts invented
+  1.9. A compact metadata projection still let the model call the number inside
+  a source ID a magnitude. R1/R2 labels elicited “The oldest receipt is R1.”
+  Earlier self-history instructions also elicited acknowledgments or an empty
+  history claim. The final presentation removes unrelated numerical fields
+  from the model input and quotes actual speech. There is no answer rewriting
+  or retry-until-correct loop in the runtime. The test initially asked for all
+  speech but expected only the first answer; the example now explicitly asks
+  at the first answer's cutoff and asserts the exact two source IDs.
+* The reported PR #28 failure was push run 43462625715, browser job 132013213653:
+  Chrome missed its 15-second DevTools startup deadline before assertions began.
+  The PR workflow and merged-main run 43475200462 passed. Rerunning the failed
+  push workflow passed all four jobs. Increase startup allowance to 45 seconds;
+  browser assertions and the four-minute job deadline stay intact. Local Chrome
+  was blocked at its process singleton socket (Operation not permitted), so
+  browser execution is verified on GitHub CI.
+* Debian 13 x86_64, AMD EPYC 9V45, Node 24.22.1, GCC 14.2.0; unchanged pinned
+  NoTorch/AML and Gemma weight digest. Core 139/139; native routing, action memory
+  and JANUS 28/28; C/AML corpus 101/101; live model gate 4/4 (both four-encounter
+  sequences plus adapter failure checks). NoTorch owns inference and expert
+  updates; AML owns persistence. Measurements, prompts, output text, source rows,
+  spore hashes and failed presentations are in
+  [model-history-2026-11-13.json](docs/validation/model-history-2026-11-13.json).
+
 ## 2026-11-13 — A small model asks Don and leaves its own receipts
 
 Starting at `2495d27`, add the optional NoTorch submodule pinned to `374e171`

@@ -93,3 +93,9 @@
 {"text":"Do not tell me the magnitude of this earthquake.","status":"no_call","tool":null}
 {"text":"Never tell me how strong this earthquake was.","status":"no_call","tool":null}
 {"text":"Hello Don Eduardo.","status":"no_call","tool":null}
+{"text":"What did I say to you earlier about my previous statements?","status":"call","tool":"lalo_history"}
+{"text":"What was the magnitude history of the reported earthquake?","status":"call","tool":"lalo_history"}
+{"text":"Don Eduardo, show my earlier utterances.","status":"call","tool":"lalo_history"}
+{"text":"How did the magnitude change for this earthquake?","status":"call","tool":"lalo_history"}
+{"text":"Do not show my previous statements.","status":"no_call","tool":null}
+{"text":"Do not read earthquake magnitude history.","status":"no_call","tool":null}
