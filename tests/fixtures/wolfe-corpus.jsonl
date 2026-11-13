@@ -99,3 +99,11 @@
 {"text":"How did the magnitude change for this earthquake?","status":"call","tool":"lalo_history"}
 {"text":"Do not show my previous statements.","status":"no_call","tool":null}
 {"text":"Do not read earthquake magnitude history.","status":"no_call","tool":null}
+{"text":"Why did my answer change?","status":"call","tool":"lalo_history"}
+{"text":"Why has my answer changed?","status":"call","tool":"lalo_history"}
+{"text":"What caused my answer to change?","status":"call","tool":"lalo_history"}
+{"text":"Do not explain why my answer changed.","status":"no_call","tool":null}
+{"text":"Do not show why my answer changed.","status":"no_call","tool":null}
+{"text":"What was the most significant change in the two saved answers?","status":"call","tool":"lalo_history"}
+{"text":"What was the change in the two saved answers?","status":"call","tool":"lalo_history"}
+{"text":"Do not compare the two saved answers.","status":"no_call","tool":null}

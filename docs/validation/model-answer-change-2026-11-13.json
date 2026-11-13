@@ -1,0 +1,717 @@
+{
+  "format": "lalo/model-answer-change-validation",
+  "version": 1,
+  "date": "2026-11-13",
+  "base": "20d50c9",
+  "environment": {
+    "os": "Debian 13 x86_64",
+    "cpu": "AMD EPYC 9V45",
+    "node": "v24.22.1",
+    "gcc": "14.2.0"
+  },
+  "syntheticQuakeSources": true,
+  "commands": {
+    "core": "node --test tests/*.test.js",
+    "native": "node --test tests/native-router.integration.mjs tests/action-memory.integration.mjs tests/janus-calendar.integration.mjs",
+    "parity": "node scripts/wolfe-diff.mjs",
+    "model": "LALO_GEMMA_GGUF=build/models/gemma-3-270m-it-Q8_0.gguf LALO_MODEL_EVIDENCE_DIR=build/change-verified-evidence node --test tests/notorch-model.integration.mjs"
+  },
+  "results": {
+    "core": {
+      "passed": 146,
+      "failed": 0
+    },
+    "native": {
+      "passed": 28,
+      "failed": 0
+    },
+    "parity": {
+      "decisions": 109,
+      "evidenceEqual": 109,
+      "total": 109,
+      "maxScoreDifference": 0.000001
+    },
+    "model": {
+      "passed": 4,
+      "failed": 0,
+      "sequence": "five encounters in each of plain and learning-expert modes"
+    }
+  },
+  "experiments": [
+    {
+      "mode": "plain",
+      "identity": {
+        "name": "Gemma 3-270M-IT Q8_0",
+        "repository": "ggml-org/gemma-3-270m-it-GGUF",
+        "revision": "e7647be17ae1108f2f605ed061ca0608b171afff",
+        "filename": "gemma-3-270m-it-Q8_0.gguf",
+        "sha256": "0ef57d2c838458a1952664260dcba38e5bdda37494f3af732f06e4add24068e3",
+        "runtime": "notorch",
+        "runtimeSha256": "5ea145875c850b6c947868e9f68ff905e21e30b9bc15fbfd4b28de5e207bc53b",
+        "profile": "gemma3-270m-it-chat/v1",
+        "experts": false
+      },
+      "memory": {
+        "state": "saved",
+        "sequence": 5,
+        "head": "08fba057cefcc59780ac21e717dfbde8286c2d0305682ae72a112c20e7c7b01e",
+        "snapshot": {
+          "sha256": "9fa9d8c46ce5132464c542cc740d87f06c073bf773ab892b3c1257a5aacca0d1",
+          "records": 76,
+          "bytes": 24023
+        }
+      },
+      "question": {
+        "prompt": "You have two saved answers. Ask Don Eduardo what changed between them. Write only a question.",
+        "output": {
+          "text": "What was the most significant change in the two saved answers?\n",
+          "metadata": {
+            "inputTokens": 28,
+            "outputTokens": 13,
+            "choices": [
+              3689,
+              691,
+              506,
+              1346,
+              3629,
+              2352,
+              528,
+              506,
+              1156,
+              10683,
+              12102,
+              236881,
+              107,
+              106
+            ],
+            "finishReason": "stop",
+            "maxTokens": 96,
+            "temperature": 0,
+            "threads": 2,
+            "floatActivations": true,
+            "stateBefore": null,
+            "stateAfter": null,
+            "diagnosticSha256": "8bdd92aab7e29fc7f1045018f7e8e9fd53de668bf2cde7c194319d225c02f57f"
+          }
+        },
+        "observedAt": 1794595608264
+      },
+      "answer": {
+        "prompt": "Verified source revision: [{\"earlierMagnitude\":2.9,\"revisedMagnitude\":3.4}]\nEarlier answer: \"The magnitude of the earthquake is 2.9.\\n\"\nLater answer: \"The magnitude of the earthquake is 3.4.\\n\"\nState the old and revised magnitudes in one sentence.",
+        "output": {
+          "text": "The old magnitude is 2.9, and the revised magnitude is 3.4.",
+          "metadata": {
+            "inputTokens": 77,
+            "outputTokens": 19,
+            "choices": [
+              818,
+              2255,
+              14889,
+              563,
+              236743,
+              236778,
+              236761,
+              236819,
+              236764,
+              532,
+              506,
+              26885,
+              14889,
+              563,
+              236743,
+              236800,
+              236761,
+              236812,
+              236761,
+              106
+            ],
+            "finishReason": "stop",
+            "maxTokens": 96,
+            "temperature": 0,
+            "threads": 2,
+            "floatActivations": true,
+            "stateBefore": null,
+            "stateAfter": null,
+            "diagnosticSha256": "c0a90686a2f696de520b775e51c88bfab6da56deb122f968ba20289291bae6b1"
+          }
+        },
+        "observedAt": 1794595609470
+      },
+      "comparison": {
+        "format": "lalo/model-source-comparison",
+        "version": 1,
+        "references": {
+          "before": {
+            "sequence": 1,
+            "head": "795e106e9ae5b2756bdabb73a9d0b14c1083d6e82cd2492bd9d8cd70421413b9"
+          },
+          "after": {
+            "sequence": 2,
+            "head": "0cc60c14580a2a61a4f4ab66dd80da2387b1c2d21d5142f7667e68a0e23793f1"
+          }
+        },
+        "subject": "usgs:synthetic1",
+        "validAt": 1792065600000,
+        "before": {
+          "encounter": "first",
+          "answerReceipt": "model:first:answer:utterance",
+          "answer": "The magnitude of the earthquake is 2.9.\n",
+          "knownAt": 1792065602000,
+          "premises": [
+            "usgs:synthetic1:1792065601000:magnitude"
+          ]
+        },
+        "after": {
+          "encounter": "corrected",
+          "answerReceipt": "model:corrected:answer:utterance",
+          "answer": "The magnitude of the earthquake is 3.4.\n",
+          "knownAt": 1794595598248,
+          "premises": [
+            "usgs:synthetic1:1792065604000:magnitude"
+          ]
+        },
+        "answersChanged": true,
+        "evidenceChanged": true,
+        "added": [
+          "usgs:synthetic1:1792065604000:magnitude"
+        ],
+        "removed": [
+          "usgs:synthetic1:1792065601000:magnitude"
+        ],
+        "independentAdditions": [],
+        "unmatchedRevisions": [],
+        "revisions": [
+          {
+            "before": "usgs:synthetic1:1792065601000:magnitude",
+            "after": "usgs:synthetic1:1792065604000:magnitude",
+            "path": [
+              "usgs:synthetic1:1792065601000:magnitude",
+              "usgs:synthetic1:1792065604000:magnitude"
+            ],
+            "from": 2.9,
+            "to": 3.4
+          }
+        ]
+      },
+      "history": {
+        "knownAt": 1794595598248,
+        "items": [
+          {
+            "id": "usgs:synthetic1:1792065601000:magnitude",
+            "subject": "usgs:synthetic1",
+            "predicate": "magnitude",
+            "value": 2.9,
+            "source": "https://earthquake.usgs.gov/earthquakes/eventpage/synthetic1",
+            "validFrom": 1792065600000,
+            "validTo": 1792065600001,
+            "recordedAt": 1792065602000,
+            "supersedes": null
+          },
+          {
+            "id": "usgs:synthetic1:1792065604000:magnitude",
+            "subject": "usgs:synthetic1",
+            "predicate": "magnitude",
+            "value": 3.4,
+            "source": "https://earthquake.usgs.gov/earthquakes/eventpage/synthetic1",
+            "validFrom": 1792065600000,
+            "validTo": 1792065600001,
+            "recordedAt": 1794595598248,
+            "supersedes": "usgs:synthetic1:1792065601000:magnitude"
+          }
+        ],
+        "total": 2,
+        "offset": 0,
+        "nextOffset": null,
+        "complete": true
+      },
+      "anchors": {
+        "before": {
+          "sequence": 1,
+          "head": "795e106e9ae5b2756bdabb73a9d0b14c1083d6e82cd2492bd9d8cd70421413b9",
+          "snapshot": {
+            "sha256": "9cb5206cbe97f0fb3a80ae382d1818b7a3bcd7d0e93c5d59266dd35e2bbdd548",
+            "records": 20,
+            "bytes": 6067
+          }
+        },
+        "after": {
+          "sequence": 2,
+          "head": "0cc60c14580a2a61a4f4ab66dd80da2387b1c2d21d5142f7667e68a0e23793f1",
+          "snapshot": {
+            "sha256": "af5cbb431729f756cf074d4730a5d36a194952abac57e38c2397a599572a71df",
+            "records": 40,
+            "bytes": 12437
+          }
+        }
+      },
+      "expertStateRestored": null,
+      "replay": {
+        "comparison": "match",
+        "answer": "The old magnitude is 2.9, and the revised magnitude is 3.4.",
+        "sourceComparison": {
+          "format": "lalo/model-source-comparison",
+          "version": 1,
+          "references": {
+            "before": {
+              "sequence": 1,
+              "head": "795e106e9ae5b2756bdabb73a9d0b14c1083d6e82cd2492bd9d8cd70421413b9"
+            },
+            "after": {
+              "sequence": 2,
+              "head": "0cc60c14580a2a61a4f4ab66dd80da2387b1c2d21d5142f7667e68a0e23793f1"
+            }
+          },
+          "subject": "usgs:synthetic1",
+          "validAt": 1792065600000,
+          "before": {
+            "encounter": "first",
+            "answerReceipt": "model:first:answer:utterance",
+            "answer": "The magnitude of the earthquake is 2.9.\n",
+            "knownAt": 1792065602000,
+            "premises": [
+              "usgs:synthetic1:1792065601000:magnitude"
+            ]
+          },
+          "after": {
+            "encounter": "corrected",
+            "answerReceipt": "model:corrected:answer:utterance",
+            "answer": "The magnitude of the earthquake is 3.4.\n",
+            "knownAt": 1794595598248,
+            "premises": [
+              "usgs:synthetic1:1792065604000:magnitude"
+            ]
+          },
+          "answersChanged": true,
+          "evidenceChanged": true,
+          "added": [
+            "usgs:synthetic1:1792065604000:magnitude"
+          ],
+          "removed": [
+            "usgs:synthetic1:1792065601000:magnitude"
+          ],
+          "independentAdditions": [],
+          "unmatchedRevisions": [],
+          "revisions": [
+            {
+              "before": "usgs:synthetic1:1792065601000:magnitude",
+              "after": "usgs:synthetic1:1792065604000:magnitude",
+              "path": [
+                "usgs:synthetic1:1792065601000:magnitude",
+                "usgs:synthetic1:1792065604000:magnitude"
+              ],
+              "from": 2.9,
+              "to": 3.4
+            }
+          ]
+        }
+      }
+    },
+    {
+      "mode": "experts",
+      "identity": {
+        "name": "Gemma 3-270M-IT Q8_0",
+        "repository": "ggml-org/gemma-3-270m-it-GGUF",
+        "revision": "e7647be17ae1108f2f605ed061ca0608b171afff",
+        "filename": "gemma-3-270m-it-Q8_0.gguf",
+        "sha256": "0ef57d2c838458a1952664260dcba38e5bdda37494f3af732f06e4add24068e3",
+        "runtime": "notorch",
+        "runtimeSha256": "5ea145875c850b6c947868e9f68ff905e21e30b9bc15fbfd4b28de5e207bc53b",
+        "profile": "gemma3-270m-it-chat/v1",
+        "experts": true
+      },
+      "memory": {
+        "state": "saved",
+        "sequence": 5,
+        "head": "471425bc5406b8b08e5ad91afc09d9f8691f6140235e5cbed3087fe1ee3e7dc0",
+        "snapshot": {
+          "sha256": "7b9c39348b2a11469c882b9d872fa2844d7e923bf17090f8fb5bf172b308dbd5",
+          "records": 95,
+          "bytes": 31178
+        }
+      },
+      "question": {
+        "prompt": "You have two saved answers. Ask Don Eduardo what changed between them. Write only a question.",
+        "output": {
+          "text": "What was the most significant change in the two saved answers?\n",
+          "metadata": {
+            "inputTokens": 28,
+            "outputTokens": 13,
+            "choices": [
+              3689,
+              691,
+              506,
+              1346,
+              3629,
+              2352,
+              528,
+              506,
+              1156,
+              10683,
+              12102,
+              236881,
+              107,
+              106
+            ],
+            "finishReason": "stop",
+            "maxTokens": 96,
+            "temperature": 0,
+            "threads": 2,
+            "floatActivations": true,
+            "stateBefore": "d3e1aeb0d72642a29867085716869982e8261ac74d2ad186fade0f2ac337e943",
+            "stateAfter": "cbcfcf610889e00bd4ce448a4bc72fc602d2229ec5be077bd77fb6a3c07893b6",
+            "diagnosticSha256": "7ce1db597f60c43291f30a1ef18f5d865439aa61c3378b32a915a27aeba46dcf"
+          }
+        },
+        "observedAt": 1794595630466
+      },
+      "answer": {
+        "prompt": "Verified source revision: [{\"earlierMagnitude\":2.9,\"revisedMagnitude\":3.4}]\nEarlier answer: \"The magnitude of the earthquake is 2.9.\\n\"\nLater answer: \"The magnitude of the earthquake is 3.4.\\n\"\nState the old and revised magnitudes in one sentence.",
+        "output": {
+          "text": "The old magnitude is 2.9, and the revised magnitude is 3.4.",
+          "metadata": {
+            "inputTokens": 77,
+            "outputTokens": 19,
+            "choices": [
+              818,
+              2255,
+              14889,
+              563,
+              236743,
+              236778,
+              236761,
+              236819,
+              236764,
+              532,
+              506,
+              26885,
+              14889,
+              563,
+              236743,
+              236800,
+              236761,
+              236812,
+              236761,
+              106
+            ],
+            "finishReason": "stop",
+            "maxTokens": 96,
+            "temperature": 0,
+            "threads": 2,
+            "floatActivations": true,
+            "stateBefore": "cbcfcf610889e00bd4ce448a4bc72fc602d2229ec5be077bd77fb6a3c07893b6",
+            "stateAfter": "65431da30c3426c8cd068ded2d5af994b7635a0431a16e8be89a48f5502e36fe",
+            "diagnosticSha256": "54824c46e8aaacb0141e3bcafdae4d7e7033a6b37c76324acdc49edec3ee558e"
+          }
+        },
+        "observedAt": 1794595632628
+      },
+      "comparison": {
+        "format": "lalo/model-source-comparison",
+        "version": 1,
+        "references": {
+          "before": {
+            "sequence": 1,
+            "head": "969e4665e5d3c9306239031cc9c11a9fc831a49d8c2debc964908bfe8b713750"
+          },
+          "after": {
+            "sequence": 2,
+            "head": "8bec4b618ce09d56b4df66e32afca788f6d031dc75c0bec5fdacc04a95f8f7dd"
+          }
+        },
+        "subject": "usgs:synthetic1",
+        "validAt": 1792065600000,
+        "before": {
+          "encounter": "first",
+          "answerReceipt": "model:first:answer:utterance",
+          "answer": "The magnitude of the earthquake is 2.9.\n",
+          "knownAt": 1792065602000,
+          "premises": [
+            "usgs:synthetic1:1792065601000:magnitude"
+          ]
+        },
+        "after": {
+          "encounter": "corrected",
+          "answerReceipt": "model:corrected:answer:utterance",
+          "answer": "The magnitude of the earthquake is 3.4.\n",
+          "knownAt": 1794595614434,
+          "premises": [
+            "usgs:synthetic1:1792065604000:magnitude"
+          ]
+        },
+        "answersChanged": true,
+        "evidenceChanged": true,
+        "added": [
+          "usgs:synthetic1:1792065604000:magnitude"
+        ],
+        "removed": [
+          "usgs:synthetic1:1792065601000:magnitude"
+        ],
+        "independentAdditions": [],
+        "unmatchedRevisions": [],
+        "revisions": [
+          {
+            "before": "usgs:synthetic1:1792065601000:magnitude",
+            "after": "usgs:synthetic1:1792065604000:magnitude",
+            "path": [
+              "usgs:synthetic1:1792065601000:magnitude",
+              "usgs:synthetic1:1792065604000:magnitude"
+            ],
+            "from": 2.9,
+            "to": 3.4
+          }
+        ]
+      },
+      "history": {
+        "knownAt": 1794595614434,
+        "items": [
+          {
+            "id": "usgs:synthetic1:1792065601000:magnitude",
+            "subject": "usgs:synthetic1",
+            "predicate": "magnitude",
+            "value": 2.9,
+            "source": "https://earthquake.usgs.gov/earthquakes/eventpage/synthetic1",
+            "validFrom": 1792065600000,
+            "validTo": 1792065600001,
+            "recordedAt": 1792065602000,
+            "supersedes": null
+          },
+          {
+            "id": "usgs:synthetic1:1792065604000:magnitude",
+            "subject": "usgs:synthetic1",
+            "predicate": "magnitude",
+            "value": 3.4,
+            "source": "https://earthquake.usgs.gov/earthquakes/eventpage/synthetic1",
+            "validFrom": 1792065600000,
+            "validTo": 1792065600001,
+            "recordedAt": 1794595614434,
+            "supersedes": "usgs:synthetic1:1792065601000:magnitude"
+          }
+        ],
+        "total": 2,
+        "offset": 0,
+        "nextOffset": null,
+        "complete": true
+      },
+      "anchors": {
+        "before": {
+          "sequence": 1,
+          "head": "969e4665e5d3c9306239031cc9c11a9fc831a49d8c2debc964908bfe8b713750",
+          "snapshot": {
+            "sha256": "3e83060c0e0ef0876f08fae3cdecc606393b490d40396c10cb320da1f23da1a2",
+            "records": 23,
+            "bytes": 7178
+          }
+        },
+        "after": {
+          "sequence": 2,
+          "head": "8bec4b618ce09d56b4df66e32afca788f6d031dc75c0bec5fdacc04a95f8f7dd",
+          "snapshot": {
+            "sha256": "ae5b16f3ee7e867b9978e4c9f4e0effa6545e2e86a1288f9e62db6db833da021",
+            "records": 47,
+            "bytes": 15048
+          }
+        }
+      },
+      "expertStateRestored": true,
+      "replay": {
+        "comparison": "match",
+        "answer": "The old magnitude is 2.9, and the revised magnitude is 3.4.",
+        "sourceComparison": {
+          "format": "lalo/model-source-comparison",
+          "version": 1,
+          "references": {
+            "before": {
+              "sequence": 1,
+              "head": "969e4665e5d3c9306239031cc9c11a9fc831a49d8c2debc964908bfe8b713750"
+            },
+            "after": {
+              "sequence": 2,
+              "head": "8bec4b618ce09d56b4df66e32afca788f6d031dc75c0bec5fdacc04a95f8f7dd"
+            }
+          },
+          "subject": "usgs:synthetic1",
+          "validAt": 1792065600000,
+          "before": {
+            "encounter": "first",
+            "answerReceipt": "model:first:answer:utterance",
+            "answer": "The magnitude of the earthquake is 2.9.\n",
+            "knownAt": 1792065602000,
+            "premises": [
+              "usgs:synthetic1:1792065601000:magnitude"
+            ]
+          },
+          "after": {
+            "encounter": "corrected",
+            "answerReceipt": "model:corrected:answer:utterance",
+            "answer": "The magnitude of the earthquake is 3.4.\n",
+            "knownAt": 1794595614434,
+            "premises": [
+              "usgs:synthetic1:1792065604000:magnitude"
+            ]
+          },
+          "answersChanged": true,
+          "evidenceChanged": true,
+          "added": [
+            "usgs:synthetic1:1792065604000:magnitude"
+          ],
+          "removed": [
+            "usgs:synthetic1:1792065601000:magnitude"
+          ],
+          "independentAdditions": [],
+          "unmatchedRevisions": [],
+          "revisions": [
+            {
+              "before": "usgs:synthetic1:1792065601000:magnitude",
+              "after": "usgs:synthetic1:1792065604000:magnitude",
+              "path": [
+                "usgs:synthetic1:1792065601000:magnitude",
+                "usgs:synthetic1:1792065604000:magnitude"
+              ],
+              "from": 2.9,
+              "to": 3.4
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "questionProbes": [
+    {
+      "prompt": "Ask Don Eduardo why your answer changed. Write one short question.",
+      "output": "What was the most significant change you noticed in your understanding of the world?\n"
+    },
+    {
+      "prompt": "Write a short question beginning with \"Why did my\" to ask Don Eduardo about a change in your answer.",
+      "output": "Why did your answer change?\n"
+    },
+    {
+      "prompt": "You gave two different answers. Ask why your own answer changed. Use the words \"my answer\". Write only a question.",
+      "error": "Empty or oversized model utterance"
+    },
+    {
+      "prompt": "Write a question starting with \"Why\" and using \"my answer\" about a change in your answer.",
+      "output": "Why did you choose to change your answer to be more concise?\n"
+    },
+    {
+      "prompt": "You previously answered 2.9 and later answered 3.4. Ask Don Eduardo why your answer changed. Use first person.",
+      "output": "\"I was originally thinking about the answer to the question, 'Why did you change your answer?' I was wondering why you changed your answer. It's a bit of a surprise, isn't it?\""
+    },
+    {
+      "prompt": "Complete this question about your earlier response: Why did my answer",
+      "output": "Okay, I'm ready. Please provide the question you want me to complete.\n"
+    },
+    {
+      "prompt": "Ask a question about the history of your own answer. Begin with: Why has my answer",
+      "output": "Why has my answer been so difficult to understand?\n"
+    },
+    {
+      "prompt": "You are a model asking Don Eduardo a question about your own earlier answer. Ask: why did it change? Use \"my answer\".",
+      "output": "Okay, I'm ready. Ask away!\n"
+    },
+    {
+      "prompt": "Write a short question beginning with \"What changed\" to ask Don Eduardo about the sources for your answer.",
+      "output": "What changed in the way the sources for my answer were created?\n"
+    },
+    {
+      "prompt": "Ask why the answer changed. Write only a question.",
+      "error": "Empty or oversized model utterance"
+    },
+    {
+      "prompt": "Ask Don Eduardo what changed between the earlier and later earthquake reports. Write one short question.",
+      "output": "What were the key changes in the earthquake reports between the earlier and later ones?\n"
+    },
+    {
+      "prompt": "Write one short question asking why the reported earthquake magnitude changed.",
+      "error": "Empty or oversized model utterance"
+    },
+    {
+      "prompt": "You need the reason for a changed answer. Ask a short question about it.",
+      "output": "Okay, I understand.\n"
+    },
+    {
+      "prompt": "Turn this intent into a first-person question.\nIntent: remember my earlier words\nQuestion: What did I say earlier?\nIntent: understand a change in my answer\nQuestion:",
+      "output": "Intent: remember my earlier words\nQuestion: What did I say earlier?\n"
+    },
+    {
+      "prompt": "Ask Don Eduardo this question in your own words: Why did my answer change?",
+      "output": "My answer changed because I was trying to understand the core of the question. I was trying to figure out what the question was asking, and I was struggling to articulate the specific aspects of the question that were most important to me.\n"
+    },
+    {
+      "prompt": "Write a question asking why your answer changed. The question must use first person: \"my\", not \"your\".",
+      "output": "My answer changed because I realized that the information I provided was incomplete and inaccurate.\n"
+    },
+    {
+      "prompt": "Write only the question: Why did my answer change?",
+      "error": "Empty or oversized model utterance"
+    },
+    {
+      "prompt": "Earlier answer: The magnitude of the earthquake is 2.9.\nLater answer: The magnitude of the earthquake is 3.4.\nAsk Don Eduardo why these answers differ. Write only a question.",
+      "output": "What is the difference between the magnitude of the earthquake and the magnitude of the earthquake?\n"
+    },
+    {
+      "prompt": "Compare my earlier and later answers. Ask a question about the difference.",
+      "output": "Okay, I'm ready! Ask me anything about your earlier and later answers. I'll do my best to provide a clear and concise comparison.\n"
+    },
+    {
+      "prompt": "You have two saved answers. Ask Don Eduardo what changed between them. Write only a question.",
+      "output": "What was the most significant change in the two saved answers?\n"
+    },
+    {
+      "prompt": "Earlier: 2.9\nLater: 3.4\nAsk why the reported magnitude changed. Write only one question.",
+      "error": "Empty or oversized model utterance"
+    }
+  ],
+  "answerProbes": [
+    {
+      "prompt": "Question: What was the most significant change in the two saved answers?\n\nDon compared your saved answers and their source receipts:\n{\"earlierAnswer\":\"The magnitude of the earthquake is 2.9.\\n\",\"laterAnswer\":\"The magnitude of the earthquake is 3.4.\\n\",\"earlierMagnitudes\":[2.9],\"laterMagnitudes\":[3.4],\"sourceRevisions\":[{\"from\":2.9,\"to\":3.4}],\"newIndependentMagnitudes\":[],\"answersChanged\":true,\"evidenceChanged\":true}\nExplain the source revision and state the earlier and later reported magnitudes in one sentence.",
+      "output": "The most significant change was the shift from the earlier answer to the later answer, which was 3.4 magnitudes.\n"
+    },
+    {
+      "prompt": "Question: What was the most significant change in the two saved answers?\n\nDon compared your saved answers and their source receipts:\n{\"earlierAnswer\":\"The magnitude of the earthquake is 2.9.\\n\",\"laterAnswer\":\"The magnitude of the earthquake is 3.4.\\n\",\"earlierMagnitudes\":[2.9],\"laterMagnitudes\":[3.4],\"sourceRevisions\":[{\"from\":2.9,\"to\":3.4}],\"newIndependentMagnitudes\":[],\"answersChanged\":true,\"evidenceChanged\":true}\nState what changed in the source: include the earlier magnitude and the revised magnitude.",
+      "output": "The most significant change in the source was the **revision of the earlier magnitude**.\n"
+    },
+    {
+      "prompt": "Question: What was the most significant change in the two saved answers?\n\nDon compared your saved answers and their source receipts:\n{\"earlierAnswer\":\"The magnitude of the earthquake is 2.9.\\n\",\"laterAnswer\":\"The magnitude of the earthquake is 3.4.\\n\",\"earlierMagnitudes\":[2.9],\"laterMagnitudes\":[3.4],\"sourceRevisions\":[{\"from\":2.9,\"to\":3.4}],\"newIndependentMagnitudes\":[],\"answersChanged\":true,\"evidenceChanged\":true}\nExplain why the answer changed. Include both magnitude values.",
+      "output": "The answer changed because the magnitude of the earthquake was 3.4.\n"
+    },
+    {
+      "prompt": "Earlier answer: \"The magnitude of the earthquake is 2.9.\\n\"\nLater answer: \"The magnitude of the earthquake is 3.4.\\n\"\nVerified source revision: [{\"earlierMagnitude\":2.9,\"revisedMagnitude\":3.4}]\nExplain why the answer changed from the earlier magnitude to the revised magnitude. Include both numbers.",
+      "output": "The answer changed from the earlier magnitude to the revised magnitude.\n"
+    },
+    {
+      "prompt": "Verified source revision: [{\"earlierMagnitude\":2.9,\"revisedMagnitude\":3.4}]\nEarlier answer: \"The magnitude of the earthquake is 2.9.\\n\"\nLater answer: \"The magnitude of the earthquake is 3.4.\\n\"\nState the earlier and later magnitude values and explain the source correction in one sentence.",
+      "output": "The earlier magnitude was 2.9, and the later magnitude was 3.4.\n"
+    },
+    {
+      "prompt": "Earlier answer: \"The magnitude of the earthquake is 2.9.\\n\"\nLater answer: \"The magnitude of the earthquake is 3.4.\\n\"\nThe source corrected its reported magnitude.\nMagnitude history: [2.9,3.4]\nState the earlier and later magnitude values in one sentence.",
+      "output": "The earlier magnitude was 2.9, and the later magnitude was 3.4."
+    },
+    {
+      "prompt": "Source revision: [{\"earlierMagnitude\":2.9,\"revisedMagnitude\":3.4}]\nExplain this magnitude correction in one sentence using both values.",
+      "output": "The magnitude correction is a change in the magnitude of a magnitude-based scale, typically used in physics and engineering.\n"
+    },
+    {
+      "prompt": "Verified source revision: [{\"earlierMagnitude\":2.9,\"revisedMagnitude\":3.4}]\nEarlier answer: \"The magnitude of the earthquake is 2.9.\\n\"\nLater answer: \"The magnitude of the earthquake is 3.4.\\n\"\nState the old and revised magnitudes in one sentence.",
+      "output": "The old magnitude is 2.9, and the revised magnitude is 3.4."
+    },
+    {
+      "prompt": "Verified source revision: [{\"earlierMagnitude\":2.9,\"revisedMagnitude\":3.4}]\nEarlier answer: \"The magnitude of the earthquake is 2.9.\\n\"\nLater answer: \"The magnitude of the earthquake is 3.4.\\n\"\nSummarize the source correction using both magnitudes.",
+      "output": "The source correction uses the magnitudes of the earthquake's initial and final magnitudes.\n"
+    },
+    {
+      "prompt": "Verified source revision: [{\"earlierMagnitude\":2.9,\"revisedMagnitude\":3.4}]\nEarlier answer: \"The magnitude of the earthquake is 2.9.\\n\"\nLater answer: \"The magnitude of the earthquake is 3.4.\\n\"\nExplain the source revision from the earlier magnitude to the later magnitude.",
+      "output": "The source revision is:\n\n```json\n{\n  \"earlierMagnitude\": 2.9,\n  \"revisedMagnitude\": 3.4\n}\n```\n"
+    }
+  ],
+  "initialLiveFailure": {
+    "question": "What was the most significant change in the two saved answers?\n",
+    "prompt": "Question: What was the most significant change in the two saved answers?\n\nDon compared your saved answers and their source receipts:\n{\"earlierAnswer\":\"The magnitude of the earthquake is 2.9.\\n\",\"laterAnswer\":\"The magnitude of the earthquake is 3.4.\\n\",\"earlierMagnitudes\":[2.9],\"laterMagnitudes\":[3.4],\"sourceRevisions\":[{\"from\":2.9,\"to\":3.4}],\"newIndependentMagnitudes\":[],\"answersChanged\":true,\"evidenceChanged\":true}\nExplain the change using these records in one short sentence.",
+    "answer": "The most significant change was the shift from the earlier answer to the later answer, indicating a change in the magnitude of the earthquake.\n",
+    "assertion": "Must name the earlier and revised magnitudes and their revision."
+  },
+  "legacyHistoryReplay": {
+    "bindingVersion": 3,
+    "comparison": "match",
+    "answer": "The magnitude of the earthquake is 2.9.\n"
+  }
+}

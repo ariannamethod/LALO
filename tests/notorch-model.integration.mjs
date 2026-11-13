@@ -25,7 +25,7 @@ test('real Gemma crosses the native router and AML restart, with and without exp
       assert.equal(data.liveModel.experts, experts);
       assert.match(data.first.answer, /\b2\.9\b/); assert.match(data.corrected.answer, /\b3\.4\b/);
       const first = JSON.parse(await readFile(join(path, 'first.json'), 'utf8')).encounter;
-      assert.equal(first.binding.version, 3);
+      assert.equal(first.binding.version, 4);
       assert.equal(first.read.request.text, first.question.output.text);
       assert.equal(first.read.route.explanation.winner, 'lalo_facts');
       assert.equal(data.replay.answer, data.first.answer); assert.equal(data.replay.comparison, 'match');

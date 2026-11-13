@@ -143,7 +143,8 @@ Don’s source receipts and answers. Don records its question,
 answer, token counts and exact weight identity in the same world. A later
 source correction changes the next answer; AML reopens the earlier encounter
 with its original speech and evidence. Optional native DoE experts retain
-their own saved state between those processes.
+their own saved state between those processes. Don can also compare two saved
+answers and return the exact source revision chain behind their changed evidence.
 [Run the model encounter and inspect its receipts](docs/MODEL_ENCOUNTERS.md).
 
 LALO plays instruments; the world keeps sounding while no model is asking.

@@ -33,8 +33,7 @@ also preserves each native spore. The model adapter verifies the GGUF SHA-256
 
 The quake sources are synthetic. Model generation, native routing, expert
 updates and AML persistence execute their real implementations. Separate Node
-processes perform the first encounter, corrected encounter, two history queries
-and saved-answer replay:
+processes perform the first encounter, corrected encounter, two history queries, a comparison of the two saved answers, and saved-answer replay:
 
 | Stage | Source magnitude | Gemma's recorded answer |
 |---|---:|---|
@@ -42,9 +41,10 @@ and saved-answer replay:
 | Later correction to that receipt | 3.4 | The magnitude of the earthquake is 3.4. |
 | Ask for own speech at the first answer cutoff | 2.9 | Recalls its first answer from the two original utterance receipts. |
 | Ask for earthquake magnitude history | 2.9, 3.4 | Reads both magnitude versions and their predecessor link. |
+| Compare the two saved answers | 2.9 → 3.4 | Explains the source revision using both original answers and their premises. |
 | Reopen the first AML encounter | 2.9 | The magnitude of the earthquake is 2.9. |
 
-Both native modes passed the four-encounter sequence on Linux x86_64.
+Both native modes passed the five-encounter sequence on Linux x86_64.
 The extended experiment asserts the values, exact history receipt IDs, predecessor
 link and replay of both history encounters. The self-history cutoff is the
 completion of the first answer, although its input journal already includes
@@ -73,11 +73,11 @@ whole-question variants are defined in `bindModelQuestion`. The bridge records
 the original question, the binding rule and the provenance of every argument.
 The native selector receives the original question verbatim, including its
 whitespace. The routing field covers magnitude requests, own-speech history, earthquake
-history and their negations. The original 95 labeled decisions remain intact;
-six new labeled history requests bring the C/AML corpus to 101. The existing tool host validates the explicit arguments.
-Bindings use version 3 and record the activity and selected tool. Encounter
-results use version 2; replay retains encounter version 1 and binding versions
-1 (canonical intent) and 2 (original question).
+history and their negations. The previous 101 labeled decisions remain intact; eight comparison requests
+and negations bring the C/AML corpus to 109. The existing tool host validates the explicit arguments.
+Bindings use version 4 and record the activity and selected tool. Encounter
+results use version 2 for magnitude/history and version 3 for saved-answer
+comparisons. Replay retains encounter versions 1–3 and binding versions 1–4.
 
 “What did I say earlier?” binds to the querying agent’s utterances at `knownAt`.
 “What was the magnitude history of the reported earthquake?” binds to all
@@ -110,6 +110,47 @@ world snapshot. Replay retrieves the exact saved speech, validates its signal
 receipts and binding, and recomputes Don's source read at the saved clocks.
 It requires neither model weights nor a running model. A fresh model generation
 is a new encounter with its own ID.
+
+## Why the answer changed
+
+Choose two completed magnitude encounters in the same AML memory. They must
+belong to the querying agent and weight identity, concern the same event and
+world instant, and occur in chronological order. The current journal must
+extend both original snapshots. The portable comparison checks each snapshot's
+SHA-256 with Web Crypto and replays each original encounter before generation.
+
+`--activity answer-change` uses `--compare-from SEQUENCE` and
+`--compare-to SEQUENCE`. Its scope file has exactly `subject` and `knownAt`,
+matching the later saved encounter. For example, after the sample experiment:
+
+```sh
+node scripts/model-encounter.mjs --model build/models/gemma-3-270m-it-Q8_0.gguf --journal build/model-plain/comparison-world.json --scope build/model-plain/comparison-scope.json --memory build/model-plain/memory --id another-comparison --activity answer-change --compare-from 1 --compare-to 2
+```
+
+Gemma receives the task of asking what changed between its two saved answers.
+Its generated question passes unchanged through the native selector to
+`lalo_history`. Supported question forms include “Why did my answer change?”
+and “What was the most significant change in the two saved answers?”
+
+The resulting comparison records both AML sequence/head addresses, original
+answer receipt IDs, verbatim answers, original premise IDs, added and removed
+premises, and every predecessor step linking a revised source to its earlier
+version. It tracks `answersChanged` and `evidenceChanged` separately. An
+independent addition has its own list; unchanged evidence has no revision chain.
+A revision that enters the world-time scope without replacing an earlier premise
+is retained under `unmatchedRevisions`.
+The comparison helper's independent-source case has a synthetic unit fixture;
+the current USGS instrument owns a single event-source chain.
+
+Only receipts known at the later encounter's cutoff enter the comparison.
+Later corrections in the current world stay outside it. Incomplete history
+stops before explanation generation. The model receives the two exact answers,
+their magnitude values and the verified revision values. Full source IDs and
+snapshot hashes remain in the saved exchange. Replay reproduces both original
+reads and the comparison, returns `sourceComparison`, and recovers the exact
+saved explanation without starting NoTorch or changing its expert population.
+The embedded comparison context is bounded at 65,536 UTF-8 bytes and accepts
+only magnitude encounters, so comparisons cannot nest recursively.
 
 ## Two directions, two kinds of records
 

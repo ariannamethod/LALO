@@ -8,7 +8,7 @@ import { runModelEncounter, replayModelEncounter } from '../src/model-encounter.
 
 export async function main(args) {
   const allowed = new Set(['--model', '--journal', '--scope', '--memory', '--id', '--agent',
-    '--experts-output', '--spore-in', '--replay', '--activity']);
+    '--experts-output', '--spore-in', '--replay', '--activity', '--compare-from', '--compare-to']);
   const options = {};
   for (let i = 0; i < args.length; i += 2) {
     if (!allowed.has(args[i]) || !args[i + 1] || args[i + 1].startsWith('--') || Object.hasOwn(options, args[i]))
@@ -26,11 +26,21 @@ export async function main(args) {
   for (const flag of ['--model', '--journal', '--scope', '--id']) if (!options[flag]) throw new Error(`${flag} is required`);
   const journal = await boundedTextFile(options['--journal']);
   const scope = JSON.parse(await boundedTextFile(options['--scope'], 4096));
+  let comparisonContext;
+  if (options['--activity'] === 'answer-change') {
+    comparisonContext = {};
+    for (const [key, flag] of [['before', '--compare-from'], ['after', '--compare-to']]) {
+      if (!/^[1-9][0-9]*$/.test(options[flag] || '')) throw new Error(`${flag} must name a saved action sequence`);
+      const { receipt } = await memory.recall({ sequence: Number(options[flag]), snapshot: true });
+      const { sequence, head, snapshot, action } = receipt;
+      comparisonContext[key] = { sequence, head, snapshot, action };
+    }
+  } else if (options['--compare-from'] || options['--compare-to']) throw new Error('Comparison flags require --activity answer-change');
   const model = await createNoTorchModel({ model: options['--model'], expertsDirectory: options['--experts-output'], sporeIn: options['--spore-in'] });
   const router = await createNativeRouter();
   try {
     const outcome = await runModelEncounter({ journal, scope, model, router, clock: Date.now,
-      id: options['--id'], agent: options['--agent'] || 'agent:gemma-270m', activity: options['--activity'] });
+      id: options['--id'], agent: options['--agent'] || 'agent:gemma-270m', activity: options['--activity'], comparisonContext });
     let acknowledgment;
     try { acknowledgment = await memory.append(outcome.action, outcome.journal); }
     catch (error) {
