@@ -47,3 +47,12 @@
 {"text":"what changed my conclusion","tool":"lalo_reading","arguments":{}}
 {"text":"which evidence changed my reading","tool":"lalo_reading","arguments":{}}
 {"text":"do not trace my conclusion","tool":null,"arguments":{}}
+{"text":"what is the magnitude of this earthquake","tool":"lalo_facts","arguments":{}}
+{"text":"tell me the reported earthquake magnitude","tool":"lalo_facts","arguments":{}}
+{"text":"how strong was this earthquake","tool":"lalo_facts","arguments":{}}
+{"text":"read this earthquake magnitude","tool":"lalo_facts","arguments":{}}
+{"text":"do not tell me the earthquake magnitude","tool":null,"arguments":{}}
+{"text":"never read this earthquake magnitude","tool":null,"arguments":{}}
+{"text":"can you tell me the magnitude of this earthquake","tool":"lalo_facts","arguments":{}}
+{"text":"give me the magnitude of this earthquake","tool":"lalo_facts","arguments":{}}
+{"text":"what's this earthquake's magnitude","tool":"lalo_facts","arguments":{}}

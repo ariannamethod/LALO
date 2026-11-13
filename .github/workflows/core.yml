@@ -3,6 +3,34 @@ on: [push, pull_request]
 permissions:
   contents: read
 jobs:
+  model:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+          submodules: true
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: 24.14.0
+      - run: node scripts/build-router.mjs
+      - run: node scripts/build-aml.mjs
+      - run: node scripts/build-notorch.mjs
+      - name: Download the pinned Gemma weights
+        run: |
+          mkdir -p build/models
+          curl -fL --retry 2 --max-time 240 https://huggingface.co/ggml-org/gemma-3-270m-it-GGUF/resolve/e7647be17ae1108f2f605ed061ca0608b171afff/gemma-3-270m-it-Q8_0.gguf -o build/models/gemma-3-270m-it-Q8_0.gguf
+      - run: node --test tests/notorch-model.integration.mjs
+        env:
+          LALO_GEMMA_GGUF: build/models/gemma-3-270m-it-Q8_0.gguf
+          LALO_MODEL_EVIDENCE_DIR: build/model-evidence
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: model-encounter-evidence
+          path: build/model-evidence/
+          retention-days: 7
   test:
     runs-on: ubuntu-latest
     timeout-minutes: 3

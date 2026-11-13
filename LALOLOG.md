@@ -3,6 +3,59 @@
 The engineering record. New entries first. README keeps the pulse; this file
 keeps the measurements, decisions, sources and scars.
 
+## 2026-11-13 — A small model asks Don and leaves its own receipts
+
+Starting at `2495d27`, add the optional NoTorch submodule pinned to `374e171`
+and a native Gemma 3-270M-IT Q8_0 encounter. The model generates its own
+magnitude question in ordinary English. A whole-question binding connects it
+to an explicit USGS focus and two clocks, records each argument's provenance,
+and passes the exact question through the existing C selector. Don supplies
+the actual magnitude receipts; the model generates its answer from them.
+
+The portable encounter keeps model speech, native input/output token counts,
+weight identity and optional expert-state addresses as sourced agent facts.
+An observation group commits atomically. Unknown language, added time/place
+constraints, truncated generation, wrong or incomplete reads and failed
+processes retain an explicit failed encounter. AML stores the completed
+observations with the exact prompts, generated token IDs, tool trace and world.
+Replay verifies the binding and signal receipts, re-runs Don's original read,
+and recovers the saved model speech without invoking inference or learning.
+
+* The first native process generated “What is the magnitude of the earthquake?”
+  and then “The magnitude of the earthquake is 2.9.” After the synthetic USGS
+  correction, a second process answered 3.4. A third process reopened sequence
+  1 and reproduced the 2.9 source read and exact earlier utterance. Both plain
+  inference and native learning experts passed this path. The latter restored
+  the preceding answer's spore by SHA-256 before its next question. Each native
+  question/answer is a completed expert turn; no sleep is scheduled here.
+* The adapter verifies the published weight digest and uses the GGUF's actual
+  Gemma turn IDs. BOS precedes the user turn exactly once. It strips the native
+  prompt echo before reading counts, removes inherited NT overrides, checks
+  immutable body/executable stamps and makes token exhaustion explicit.
+* The original field abstained on Gemma's magnitude question. Nine added
+  examples teach the C and AML fields to select from the actual question.
+  The 95-request corpus now carries expected decisions as well as parity
+  checks. Of the previous 83 requests, 82 retain their decision. “give me the
+  active facts please” advances from abstention to the requested facts tool.
+  Twelve additional wordings cover magnitude questions, negations and a
+  greeting. Old encounter bindings retain their original replay path.
+* Tests preserve a deliberately wrong model answer as the model's own
+  utterance while the earthquake measurement stays 2.9. Changed scope,
+  observation counts, source identity and answer inputs fail encounter replay.
+  Capacity failure publishes no partial observation group. A corrupted spore
+  fails without altering its parent or producing a successor.
+* Debian 13 x86_64, AMD EPYC 9V45, Node 24.22.1, GCC 14.2.0, two matrix threads,
+  one attention thread, floating activations and greedy sampling. The frozen
+  GGUF is `ggml-org/gemma-3-270m-it-GGUF@e7647be`; its SHA is recorded in the
+  measurement file. Core tests passed 134/134; native routing/memory/calendar
+  tests passed 28/28 after building `calendar-bridge`; four live-model tests
+  passed. C/AML routing decisions and evidence matched on 95/95 requests.
+
+[Commands, budgets and focused language](docs/MODEL_ENCOUNTERS.md) ·
+[Exact model outputs, source reads and state addresses](docs/validation/model-encounter-2026-11-13.json).
+The new GitHub model job downloads the pinned real weights and retains both
+encounter directories, including their AML snapshots and expert generations.
+
 ## 2026-11-10 — Which device fix grounded Don's noon answer?
 
 Starting at `64aab35`, projection v7 accepts a device radius and an explicit

@@ -1,83 +1,95 @@
-{"text":"read journal status"}
-{"text":"show journal status"}
-{"text":"inspect journal limits"}
-{"text":"count journal receipts"}
-{"text":"list known subjects"}
-{"text":"show known subjects"}
-{"text":"which subjects are known"}
-{"text":"find known entities"}
-{"text":"read active facts"}
-{"text":"show active facts"}
-{"text":"inspect current assertions"}
-{"text":"get active observations"}
-{"text":"read receipt history"}
-{"text":"show receipt history"}
-{"text":"list past assertions"}
-{"text":"inspect earlier observations"}
-{"text":"trace revision lineage"}
-{"text":"show revision lineage"}
-{"text":"follow a correction chain"}
-{"text":"inspect predecessor receipts"}
-{"text":"read hypothesis"}
-{"text":"show rule reading"}
-{"text":"evaluate a conclusion"}
-{"text":"check conflicting evidence"}
-{"text":"hello"}
-{"text":"thank you"}
-{"text":"tell me a joke"}
-{"text":"what is the weather"}
-{"text":"play music"}
-{"text":"do not read journal status"}
-{"text":"do not list known subjects"}
-{"text":"do not read active facts"}
-{"text":"do not read receipt history"}
-{"text":"do not trace revision lineage"}
-{"text":"do not read hypothesis"}
-{"text":"read journal status"}
-{"text":"list known subjects"}
-{"text":"read active facts"}
-{"text":"read receipt history"}
-{"text":"trace revision lineage"}
-{"text":"read hypothesis"}
-{"text":"hello"}
-{"text":"do not read active facts"}
-{"text":"read journal status and list known subjects"}
-{"text":"please check the conflicting evidence"}
-{"text":"read active facts for crossing:north valid at 1000 known at 1300"}
-{"text":"show journal status"}
-{"text":"inspect journal limits"}
-{"text":"what does the journal currently hold"}
-{"text":"which subjects does the journal know about"}
-{"text":"give me the active facts please"}
-{"text":"walk the lineage of that revision"}
-{"text":"what is the current reading of the evidence"}
-{"text":"how many receipts are stored right now"}
-{"text":"tell me about the journal budgets"}
-{"text":"show me everything you know"}
-{"text":"history of receipts for this subject"}
-{"text":"who changed this fact and when"}
-{"text":"is there a contested conclusion"}
-{"text":"summarize the hypothesis for me"}
-{"text":"list every subject you have seen"}
-{"text":"read the facts that are active today"}
-{"text":"trace how this revision came to be"}
-{"text":"check the journal status quickly"}
-{"text":"i would like the receipt history"}
-{"text":"could you read the hypothesis"}
-{"text":"never list the subjects"}
-{"text":"status"}
-{"text":"read janus calendar"}
-{"text":"show the janus calendar coordinates please"}
-{"text":"do not read janus calendar"}
-{"text":"which event happened first"}
-{"text":"which event did I learn about first"}
-{"text":"compare janus calendar clocks"}
-{"text":"do not compare occurrence and receipt times"}
-{"text":"which reports arrived about earlier events"}
-{"text":"what did I learn on Friday about earlier events"}
-{"text":"what did I learn yesterday about earlier events"}
-{"text":"do not search for late reports"}
-{"text":"what changed my conclusion"}
-{"text":"which evidence changed my reading"}
-{"text":"show which evidence changed my conclusion"}
-{"text":"do not trace my conclusion"}
+{"text":"read journal status","status":"call","tool":"lalo_status"}
+{"text":"show journal status","status":"call","tool":"lalo_status"}
+{"text":"inspect journal limits","status":"call","tool":"lalo_status"}
+{"text":"count journal receipts","status":"call","tool":"lalo_status"}
+{"text":"list known subjects","status":"call","tool":"lalo_subjects"}
+{"text":"show known subjects","status":"call","tool":"lalo_subjects"}
+{"text":"which subjects are known","status":"call","tool":"lalo_subjects"}
+{"text":"find known entities","status":"call","tool":"lalo_subjects"}
+{"text":"read active facts","status":"call","tool":"lalo_facts"}
+{"text":"show active facts","status":"call","tool":"lalo_facts"}
+{"text":"inspect current assertions","status":"call","tool":"lalo_facts"}
+{"text":"get active observations","status":"call","tool":"lalo_facts"}
+{"text":"read receipt history","status":"call","tool":"lalo_history"}
+{"text":"show receipt history","status":"call","tool":"lalo_history"}
+{"text":"list past assertions","status":"call","tool":"lalo_history"}
+{"text":"inspect earlier observations","status":"call","tool":"lalo_history"}
+{"text":"trace revision lineage","status":"call","tool":"lalo_lineage"}
+{"text":"show revision lineage","status":"call","tool":"lalo_lineage"}
+{"text":"follow a correction chain","status":"call","tool":"lalo_lineage"}
+{"text":"inspect predecessor receipts","status":"call","tool":"lalo_lineage"}
+{"text":"read hypothesis","status":"call","tool":"lalo_reading"}
+{"text":"show rule reading","status":"call","tool":"lalo_reading"}
+{"text":"evaluate a conclusion","status":"call","tool":"lalo_reading"}
+{"text":"check conflicting evidence","status":"call","tool":"lalo_reading"}
+{"text":"hello","status":"no_call","tool":null}
+{"text":"thank you","status":"no_call","tool":null}
+{"text":"tell me a joke","status":"no_call","tool":null}
+{"text":"what is the weather","status":"no_call","tool":null}
+{"text":"play music","status":"no_call","tool":null}
+{"text":"do not read journal status","status":"no_call","tool":null}
+{"text":"do not list known subjects","status":"no_call","tool":null}
+{"text":"do not read active facts","status":"no_call","tool":null}
+{"text":"do not read receipt history","status":"no_call","tool":null}
+{"text":"do not trace revision lineage","status":"no_call","tool":null}
+{"text":"do not read hypothesis","status":"no_call","tool":null}
+{"text":"read journal status","status":"call","tool":"lalo_status"}
+{"text":"list known subjects","status":"call","tool":"lalo_subjects"}
+{"text":"read active facts","status":"call","tool":"lalo_facts"}
+{"text":"read receipt history","status":"call","tool":"lalo_history"}
+{"text":"trace revision lineage","status":"call","tool":"lalo_lineage"}
+{"text":"read hypothesis","status":"call","tool":"lalo_reading"}
+{"text":"hello","status":"no_call","tool":null}
+{"text":"do not read active facts","status":"no_call","tool":null}
+{"text":"read journal status and list known subjects","status":"ambiguous","tool":null}
+{"text":"please check the conflicting evidence","status":"call","tool":"lalo_reading"}
+{"text":"read active facts for crossing:north valid at 1000 known at 1300","status":"call","tool":"lalo_facts"}
+{"text":"show journal status","status":"call","tool":"lalo_status"}
+{"text":"inspect journal limits","status":"call","tool":"lalo_status"}
+{"text":"what does the journal currently hold","status":"no_call","tool":null}
+{"text":"which subjects does the journal know about","status":"call","tool":"lalo_subjects"}
+{"text":"give me the active facts please","status":"call","tool":"lalo_facts"}
+{"text":"walk the lineage of that revision","status":"call","tool":"lalo_lineage"}
+{"text":"what is the current reading of the evidence","status":"no_call","tool":null}
+{"text":"how many receipts are stored right now","status":"no_call","tool":null}
+{"text":"tell me about the journal budgets","status":"no_call","tool":null}
+{"text":"show me everything you know","status":"no_call","tool":null}
+{"text":"history of receipts for this subject","status":"no_call","tool":null}
+{"text":"who changed this fact and when","status":"no_call","tool":null}
+{"text":"is there a contested conclusion","status":"no_call","tool":null}
+{"text":"summarize the hypothesis for me","status":"call","tool":"lalo_reading"}
+{"text":"list every subject you have seen","status":"no_call","tool":null}
+{"text":"read the facts that are active today","status":"call","tool":"lalo_facts"}
+{"text":"trace how this revision came to be","status":"call","tool":"lalo_lineage"}
+{"text":"check the journal status quickly","status":"call","tool":"lalo_status"}
+{"text":"i would like the receipt history","status":"no_call","tool":null}
+{"text":"could you read the hypothesis","status":"no_call","tool":null}
+{"text":"never list the subjects","status":"no_call","tool":null}
+{"text":"status","status":"no_call","tool":null}
+{"text":"read janus calendar","status":"call","tool":"lalo_calendar"}
+{"text":"show the janus calendar coordinates please","status":"call","tool":"lalo_calendar"}
+{"text":"do not read janus calendar","status":"no_call","tool":null}
+{"text":"which event happened first","status":"call","tool":"lalo_calendar"}
+{"text":"which event did I learn about first","status":"call","tool":"lalo_calendar"}
+{"text":"compare janus calendar clocks","status":"call","tool":"lalo_calendar"}
+{"text":"do not compare occurrence and receipt times","status":"no_call","tool":null}
+{"text":"which reports arrived about earlier events","status":"call","tool":"lalo_history"}
+{"text":"what did I learn on Friday about earlier events","status":"call","tool":"lalo_history"}
+{"text":"what did I learn yesterday about earlier events","status":"call","tool":"lalo_history"}
+{"text":"do not search for late reports","status":"no_call","tool":null}
+{"text":"what changed my conclusion","status":"call","tool":"lalo_reading"}
+{"text":"which evidence changed my reading","status":"call","tool":"lalo_reading"}
+{"text":"show which evidence changed my conclusion","status":"call","tool":"lalo_reading"}
+{"text":"do not trace my conclusion","status":"no_call","tool":null}
+{"text":"What is the magnitude of the earthquake?","status":"call","tool":"lalo_facts"}
+{"text":"Could you tell me the current magnitude of the earthquake?","status":"call","tool":"lalo_facts"}
+{"text":"Don Eduardo, what was the reported magnitude of this earthquake?","status":"call","tool":"lalo_facts"}
+{"text":"Please give me the magnitude of this earthquake.","status":"call","tool":"lalo_facts"}
+{"text":"What's the earthquake's magnitude?","status":"call","tool":"lalo_facts"}
+{"text":"Could you tell me the reported magnitude of this earthquake?","status":"call","tool":"lalo_facts"}
+{"text":"What was the reported magnitude of the earthquake?","status":"call","tool":"lalo_facts"}
+{"text":"What is this earthquake's current magnitude?","status":"call","tool":"lalo_facts"}
+{"text":"How strong was the earthquake?","status":"call","tool":"lalo_facts"}
+{"text":"Do not tell me the magnitude of this earthquake.","status":"no_call","tool":null}
+{"text":"Never tell me how strong this earthquake was.","status":"no_call","tool":null}
+{"text":"Hello Don Eduardo.","status":"no_call","tool":null}

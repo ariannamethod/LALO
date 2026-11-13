@@ -136,6 +136,15 @@ past stays put. [Action memory contract](docs/ACTION_MEMORY.md).
 
 No Python in LALO's runtime, build or tests.
 
+An optional **Gemma 3-270M-IT encounter** now runs through the pinned NoTorch
+Harness. The model asks Don an ordinary magnitude question about a selected
+earthquake, receives his source receipts and answers. Don records its question,
+answer, token counts and exact weight identity in the same world. A later
+source correction changes the next answer; AML reopens the earlier encounter
+with its original speech and evidence. Optional native DoE experts retain
+their own saved state between those processes.
+[Run the model encounter and inspect its receipts](docs/MODEL_ENCOUNTERS.md).
+
 LALO plays instruments; the world keeps sounding while no model is asking.
 USGS revisions, NOAA weather frame listings, device fixes, kept camera frames and Don's own reads arrive through
 one door into one bounded journal. Each context is a fresh, bounded reading
@@ -175,9 +184,10 @@ receipt window about events before a given instant. A late correction
 returns its own receipt and the ID of the assertion it revises. Give
 `lalo_reading` a `sinceKnownAt` baseline to see how Don revised his conclusion
 about one world instant, with the source receipts behind each change.
-The AML submodule supplies both JANUS and action memory. Dependabot checks its
-`main` branch daily at 03:17 UTC and opens update PRs. After pulling a merged update, run
-`git submodule update --init deps/aml` to use that revision locally.
+AML supplies JANUS and action memory; the optional NoTorch submodule supplies
+model inference and experts. Dependabot checks their `main` branches daily
+at 03:17 UTC and opens update PRs. After pulling a merged update, run
+`git submodule update --init deps/aml`; include `deps/notorch` for model encounters.
 
 Offline and reproducible. Stream input, one-shot live acquisition and optional
 AML snapshot replay: [Event background](docs/BACKGROUND.md).
