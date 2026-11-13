@@ -56,3 +56,12 @@
 {"text":"can you tell me the magnitude of this earthquake","tool":"lalo_facts","arguments":{}}
 {"text":"give me the magnitude of this earthquake","tool":"lalo_facts","arguments":{}}
 {"text":"what's this earthquake's magnitude","tool":"lalo_facts","arguments":{}}
+{"text":"what did i say earlier","tool":"lalo_history","arguments":{}}
+{"text":"show my previous statements","tool":"lalo_history","arguments":{}}
+{"text":"what was the magnitude history of the reported earthquake","tool":"lalo_history","arguments":{}}
+{"text":"show this earthquake magnitude history","tool":"lalo_history","arguments":{}}
+{"text":"do not show my previous statements","tool":null,"arguments":{}}
+{"text":"do not read earthquake magnitude history","tool":null,"arguments":{}}
+{"text":"what is the reported magnitude of this earthquake","tool":"lalo_facts","arguments":{}}
+{"text":"read my earlier utterances","tool":"lalo_history","arguments":{}}
+{"text":"how did the magnitude change for this earthquake","tool":"lalo_history","arguments":{}}

@@ -8,7 +8,7 @@ import { runModelEncounter, replayModelEncounter } from '../src/model-encounter.
 
 export async function main(args) {
   const allowed = new Set(['--model', '--journal', '--scope', '--memory', '--id', '--agent',
-    '--experts-output', '--spore-in', '--replay']);
+    '--experts-output', '--spore-in', '--replay', '--activity']);
   const options = {};
   for (let i = 0; i < args.length; i += 2) {
     if (!allowed.has(args[i]) || !args[i + 1] || args[i + 1].startsWith('--') || Object.hasOwn(options, args[i]))
@@ -30,7 +30,7 @@ export async function main(args) {
   const router = await createNativeRouter();
   try {
     const outcome = await runModelEncounter({ journal, scope, model, router, clock: Date.now,
-      id: options['--id'], agent: options['--agent'] || 'agent:gemma-270m' });
+      id: options['--id'], agent: options['--agent'] || 'agent:gemma-270m', activity: options['--activity'] });
     let acknowledgment;
     try { acknowledgment = await memory.append(outcome.action, outcome.journal); }
     catch (error) {

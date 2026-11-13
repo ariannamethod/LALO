@@ -33,23 +33,36 @@ also preserves each native spore. The model adapter verifies the GGUF SHA-256
 
 The quake sources are synthetic. Model generation, native routing, expert
 updates and AML persistence execute their real implementations. Separate Node
-processes perform the first encounter, corrected encounter and old-answer replay:
+processes perform the first encounter, corrected encounter, two history queries
+and saved-answer replay:
 
 | Stage | Source magnitude | Gemma's recorded answer |
 |---|---:|---|
 | First source receipt | 2.9 | The magnitude of the earthquake is 2.9. |
 | Later correction to that receipt | 3.4 | The magnitude of the earthquake is 3.4. |
+| Ask for own speech at the first answer cutoff | 2.9 | Recalls its first answer from the two original utterance receipts. |
+| Ask for earthquake magnitude history | 2.9, 3.4 | Reads both magnitude versions and their predecessor link. |
 | Reopen the first AML encounter | 2.9 | The magnitude of the earthquake is 2.9. |
 
-Both native modes produced these answers in the initial Linux x86_64 run.
-The experiment asserts the values and predecessor link. It also checks that
+Both native modes passed the four-encounter sequence on Linux x86_64.
+The extended experiment asserts the values, exact history receipt IDs, predecessor
+link and replay of both history encounters. The self-history cutoff is the
+completion of the first answer, although its input journal already includes
+the later 3.4 answer. The earthquake history cutoff includes the correction. It also checks that
 the new expert process starts with the exact SHA-256 saved after the first answer.
 
 ## Ordinary words and an explicit focus
 
-This first language contract answers magnitude questions about **one selected
-USGS event**. The host names the focus and both clocks; the model speaks ordinary
-English and supplies no JSON or tool schema. For example:
+The host selects one activity, its subject and explicit time scope. The model
+speaks ordinary English and supplies no JSON or tool schema.
+
+| Activity flag | Subject | Scope clocks | Tool |
+|---|---|---|---|
+| `--activity magnitude` (default) | Selected `usgs:` event | `validAt`, `knownAt` | `lalo_facts` |
+| `--activity self-history` | Querying `agent:` identity | `knownAt` | `lalo_history`, predicate `utterance` |
+| `--activity quake-history` | Selected `usgs:` event | `knownAt` | `lalo_history`, predicate `magnitude` |
+
+A magnitude scope, for example:
 
 ```json
 {"subject":"usgs:synthetic1","validAt":1792065600000,"knownAt":1792065602000}
@@ -59,10 +72,25 @@ English and supplies no JSON or tool schema. For example:
 whole-question variants are defined in `bindModelQuestion`. The bridge records
 the original question, the binding rule and the provenance of every argument.
 The native selector receives the original question verbatim, including its
-whitespace. Nine added field examples cover earthquake magnitude requests and
-their negations. The existing tool host validates the explicit arguments.
-Bindings use version 2; saved version 1 encounters retain their canonical
-intent during replay.
+whitespace. The routing field covers magnitude requests, own-speech history, earthquake
+history and their negations. The original 95 labeled decisions remain intact;
+six new labeled history requests bring the C/AML corpus to 101. The existing tool host validates the explicit arguments.
+Bindings use version 3 and record the activity and selected tool. Encounter
+results use version 2; replay retains encounter version 1 and binding versions
+1 (canonical intent) and 2 (original question).
+
+“What did I say earlier?” binds to the querying agent’s utterances at `knownAt`.
+“What was the magnitude history of the reported earthquake?” binds to all
+magnitude receipts known for the selected event. History scopes have exactly
+`subject` and `knownAt`; a supplied `validAt` is rejected. The self-history
+subject must equal the querying agent. The question being generated is observed
+after the frozen source snapshot and cannot become its own history evidence.
+
+For history answers the model receives the exact utterance strings or magnitude
+values, in receipt order. Clock and identifier digits stay in the saved tool
+result, which retains every original field and predecessor link. Replay
+reconstructs the same presentation from those original receipts and verifies
+the answer prompt.
 
 Questions naming another date, region or event, adding another request, or
 otherwise falling outside this contract return `MODEL_QUESTION_UNRESOLVED`.
@@ -138,7 +166,8 @@ are removed; this profile records greedy sampling, two matrix threads, one
 attention thread and floating activations.
 
 An exhausted token budget, unavailable native process, unresolved question,
-wrong/failed tool read or incomplete evidence returns a failed encounter with
+wrong/failed tool read or incomplete evidence (including a history exceeding
+the 32-row tool budget) returns a failed encounter with
 the observations already completed. Generation stops on that path. The memory
 acknowledgment separately reports whether the failed or successful encounter
 was saved. An observation group either fits completely or leaves the prior

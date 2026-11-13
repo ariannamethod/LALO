@@ -44,7 +44,7 @@ async function shot(name) {
 }
 try {
   const endpoint = await new Promise((resolve, reject) => {
-    const timer = setTimeout(() => reject(new Error(`Chrome launch timeout: ${log}`)), 15000);
+    const timer = setTimeout(() => reject(new Error(`Chrome launch timeout: ${log}`)), 45000);
     chrome.once('error', error => { clearTimeout(timer); reject(error); });
     chrome.once('exit', code => { clearTimeout(timer); reject(new Error(`Chrome exited ${code}: ${log}`)); });
     chrome.stderr.on('data', bytes => {

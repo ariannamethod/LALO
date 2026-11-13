@@ -138,7 +138,8 @@ No Python in LALO's runtime, build or tests.
 
 An optional **Gemma 3-270M-IT encounter** now runs through the pinned NoTorch
 Harness. The model asks Don an ordinary magnitude question about a selected
-earthquake, receives his source receipts and answers. Don records its question,
+earthquake, its magnitude history, or its own earlier statements. It receives
+Don’s source receipts and answers. Don records its question,
 answer, token counts and exact weight identity in the same world. A later
 source correction changes the next answer; AML reopens the earlier encounter
 with its original speech and evidence. Optional native DoE experts retain
