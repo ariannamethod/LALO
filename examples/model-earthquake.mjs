@@ -78,6 +78,30 @@ for (const activity of ['self-history', 'quake-history']) {
   assert.equal(opened.answer, encounter.encounter.answer.output.text);
   preceding = encounter;
 }
+const comparisonWorld = await memory.recall({ sequence: preceding.memory.sequence, snapshot: true });
+await save('comparison-world.json', comparisonWorld.journal);
+await save('comparison-scope.json', { subject: second.encounter.scope.subject, knownAt: second.encounter.scope.knownAt });
+const changed = await child([...base, '--journal', join(root, 'comparison-world.json'),
+  '--scope', join(root, 'comparison-scope.json'), '--id', 'answer-change', '--activity', 'answer-change',
+  '--compare-from', String(first.memory.sequence), '--compare-to', String(second.memory.sequence),
+  ...(mode ? ['--experts-output', join(root, 'comparison-experts'), '--spore-in', preceding.expertState] : [])]);
+await save('comparison.json', changed);
+assert.equal(changed.status, 'executed');
+assert.equal(changed.encounter.read.request.text, changed.encounter.question.output.text);
+assert.equal(changed.encounter.read.call.name, 'lalo_history');
+assert.deepEqual(changed.encounter.comparison.revisions.map(r => r.path), [[earlier.id, later.id]]);
+assert.equal(changed.encounter.comparison.before.answer, first.encounter.answer.output.text);
+assert.equal(changed.encounter.comparison.after.answer, second.encounter.answer.output.text);
+assert.match(changed.encounter.answer.output.text, /2\.9[\s\S]*3\.4/);
+assert.match(changed.encounter.answer.output.text, /updat|revis|chang/i);
+assert.doesNotMatch(changed.encounter.answer.output.text, /decreas/i);
+if (mode) assert.equal(changed.encounter.question.output.metadata.stateBefore,
+  preceding.encounter.answer.output.metadata.stateAfter);
+const comparisonReplay = await child(['--memory', memoryPath, '--replay', String(changed.memory.sequence)]);
+await save('comparison-replay.json', comparisonReplay);
+assert.equal(comparisonReplay.comparison, 'match');
+assert.equal(comparisonReplay.answer, changed.encounter.answer.output.text);
+assert.deepEqual(comparisonReplay.sourceComparison, changed.encounter.comparison);
 const replay = await child(['--memory', memoryPath, '--replay', String(first.memory.sequence)]);
 await save('replay.json', replay);
 assert.equal(replay.comparison, 'match');
@@ -88,6 +112,8 @@ const summary = { syntheticSources: true, liveModel: first.encounter.identity, e
   corrected: { question: second.encounter.question.output.text, answer: second.encounter.answer.output.text, receipt: later.id,
     supersedes: later.supersedes }, replay: { comparison: replay.comparison, answer: replay.answer },
   histories,
+  comparison: { question: changed.encounter.question.output.text, answer: changed.encounter.answer.output.text,
+    evidence: changed.encounter.comparison, replay: comparisonReplay.comparison },
   expertStateRestored: mode ? second.encounter.question.output.metadata.stateBefore === first.encounter.answer.output.metadata.stateAfter : null,
   memory: { first: first.memory, second: second.memory } };
 await save('summary.json', summary);

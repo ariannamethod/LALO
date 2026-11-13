@@ -3,6 +3,61 @@
 The engineering record. New entries first. README keeps the pulse; this file
 keeps the measurements, decisions, sources and scars.
 
+## 2026-11-13 — Which source revision changed the saved answer
+
+Starting at `20d50c9`, add the optional `answer-change` encounter. The host
+selects two successful magnitude encounters by AML sequence. Their subject,
+world instant, agent and weight identity must agree, and their saved worlds
+must be chronological prefixes of the current world. Web Crypto verifies both
+original snapshot SHA-256 values; the existing replay reproduces both source
+reads and validates both original utterances before any new generation.
+
+Gemma asks what changed between its saved answers. That original question
+crosses the native C selector to `lalo_history` at the later saved encounter's
+receipt cutoff. The comparison names both AML sequence/head addresses, exact
+answer receipt IDs and speech, earlier/later premise IDs, added/removed rows,
+and the full predecessor path from each old premise to its revision. Speech
+change and evidence change have separate flags. Independent additions have
+no predecessor. A revised event entering the requested world-time scope is
+classified separately when its earlier version was outside the old read.
+
+* The real model generated “What was the most significant change in the two
+  saved answers?” In both plain NoTorch and native learning-expert modes it
+  answered “The old magnitude is 2.9, and the revised magnitude is 3.4.”
+  A fifth process follows the previous four-encounter experiment; its expert
+  input hash equals the previous history answer's output hash. A new process
+  reopens the comparison from AML, verifies both original worlds and source
+  reads, reproduces the revision chain, and returns the exact saved sentence.
+* Native question probes initially produced broad questions about understanding
+  the world, generic acknowledgments, empty output, or “your answer” instead
+  of “my answer.” Whole-question binding rejects unsupported forms. The final
+  task refers to two saved answers and yields a supported comparison question.
+  Initial answer presentations omitted both magnitudes or mentioned only 3.4;
+  the final presentation puts the verified revision first, includes both exact
+  original answers, and asks for the old and revised magnitudes. No generation
+  is rewritten or retried automatically. Probe prompts and results are retained.
+* Seven new portable tests cover multi-step revision, a future correction beyond
+  the comparison cutoff, unchanged sources with changed/unchanged speech,
+  independent-source classification in a synthetic helper fixture, preserved
+  wrong earlier speech, changed scope/identity/order/snapshot rejection,
+  truncated history, old bindings, and event-time corrections entering scope.
+  The current USGS instrument owns one event-source chain; its independent-source
+  comparison case is tested at the pure comparison-helper boundary.
+* Binding v4 adds the comparison questions; encounter v3 stores a bounded
+  comparison context and derived result. Magnitude/history encounters remain
+  v2. Replay keeps binding versions 1–4 and encounter versions 1–3. Only original
+  magnitude encounters may be compared, avoiding recursive embedded comparisons.
+  Context is limited to 65,536 UTF-8 bytes. A history exceeding one complete
+  tool page retains the question and stops before generating an explanation.
+* Eight added selector examples preserve all 101 previous labeled decisions.
+  C/AML decisions and evidence agree on 109/109 requests; max score delta 1e-6.
+  Debian 13 x86_64, AMD EPYC 9V45, Node 24.22.1, GCC 14.2.0, unchanged pinned
+  NoTorch, AML and Gemma Q8_0. Core 146/146; native routing/memory/JANUS 28/28;
+  live native model gate 4/4 including both five-encounter sequences. A real
+  saved v3 self-history binding from the preceding step replays with match.
+  NoTorch performs inference and expert updates; AML verifies and stores memory.
+  [Measurements and probe results](docs/validation/model-answer-change-2026-11-13.json).
+
 ## 2026-11-13 — Don returns the model's own past, and the source's revisions
 
 Starting at `5d8df17`, extend the optional native encounter with `self-history`

@@ -65,3 +65,11 @@
 {"text":"what is the reported magnitude of this earthquake","tool":"lalo_facts","arguments":{}}
 {"text":"read my earlier utterances","tool":"lalo_history","arguments":{}}
 {"text":"how did the magnitude change for this earthquake","tool":"lalo_history","arguments":{}}
+{"text":"why did my answer change","tool":"lalo_history","arguments":{}}
+{"text":"why has my answer changed","tool":"lalo_history","arguments":{}}
+{"text":"what caused my answer to change","tool":"lalo_history","arguments":{}}
+{"text":"do not explain why my answer changed","tool":null,"arguments":{}}
+{"text":"do not show why my answer changed","tool":null,"arguments":{}}
+{"text":"what was the most significant change in the two saved answers","tool":"lalo_history","arguments":{}}
+{"text":"what was the change in the two saved answers","tool":"lalo_history","arguments":{}}
+{"text":"do not compare the two saved answers","tool":null,"arguments":{}}
