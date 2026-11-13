@@ -1,0 +1,923 @@
+{
+  "date": "2026-11-13",
+  "base": "2495d27b6907432b35101d59b84bc0810239ebf3",
+  "notorch": "374e1710d83ac3745ba21ede3e11745768062ef6",
+  "aml": "8f577e8c0d6171012ae056b55b813443ab3ef9d2",
+  "environment": {
+    "system": "Debian 13 x86_64",
+    "cpu": "AMD EPYC 9V45",
+    "node": "v24.22.1",
+    "compiler": "GCC 14.2.0",
+    "matrixThreads": 2,
+    "attentionThreads": 1,
+    "floatActivations": true
+  },
+  "syntheticSources": true,
+  "modelGenerations": "Native NoTorch; pinned real Gemma weights; greedy temperature 0; separate processes",
+  "commands": [
+    "node --test tests/*.test.js",
+    "make -C deps/aml calendar-bridge",
+    "node --test tests/native-router.integration.mjs tests/action-memory.integration.mjs tests/janus-calendar.integration.mjs",
+    "node scripts/wolfe-diff.mjs",
+    "LALO_GEMMA_GGUF=build/models/gemma-3-270m-it-Q8_0.gguf LALO_MODEL_EVIDENCE_DIR=build/question-evidence node --test tests/notorch-model.integration.mjs"
+  ],
+  "checks": {
+    "core": 134,
+    "native": 28,
+    "liveModel": 4,
+    "routeParity": "95/95",
+    "labeledRouterDecisions": 95,
+    "legacyEncounterReplay": "match"
+  },
+  "runs": [
+    {
+      "mode": "plain",
+      "identity": {
+        "name": "Gemma 3-270M-IT Q8_0",
+        "repository": "ggml-org/gemma-3-270m-it-GGUF",
+        "revision": "e7647be17ae1108f2f605ed061ca0608b171afff",
+        "filename": "gemma-3-270m-it-Q8_0.gguf",
+        "sha256": "0ef57d2c838458a1952664260dcba38e5bdda37494f3af732f06e4add24068e3",
+        "runtime": "notorch",
+        "runtimeSha256": "5ea145875c850b6c947868e9f68ff905e21e30b9bc15fbfd4b28de5e207bc53b",
+        "profile": "gemma3-270m-it-chat/v1",
+        "experts": false
+      },
+      "first": {
+        "id": "first",
+        "scope": {
+          "subject": "usgs:synthetic1",
+          "validAt": 1792065600000,
+          "knownAt": 1792065602000
+        },
+        "question": {
+          "prompt": "You can ask Don Eduardo about an earthquake. You need its magnitude. Write one short question to Don. Do not answer it.",
+          "output": {
+            "text": "What is the magnitude of the earthquake?\n",
+            "metadata": {
+              "inputTokens": 35,
+              "outputTokens": 9,
+              "choices": [
+                3689,
+                563,
+                506,
+                14889,
+                529,
+                506,
+                38073,
+                236881,
+                107,
+                106
+              ],
+              "finishReason": "stop",
+              "maxTokens": 96,
+              "temperature": 0,
+              "threads": 2,
+              "floatActivations": true,
+              "stateBefore": null,
+              "stateAfter": null,
+              "diagnosticSha256": "c2a6cb47eb9b03c7b6ef979ceb9f9c3b4e6ab7dc843d4d897bff7f58646f70bd"
+            }
+          },
+          "observedAt": 1794586914733
+        },
+        "binding": {
+          "format": "lalo/model-question",
+          "version": 2,
+          "rule": "focused-quake-magnitude/v2",
+          "question": "What is the magnitude of the earthquake?\n",
+          "scope": {
+            "subject": "usgs:synthetic1",
+            "validAt": 1792065600000,
+            "knownAt": 1792065602000
+          },
+          "argumentSources": {
+            "subject": "scope.subject",
+            "validAt": "scope.validAt",
+            "knownAt": "scope.knownAt",
+            "predicate": "question:magnitude"
+          },
+          "request": {
+            "text": "What is the magnitude of the earthquake?\n",
+            "arguments": {
+              "subject": "usgs:synthetic1",
+              "validAt": 1792065600000,
+              "knownAt": 1792065602000,
+              "predicate": "magnitude"
+            }
+          }
+        },
+        "read": {
+          "format": "lalo/action",
+          "version": 1,
+          "status": "executed",
+          "request": {
+            "text": "What is the magnitude of the earthquake?\n",
+            "arguments": {
+              "subject": "usgs:synthetic1",
+              "validAt": 1792065600000,
+              "knownAt": 1792065602000,
+              "predicate": "magnitude"
+            }
+          },
+          "route": {
+            "status": "call",
+            "activation": 0.967248,
+            "scoreKind": "routing activation, not factual reliability",
+            "explanation": {
+              "mode": "neural",
+              "score_kind": "activation, not calibrated probability",
+              "winner": "lalo_facts",
+              "evidence": [
+                "what",
+                "magnitude",
+                "earthquake"
+              ],
+              "arguments": [],
+              "margin": 0.617561
+            }
+          },
+          "call": {
+            "name": "lalo_facts",
+            "arguments": {
+              "subject": "usgs:synthetic1",
+              "validAt": 1792065600000,
+              "knownAt": 1792065602000,
+              "predicate": "magnitude"
+            },
+            "argumentSource": "request.arguments"
+          },
+          "result": {
+            "ok": true,
+            "data": {
+              "validAt": 1792065600000,
+              "knownAt": 1792065602000,
+              "items": [
+                {
+                  "id": "usgs:synthetic1:1792065601000:magnitude",
+                  "subject": "usgs:synthetic1",
+                  "predicate": "magnitude",
+                  "value": 2.9,
+                  "source": "https://earthquake.usgs.gov/earthquakes/eventpage/synthetic1",
+                  "validFrom": 1792065600000,
+                  "validTo": 1792065600001,
+                  "recordedAt": 1792065602000,
+                  "supersedes": null
+                }
+              ],
+              "total": 1,
+              "offset": 0,
+              "nextOffset": null,
+              "complete": true
+            }
+          }
+        },
+        "answer": {
+          "prompt": "Question: What is the magnitude of the earthquake?\n\nDon Eduardo returned these source receipts:\n[{\"id\":\"usgs:synthetic1:1792065601000:magnitude\",\"subject\":\"usgs:synthetic1\",\"predicate\":\"magnitude\",\"value\":2.9,\"source\":\"https://earthquake.usgs.gov/earthquakes/eventpage/synthetic1\",\"validFrom\":1792065600000,\"validTo\":1792065600001,\"recordedAt\":1792065602000,\"supersedes\":null}]\nAnswer the question in one short sentence using only these receipts. If they contain no magnitude, say it is unavailable.",
+          "output": {
+            "text": "The magnitude of the earthquake is 2.9.\n",
+            "metadata": {
+              "inputTokens": 173,
+              "outputTokens": 12,
+              "choices": [
+                818,
+                14889,
+                529,
+                506,
+                38073,
+                563,
+                236743,
+                236778,
+                236761,
+                236819,
+                236761,
+                107,
+                106
+              ],
+              "finishReason": "stop",
+              "maxTokens": 96,
+              "temperature": 0,
+              "threads": 2,
+              "floatActivations": true,
+              "stateBefore": null,
+              "stateAfter": null,
+              "diagnosticSha256": "84abc0157fefb11727326e86ab7dbe2111ffe00386185906bd796ee268e02d54"
+            }
+          },
+          "observedAt": 1794586916539
+        },
+        "receipts": [
+          "model:first:question:utterance",
+          "model:first:question:phase",
+          "model:first:question:model_sha256",
+          "model:first:question:input_tokens",
+          "model:first:question:output_tokens",
+          "model:first:question:finish_reason",
+          "model:first:answer:utterance",
+          "model:first:answer:phase",
+          "model:first:answer:model_sha256",
+          "model:first:answer:input_tokens",
+          "model:first:answer:output_tokens",
+          "model:first:answer:finish_reason"
+        ],
+        "memory": {
+          "state": "saved",
+          "sequence": 1,
+          "head": "a7a570565957a4269fbed592cdd563681a2a4917ad44c72ddeb32371278b05e6",
+          "snapshot": {
+            "sha256": "38eb52000bb72a3740e6e25665816476a2d018b69a5f8ba2457263628c7b72c2",
+            "records": 20,
+            "bytes": 6067
+          }
+        }
+      },
+      "corrected": {
+        "id": "corrected",
+        "scope": {
+          "subject": "usgs:synthetic1",
+          "validAt": 1792065600000,
+          "knownAt": 1794586916593
+        },
+        "question": {
+          "prompt": "You can ask Don Eduardo about an earthquake. You need its magnitude. Write one short question to Don. Do not answer it.",
+          "output": {
+            "text": "What is the magnitude of the earthquake?\n",
+            "metadata": {
+              "inputTokens": 35,
+              "outputTokens": 9,
+              "choices": [
+                3689,
+                563,
+                506,
+                14889,
+                529,
+                506,
+                38073,
+                236881,
+                107,
+                106
+              ],
+              "finishReason": "stop",
+              "maxTokens": 96,
+              "temperature": 0,
+              "threads": 2,
+              "floatActivations": true,
+              "stateBefore": null,
+              "stateAfter": null,
+              "diagnosticSha256": "6e7f43e656ba7784d024b06ddc62c8ab874e7b806bea431a7c2d7f42839c6e81"
+            }
+          },
+          "observedAt": 1794586918072
+        },
+        "binding": {
+          "format": "lalo/model-question",
+          "version": 2,
+          "rule": "focused-quake-magnitude/v2",
+          "question": "What is the magnitude of the earthquake?\n",
+          "scope": {
+            "subject": "usgs:synthetic1",
+            "validAt": 1792065600000,
+            "knownAt": 1794586916593
+          },
+          "argumentSources": {
+            "subject": "scope.subject",
+            "validAt": "scope.validAt",
+            "knownAt": "scope.knownAt",
+            "predicate": "question:magnitude"
+          },
+          "request": {
+            "text": "What is the magnitude of the earthquake?\n",
+            "arguments": {
+              "subject": "usgs:synthetic1",
+              "validAt": 1792065600000,
+              "knownAt": 1794586916593,
+              "predicate": "magnitude"
+            }
+          }
+        },
+        "read": {
+          "format": "lalo/action",
+          "version": 1,
+          "status": "executed",
+          "request": {
+            "text": "What is the magnitude of the earthquake?\n",
+            "arguments": {
+              "subject": "usgs:synthetic1",
+              "validAt": 1792065600000,
+              "knownAt": 1794586916593,
+              "predicate": "magnitude"
+            }
+          },
+          "route": {
+            "status": "call",
+            "activation": 0.967248,
+            "scoreKind": "routing activation, not factual reliability",
+            "explanation": {
+              "mode": "neural",
+              "score_kind": "activation, not calibrated probability",
+              "winner": "lalo_facts",
+              "evidence": [
+                "what",
+                "magnitude",
+                "earthquake"
+              ],
+              "arguments": [],
+              "margin": 0.617561
+            }
+          },
+          "call": {
+            "name": "lalo_facts",
+            "arguments": {
+              "subject": "usgs:synthetic1",
+              "validAt": 1792065600000,
+              "knownAt": 1794586916593,
+              "predicate": "magnitude"
+            },
+            "argumentSource": "request.arguments"
+          },
+          "result": {
+            "ok": true,
+            "data": {
+              "validAt": 1792065600000,
+              "knownAt": 1794586916593,
+              "items": [
+                {
+                  "id": "usgs:synthetic1:1792065604000:magnitude",
+                  "subject": "usgs:synthetic1",
+                  "predicate": "magnitude",
+                  "value": 3.4,
+                  "source": "https://earthquake.usgs.gov/earthquakes/eventpage/synthetic1",
+                  "validFrom": 1792065600000,
+                  "validTo": 1792065600001,
+                  "recordedAt": 1794586916593,
+                  "supersedes": "usgs:synthetic1:1792065601000:magnitude"
+                }
+              ],
+              "total": 1,
+              "offset": 0,
+              "nextOffset": null,
+              "complete": true
+            }
+          }
+        },
+        "answer": {
+          "prompt": "Question: What is the magnitude of the earthquake?\n\nDon Eduardo returned these source receipts:\n[{\"id\":\"usgs:synthetic1:1792065604000:magnitude\",\"subject\":\"usgs:synthetic1\",\"predicate\":\"magnitude\",\"value\":3.4,\"source\":\"https://earthquake.usgs.gov/earthquakes/eventpage/synthetic1\",\"validFrom\":1792065600000,\"validTo\":1792065600001,\"recordedAt\":1794586916593,\"supersedes\":\"usgs:synthetic1:1792065601000:magnitude\"}]\nAnswer the question in one short sentence using only these receipts. If they contain no magnitude, say it is unavailable.",
+          "output": {
+            "text": "The magnitude of the earthquake is 3.4.\n",
+            "metadata": {
+              "inputTokens": 194,
+              "outputTokens": 12,
+              "choices": [
+                818,
+                14889,
+                529,
+                506,
+                38073,
+                563,
+                236743,
+                236800,
+                236761,
+                236812,
+                236761,
+                107,
+                106
+              ],
+              "finishReason": "stop",
+              "maxTokens": 96,
+              "temperature": 0,
+              "threads": 2,
+              "floatActivations": true,
+              "stateBefore": null,
+              "stateAfter": null,
+              "diagnosticSha256": "8b5e2f4ea1d9726643e17dc2c75aeaf809dd0aea2bbceff4a838aba78d64657a"
+            }
+          },
+          "observedAt": 1794586920028
+        },
+        "receipts": [
+          "model:corrected:question:utterance",
+          "model:corrected:question:phase",
+          "model:corrected:question:model_sha256",
+          "model:corrected:question:input_tokens",
+          "model:corrected:question:output_tokens",
+          "model:corrected:question:finish_reason",
+          "model:corrected:answer:utterance",
+          "model:corrected:answer:phase",
+          "model:corrected:answer:model_sha256",
+          "model:corrected:answer:input_tokens",
+          "model:corrected:answer:output_tokens",
+          "model:corrected:answer:finish_reason"
+        ],
+        "memory": {
+          "state": "saved",
+          "sequence": 2,
+          "head": "f44cc4f866c03fc8e8c2d8cd07104640fccee266dd6e578ef1a45348dd188df9",
+          "snapshot": {
+            "sha256": "1f9b1db28a468bcd0256807a6b8fdddd95c65908896686c0be3faf39fa050ecd",
+            "records": 40,
+            "bytes": 12437
+          }
+        }
+      },
+      "replay": {
+        "comparison": "match",
+        "question": "What is the magnitude of the earthquake?\n",
+        "answer": "The magnitude of the earthquake is 2.9.\n",
+        "read": {
+          "format": "lalo/action-replay",
+          "version": 1,
+          "call": {
+            "name": "lalo_facts",
+            "arguments": {
+              "subject": "usgs:synthetic1",
+              "validAt": 1792065600000,
+              "knownAt": 1792065602000,
+              "predicate": "magnitude"
+            }
+          },
+          "result": {
+            "ok": true,
+            "data": {
+              "validAt": 1792065600000,
+              "knownAt": 1792065602000,
+              "items": [
+                {
+                  "id": "usgs:synthetic1:1792065601000:magnitude",
+                  "subject": "usgs:synthetic1",
+                  "predicate": "magnitude",
+                  "value": 2.9,
+                  "source": "https://earthquake.usgs.gov/earthquakes/eventpage/synthetic1",
+                  "validFrom": 1792065600000,
+                  "validTo": 1792065600001,
+                  "recordedAt": 1792065602000,
+                  "supersedes": null
+                }
+              ],
+              "total": 1,
+              "offset": 0,
+              "nextOffset": null,
+              "complete": true
+            }
+          },
+          "comparison": "match"
+        }
+      }
+    },
+    {
+      "mode": "experts",
+      "identity": {
+        "name": "Gemma 3-270M-IT Q8_0",
+        "repository": "ggml-org/gemma-3-270m-it-GGUF",
+        "revision": "e7647be17ae1108f2f605ed061ca0608b171afff",
+        "filename": "gemma-3-270m-it-Q8_0.gguf",
+        "sha256": "0ef57d2c838458a1952664260dcba38e5bdda37494f3af732f06e4add24068e3",
+        "runtime": "notorch",
+        "runtimeSha256": "5ea145875c850b6c947868e9f68ff905e21e30b9bc15fbfd4b28de5e207bc53b",
+        "profile": "gemma3-270m-it-chat/v1",
+        "experts": true
+      },
+      "first": {
+        "id": "first",
+        "scope": {
+          "subject": "usgs:synthetic1",
+          "validAt": 1792065600000,
+          "knownAt": 1792065602000
+        },
+        "question": {
+          "prompt": "You can ask Don Eduardo about an earthquake. You need its magnitude. Write one short question to Don. Do not answer it.",
+          "output": {
+            "text": "What is the magnitude of the earthquake?\n",
+            "metadata": {
+              "inputTokens": 35,
+              "outputTokens": 9,
+              "choices": [
+                3689,
+                563,
+                506,
+                14889,
+                529,
+                506,
+                38073,
+                236881,
+                107,
+                106
+              ],
+              "finishReason": "stop",
+              "maxTokens": 96,
+              "temperature": 0,
+              "threads": 2,
+              "floatActivations": true,
+              "stateBefore": null,
+              "stateAfter": "f76d4c3e23bd9ef9c70c49b436c715d7bb6291e487b3e8e7eecc778846663ae8",
+              "diagnosticSha256": "2cfb9db8cdaacc1d25ed12d9b90f70fd14afd9e059f1c29bc9ce89cdffe6916e"
+            }
+          },
+          "observedAt": 1794586922756
+        },
+        "binding": {
+          "format": "lalo/model-question",
+          "version": 2,
+          "rule": "focused-quake-magnitude/v2",
+          "question": "What is the magnitude of the earthquake?\n",
+          "scope": {
+            "subject": "usgs:synthetic1",
+            "validAt": 1792065600000,
+            "knownAt": 1792065602000
+          },
+          "argumentSources": {
+            "subject": "scope.subject",
+            "validAt": "scope.validAt",
+            "knownAt": "scope.knownAt",
+            "predicate": "question:magnitude"
+          },
+          "request": {
+            "text": "What is the magnitude of the earthquake?\n",
+            "arguments": {
+              "subject": "usgs:synthetic1",
+              "validAt": 1792065600000,
+              "knownAt": 1792065602000,
+              "predicate": "magnitude"
+            }
+          }
+        },
+        "read": {
+          "format": "lalo/action",
+          "version": 1,
+          "status": "executed",
+          "request": {
+            "text": "What is the magnitude of the earthquake?\n",
+            "arguments": {
+              "subject": "usgs:synthetic1",
+              "validAt": 1792065600000,
+              "knownAt": 1792065602000,
+              "predicate": "magnitude"
+            }
+          },
+          "route": {
+            "status": "call",
+            "activation": 0.967248,
+            "scoreKind": "routing activation, not factual reliability",
+            "explanation": {
+              "mode": "neural",
+              "score_kind": "activation, not calibrated probability",
+              "winner": "lalo_facts",
+              "evidence": [
+                "what",
+                "magnitude",
+                "earthquake"
+              ],
+              "arguments": [],
+              "margin": 0.617561
+            }
+          },
+          "call": {
+            "name": "lalo_facts",
+            "arguments": {
+              "subject": "usgs:synthetic1",
+              "validAt": 1792065600000,
+              "knownAt": 1792065602000,
+              "predicate": "magnitude"
+            },
+            "argumentSource": "request.arguments"
+          },
+          "result": {
+            "ok": true,
+            "data": {
+              "validAt": 1792065600000,
+              "knownAt": 1792065602000,
+              "items": [
+                {
+                  "id": "usgs:synthetic1:1792065601000:magnitude",
+                  "subject": "usgs:synthetic1",
+                  "predicate": "magnitude",
+                  "value": 2.9,
+                  "source": "https://earthquake.usgs.gov/earthquakes/eventpage/synthetic1",
+                  "validFrom": 1792065600000,
+                  "validTo": 1792065600001,
+                  "recordedAt": 1792065602000,
+                  "supersedes": null
+                }
+              ],
+              "total": 1,
+              "offset": 0,
+              "nextOffset": null,
+              "complete": true
+            }
+          }
+        },
+        "answer": {
+          "prompt": "Question: What is the magnitude of the earthquake?\n\nDon Eduardo returned these source receipts:\n[{\"id\":\"usgs:synthetic1:1792065601000:magnitude\",\"subject\":\"usgs:synthetic1\",\"predicate\":\"magnitude\",\"value\":2.9,\"source\":\"https://earthquake.usgs.gov/earthquakes/eventpage/synthetic1\",\"validFrom\":1792065600000,\"validTo\":1792065600001,\"recordedAt\":1792065602000,\"supersedes\":null}]\nAnswer the question in one short sentence using only these receipts. If they contain no magnitude, say it is unavailable.",
+          "output": {
+            "text": "The magnitude of the earthquake is 2.9.\n",
+            "metadata": {
+              "inputTokens": 173,
+              "outputTokens": 12,
+              "choices": [
+                818,
+                14889,
+                529,
+                506,
+                38073,
+                563,
+                236743,
+                236778,
+                236761,
+                236819,
+                236761,
+                107,
+                106
+              ],
+              "finishReason": "stop",
+              "maxTokens": 96,
+              "temperature": 0,
+              "threads": 2,
+              "floatActivations": true,
+              "stateBefore": "f76d4c3e23bd9ef9c70c49b436c715d7bb6291e487b3e8e7eecc778846663ae8",
+              "stateAfter": "9fb41e755931ef417da9402f916e5fda6ef9ae92ac610b68e7f230cc5f9c002b",
+              "diagnosticSha256": "025ac23142b096ac51d7480003bbea4b5be65da8978d0c5cc591e9ca3ff13b1e"
+            }
+          },
+          "observedAt": 1794586925520
+        },
+        "receipts": [
+          "model:first:question:utterance",
+          "model:first:question:phase",
+          "model:first:question:model_sha256",
+          "model:first:question:input_tokens",
+          "model:first:question:output_tokens",
+          "model:first:question:finish_reason",
+          "model:first:question:expert_state_after",
+          "model:first:answer:utterance",
+          "model:first:answer:phase",
+          "model:first:answer:model_sha256",
+          "model:first:answer:input_tokens",
+          "model:first:answer:output_tokens",
+          "model:first:answer:finish_reason",
+          "model:first:answer:expert_state_before",
+          "model:first:answer:expert_state_after"
+        ],
+        "memory": {
+          "state": "saved",
+          "sequence": 1,
+          "head": "0df7c1eb24800dd264a88581690648c2fa48f1c10c8e24b25bb779cf7e7f0a12",
+          "snapshot": {
+            "sha256": "e24692e541bc780f7456e2688bada0ae1da3e345784307e7de10649e0a16cbab",
+            "records": 23,
+            "bytes": 7178
+          }
+        }
+      },
+      "corrected": {
+        "id": "corrected",
+        "scope": {
+          "subject": "usgs:synthetic1",
+          "validAt": 1792065600000,
+          "knownAt": 1794586925578
+        },
+        "question": {
+          "prompt": "You can ask Don Eduardo about an earthquake. You need its magnitude. Write one short question to Don. Do not answer it.",
+          "output": {
+            "text": "What is the magnitude of the earthquake?\n",
+            "metadata": {
+              "inputTokens": 35,
+              "outputTokens": 9,
+              "choices": [
+                3689,
+                563,
+                506,
+                14889,
+                529,
+                506,
+                38073,
+                236881,
+                107,
+                106
+              ],
+              "finishReason": "stop",
+              "maxTokens": 96,
+              "temperature": 0,
+              "threads": 2,
+              "floatActivations": true,
+              "stateBefore": "9fb41e755931ef417da9402f916e5fda6ef9ae92ac610b68e7f230cc5f9c002b",
+              "stateAfter": "0f64664d430eba23ce2838d3f43444cde792578653fd7a73c2abd0ead9a0b5a1",
+              "diagnosticSha256": "1cfa8fb16f8999b3e8c1631abc015957908ffbc41850c92aa5bc7a84b3b02af3"
+            }
+          },
+          "observedAt": 1794586928084
+        },
+        "binding": {
+          "format": "lalo/model-question",
+          "version": 2,
+          "rule": "focused-quake-magnitude/v2",
+          "question": "What is the magnitude of the earthquake?\n",
+          "scope": {
+            "subject": "usgs:synthetic1",
+            "validAt": 1792065600000,
+            "knownAt": 1794586925578
+          },
+          "argumentSources": {
+            "subject": "scope.subject",
+            "validAt": "scope.validAt",
+            "knownAt": "scope.knownAt",
+            "predicate": "question:magnitude"
+          },
+          "request": {
+            "text": "What is the magnitude of the earthquake?\n",
+            "arguments": {
+              "subject": "usgs:synthetic1",
+              "validAt": 1792065600000,
+              "knownAt": 1794586925578,
+              "predicate": "magnitude"
+            }
+          }
+        },
+        "read": {
+          "format": "lalo/action",
+          "version": 1,
+          "status": "executed",
+          "request": {
+            "text": "What is the magnitude of the earthquake?\n",
+            "arguments": {
+              "subject": "usgs:synthetic1",
+              "validAt": 1792065600000,
+              "knownAt": 1794586925578,
+              "predicate": "magnitude"
+            }
+          },
+          "route": {
+            "status": "call",
+            "activation": 0.967248,
+            "scoreKind": "routing activation, not factual reliability",
+            "explanation": {
+              "mode": "neural",
+              "score_kind": "activation, not calibrated probability",
+              "winner": "lalo_facts",
+              "evidence": [
+                "what",
+                "magnitude",
+                "earthquake"
+              ],
+              "arguments": [],
+              "margin": 0.617561
+            }
+          },
+          "call": {
+            "name": "lalo_facts",
+            "arguments": {
+              "subject": "usgs:synthetic1",
+              "validAt": 1792065600000,
+              "knownAt": 1794586925578,
+              "predicate": "magnitude"
+            },
+            "argumentSource": "request.arguments"
+          },
+          "result": {
+            "ok": true,
+            "data": {
+              "validAt": 1792065600000,
+              "knownAt": 1794586925578,
+              "items": [
+                {
+                  "id": "usgs:synthetic1:1792065604000:magnitude",
+                  "subject": "usgs:synthetic1",
+                  "predicate": "magnitude",
+                  "value": 3.4,
+                  "source": "https://earthquake.usgs.gov/earthquakes/eventpage/synthetic1",
+                  "validFrom": 1792065600000,
+                  "validTo": 1792065600001,
+                  "recordedAt": 1794586925578,
+                  "supersedes": "usgs:synthetic1:1792065601000:magnitude"
+                }
+              ],
+              "total": 1,
+              "offset": 0,
+              "nextOffset": null,
+              "complete": true
+            }
+          }
+        },
+        "answer": {
+          "prompt": "Question: What is the magnitude of the earthquake?\n\nDon Eduardo returned these source receipts:\n[{\"id\":\"usgs:synthetic1:1792065604000:magnitude\",\"subject\":\"usgs:synthetic1\",\"predicate\":\"magnitude\",\"value\":3.4,\"source\":\"https://earthquake.usgs.gov/earthquakes/eventpage/synthetic1\",\"validFrom\":1792065600000,\"validTo\":1792065600001,\"recordedAt\":1794586925578,\"supersedes\":\"usgs:synthetic1:1792065601000:magnitude\"}]\nAnswer the question in one short sentence using only these receipts. If they contain no magnitude, say it is unavailable.",
+          "output": {
+            "text": "The magnitude of the earthquake is 3.4.\n",
+            "metadata": {
+              "inputTokens": 194,
+              "outputTokens": 12,
+              "choices": [
+                818,
+                14889,
+                529,
+                506,
+                38073,
+                563,
+                236743,
+                236800,
+                236761,
+                236812,
+                236761,
+                107,
+                106
+              ],
+              "finishReason": "stop",
+              "maxTokens": 96,
+              "temperature": 0,
+              "threads": 2,
+              "floatActivations": true,
+              "stateBefore": "0f64664d430eba23ce2838d3f43444cde792578653fd7a73c2abd0ead9a0b5a1",
+              "stateAfter": "2dbd667d5d90a5d2d0161411f61fffe30cbce797e3725a5ff24b6c16ea72347d",
+              "diagnosticSha256": "64452dbbc8aef4ba983e28ba5b7b34d351e5ecceb37cde852e5badcd5d5073db"
+            }
+          },
+          "observedAt": 1794586930970
+        },
+        "receipts": [
+          "model:corrected:question:utterance",
+          "model:corrected:question:phase",
+          "model:corrected:question:model_sha256",
+          "model:corrected:question:input_tokens",
+          "model:corrected:question:output_tokens",
+          "model:corrected:question:finish_reason",
+          "model:corrected:question:expert_state_before",
+          "model:corrected:question:expert_state_after",
+          "model:corrected:answer:utterance",
+          "model:corrected:answer:phase",
+          "model:corrected:answer:model_sha256",
+          "model:corrected:answer:input_tokens",
+          "model:corrected:answer:output_tokens",
+          "model:corrected:answer:finish_reason",
+          "model:corrected:answer:expert_state_before",
+          "model:corrected:answer:expert_state_after"
+        ],
+        "memory": {
+          "state": "saved",
+          "sequence": 2,
+          "head": "071c19c5cf7729e733b65aba1d4306d47eade4c52d607ad04f1f2815afe156ad",
+          "snapshot": {
+            "sha256": "c119eb9b135fc51d43e1e06bc4f27796953069c4d31caddd3633080d61ae86b5",
+            "records": 47,
+            "bytes": 15048
+          }
+        }
+      },
+      "replay": {
+        "comparison": "match",
+        "question": "What is the magnitude of the earthquake?\n",
+        "answer": "The magnitude of the earthquake is 2.9.\n",
+        "read": {
+          "format": "lalo/action-replay",
+          "version": 1,
+          "call": {
+            "name": "lalo_facts",
+            "arguments": {
+              "subject": "usgs:synthetic1",
+              "validAt": 1792065600000,
+              "knownAt": 1792065602000,
+              "predicate": "magnitude"
+            }
+          },
+          "result": {
+            "ok": true,
+            "data": {
+              "validAt": 1792065600000,
+              "knownAt": 1792065602000,
+              "items": [
+                {
+                  "id": "usgs:synthetic1:1792065601000:magnitude",
+                  "subject": "usgs:synthetic1",
+                  "predicate": "magnitude",
+                  "value": 2.9,
+                  "source": "https://earthquake.usgs.gov/earthquakes/eventpage/synthetic1",
+                  "validFrom": 1792065600000,
+                  "validTo": 1792065600001,
+                  "recordedAt": 1792065602000,
+                  "supersedes": null
+                }
+              ],
+              "total": 1,
+              "offset": 0,
+              "nextOffset": null,
+              "complete": true
+            }
+          },
+          "comparison": "match"
+        }
+      }
+    }
+  ],
+  "router": {
+    "addedExamples": 9,
+    "previousCorpus": 83,
+    "retainedDecisions": 82,
+    "changed": [
+      {
+        "text": "give me the active facts please",
+        "before": "no_call",
+        "after": "call",
+        "tool": "lalo_facts"
+      }
+    ],
+    "bindingVersion": 2,
+    "modelQuestionBefore": "no_call",
+    "modelQuestionAfter": "lalo_facts"
+  }
+}

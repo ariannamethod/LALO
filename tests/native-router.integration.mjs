@@ -1,7 +1,7 @@
 // Explicit native gate: node scripts/build-router.mjs && node --test tests/native-router.integration.mjs
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtemp, writeFile, rm } from 'node:fs/promises';
+import { mkdtemp, readFile, writeFile, rm } from 'node:fs/promises';
 import { spawnSync } from 'node:child_process';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
@@ -18,6 +18,16 @@ const fixture = () => {
   world.add({ ...base, id: 'a2', value: false, recordedAt: 200, supersedes: 'a1' });
   return world;
 };
+
+test('the native field preserves labeled decisions and understands model questions directly', async t => {
+  const router = await createNativeRouter(); t.after(() => router.close());
+  const rows = (await readFile(new URL('./fixtures/wolfe-corpus.jsonl', import.meta.url), 'utf8'))
+    .trim().split('\n').map(JSON.parse);
+  for (const row of rows) {
+    const result = await router.route(row.text);
+    assert.deepEqual([result.status, result.calls[0]?.name ?? null], [row.status, row.tool], row.text);
+  }
+});
 
 test('real neural body selects all seven tools and executes explicit UTF-8 scope with both clocks', async t => {
   const router = await createNativeRouter(); t.after(() => router.close());
