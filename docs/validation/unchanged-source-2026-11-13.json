@@ -1,0 +1,1010 @@
+{
+  "format": "lalo/unchanged-source-validation",
+  "version": 1,
+  "date": "2026-11-13",
+  "base": "771a6e0",
+  "environment": {
+    "os": "Debian 13 x86_64",
+    "cpu": "AMD EPYC 9V45",
+    "node": "v24.22.1",
+    "gcc": "14.2.0"
+  },
+  "commands": {
+    "core": "node --test tests/*.test.js",
+    "native": "node --test tests/native-router.integration.mjs tests/action-memory.integration.mjs tests/janus-calendar.integration.mjs",
+    "parity": "node scripts/wolfe-diff.mjs",
+    "model": "LALO_GEMMA_GGUF=build/models/gemma-3-270m-it-Q8_0.gguf LALO_MODEL_EVIDENCE_DIR=build/stable-release-evidence node --test tests/notorch-model.integration.mjs"
+  },
+  "results": {
+    "core": {
+      "pass": 148,
+      "fail": 0
+    },
+    "native": {
+      "pass": 28,
+      "fail": 0
+    },
+    "parity": {
+      "decisions": 111,
+      "evidenceEqual": 111,
+      "total": 111,
+      "maxScoreDifference": 0.000001
+    },
+    "model": {
+      "pass": 5,
+      "fail": 0
+    }
+  },
+  "liveExperiments": [
+    {
+      "mode": "plain",
+      "syntheticQuakeSource": true,
+      "originalUtterances": "live native Gemma",
+      "identity": {
+        "name": "Gemma 3-270M-IT Q8_0",
+        "repository": "ggml-org/gemma-3-270m-it-GGUF",
+        "revision": "e7647be17ae1108f2f605ed061ca0608b171afff",
+        "filename": "gemma-3-270m-it-Q8_0.gguf",
+        "sha256": "0ef57d2c838458a1952664260dcba38e5bdda37494f3af732f06e4add24068e3",
+        "runtime": "notorch",
+        "runtimeSha256": "5ea145875c850b6c947868e9f68ff905e21e30b9bc15fbfd4b28de5e207bc53b",
+        "profile": "gemma3-270m-it-chat/v1",
+        "experts": false
+      },
+      "question": {
+        "prompt": "You have two saved answers. Ask Don Eduardo what changed between them. Write only a question.",
+        "output": {
+          "text": "What was the most significant change in the two saved answers?\n",
+          "metadata": {
+            "inputTokens": 28,
+            "outputTokens": 13,
+            "choices": [
+              3689,
+              691,
+              506,
+              1346,
+              3629,
+              2352,
+              528,
+              506,
+              1156,
+              10683,
+              12102,
+              236881,
+              107,
+              106
+            ],
+            "finishReason": "stop",
+            "maxTokens": 96,
+            "temperature": 0,
+            "threads": 2,
+            "floatActivations": true,
+            "stateBefore": null,
+            "stateAfter": null,
+            "diagnosticSha256": "2f4cc4e3a9441ff9e8853ba8c74933d914c91c231d6b43bb95b35a8ebdf3e2aa"
+          }
+        },
+        "observedAt": 1794598732072
+      },
+      "answer": {
+        "prompt": "Comparison result: no change in either the answer or the source.\nEarlier answer: \"The magnitude of the earthquake is 3.4.\\n\"\nLater answer: \"The magnitude of the earthquake is 3.4.\\n\"\nState that both the answer and the source stayed the same.",
+        "output": {
+          "text": "Yes, both the answer and the source stayed the same.\n",
+          "metadata": {
+            "inputTokens": 71,
+            "outputTokens": 13,
+            "choices": [
+              10784,
+              236764,
+              1800,
+              506,
+              3890,
+              532,
+              506,
+              3738,
+              20246,
+              506,
+              1638,
+              236761,
+              107,
+              106
+            ],
+            "finishReason": "stop",
+            "maxTokens": 96,
+            "temperature": 0,
+            "threads": 2,
+            "floatActivations": true,
+            "stateBefore": null,
+            "stateAfter": null,
+            "diagnosticSha256": "4430ee3b6c28295bb5b9c75b5b890a1ab3939d16fe33e21e5af915b813152f8d"
+          }
+        },
+        "observedAt": 1794598733316
+      },
+      "comparison": {
+        "format": "lalo/model-source-comparison",
+        "version": 1,
+        "references": {
+          "before": {
+            "sequence": 2,
+            "head": "4cfc194b0234896e4b86b4d1b8e8c86c8546a12eedccb95edc19c2bbac1a9da5"
+          },
+          "after": {
+            "sequence": 6,
+            "head": "62c4bff7ed2b2f6d3fe297e5241393da634b78808ff8312c07afdd106769bb1c"
+          }
+        },
+        "subject": "usgs:synthetic1",
+        "validAt": 1792065600000,
+        "before": {
+          "encounter": "corrected",
+          "answerReceipt": "model:corrected:answer:utterance",
+          "answer": "The magnitude of the earthquake is 3.4.\n",
+          "knownAt": 1794598715663,
+          "premises": [
+            "usgs:synthetic1:1792065604000:magnitude"
+          ]
+        },
+        "after": {
+          "encounter": "unchanged-source",
+          "answerReceipt": "model:unchanged-source:answer:utterance",
+          "answer": "The magnitude of the earthquake is 3.4.\n",
+          "knownAt": 1794598727502,
+          "premises": [
+            "usgs:synthetic1:1792065604000:magnitude"
+          ]
+        },
+        "answersChanged": false,
+        "evidenceChanged": false,
+        "added": [],
+        "removed": [],
+        "independentAdditions": [],
+        "unmatchedRevisions": [],
+        "revisions": []
+      },
+      "sourceRead": {
+        "knownAt": 1794598727502,
+        "items": [
+          {
+            "id": "usgs:synthetic1:1792065601000:magnitude",
+            "subject": "usgs:synthetic1",
+            "predicate": "magnitude",
+            "value": 2.9,
+            "source": "https://earthquake.usgs.gov/earthquakes/eventpage/synthetic1",
+            "validFrom": 1792065600000,
+            "validTo": 1792065600001,
+            "recordedAt": 1792065602000,
+            "supersedes": null
+          },
+          {
+            "id": "usgs:synthetic1:1792065604000:magnitude",
+            "subject": "usgs:synthetic1",
+            "predicate": "magnitude",
+            "value": 3.4,
+            "source": "https://earthquake.usgs.gov/earthquakes/eventpage/synthetic1",
+            "validFrom": 1792065600000,
+            "validTo": 1792065600001,
+            "recordedAt": 1794598715663,
+            "supersedes": "usgs:synthetic1:1792065601000:magnitude"
+          }
+        ],
+        "total": 2,
+        "offset": 0,
+        "nextOffset": null,
+        "complete": true
+      },
+      "expertStateRestored": null,
+      "replay": {
+        "comparison": "match",
+        "answer": "Yes, both the answer and the source stayed the same.\n",
+        "sourceComparison": {
+          "format": "lalo/model-source-comparison",
+          "version": 1,
+          "references": {
+            "before": {
+              "sequence": 2,
+              "head": "4cfc194b0234896e4b86b4d1b8e8c86c8546a12eedccb95edc19c2bbac1a9da5"
+            },
+            "after": {
+              "sequence": 6,
+              "head": "62c4bff7ed2b2f6d3fe297e5241393da634b78808ff8312c07afdd106769bb1c"
+            }
+          },
+          "subject": "usgs:synthetic1",
+          "validAt": 1792065600000,
+          "before": {
+            "encounter": "corrected",
+            "answerReceipt": "model:corrected:answer:utterance",
+            "answer": "The magnitude of the earthquake is 3.4.\n",
+            "knownAt": 1794598715663,
+            "premises": [
+              "usgs:synthetic1:1792065604000:magnitude"
+            ]
+          },
+          "after": {
+            "encounter": "unchanged-source",
+            "answerReceipt": "model:unchanged-source:answer:utterance",
+            "answer": "The magnitude of the earthquake is 3.4.\n",
+            "knownAt": 1794598727502,
+            "premises": [
+              "usgs:synthetic1:1792065604000:magnitude"
+            ]
+          },
+          "answersChanged": false,
+          "evidenceChanged": false,
+          "added": [],
+          "removed": [],
+          "independentAdditions": [],
+          "unmatchedRevisions": [],
+          "revisions": []
+        }
+      }
+    },
+    {
+      "mode": "experts",
+      "syntheticQuakeSource": true,
+      "originalUtterances": "live native Gemma",
+      "identity": {
+        "name": "Gemma 3-270M-IT Q8_0",
+        "repository": "ggml-org/gemma-3-270m-it-GGUF",
+        "revision": "e7647be17ae1108f2f605ed061ca0608b171afff",
+        "filename": "gemma-3-270m-it-Q8_0.gguf",
+        "sha256": "0ef57d2c838458a1952664260dcba38e5bdda37494f3af732f06e4add24068e3",
+        "runtime": "notorch",
+        "runtimeSha256": "5ea145875c850b6c947868e9f68ff905e21e30b9bc15fbfd4b28de5e207bc53b",
+        "profile": "gemma3-270m-it-chat/v1",
+        "experts": true
+      },
+      "question": {
+        "prompt": "You have two saved answers. Ask Don Eduardo what changed between them. Write only a question.",
+        "output": {
+          "text": "What was the result of the change in the answers?\n",
+          "metadata": {
+            "inputTokens": 28,
+            "outputTokens": 12,
+            "choices": [
+              3689,
+              691,
+              506,
+              1354,
+              529,
+              506,
+              2352,
+              528,
+              506,
+              12102,
+              236881,
+              107,
+              106
+            ],
+            "finishReason": "stop",
+            "maxTokens": 96,
+            "temperature": 0,
+            "threads": 2,
+            "floatActivations": true,
+            "stateBefore": "c82bc77802abb4525d15ab9f22a3ba25fb4b53bea06ad0ae1ef1d6b6826058d6",
+            "stateAfter": "fe7e8d9ab1cbb742783966e9d5fb0252d2a2827f02c3fdff714fc98967f623ab",
+            "diagnosticSha256": "eeecbe05ac333ed23874ce22418509224eaa958ef2f55bdb9d4d7ab96aa40ccc"
+          }
+        },
+        "observedAt": 1794598764259
+      },
+      "answer": {
+        "prompt": "Comparison result: no change in either the answer or the source.\nEarlier answer: \"The magnitude of the earthquake is 3.4.\\n\"\nLater answer: \"The magnitude of the earthquake is 3.4.\\n\"\nState that both the answer and the source stayed the same.",
+        "output": {
+          "text": "* **Original:** \"The magnitude of the earthquake is 3.4.\\n\"\n* **Later:** \"The magnitude of the earthquake is 3.4.\\n\"",
+          "metadata": {
+            "inputTokens": 71,
+            "outputTokens": 37,
+            "choices": [
+              236829,
+              5213,
+              30498,
+              53121,
+              623,
+              818,
+              14889,
+              529,
+              506,
+              38073,
+              563,
+              236743,
+              236800,
+              236761,
+              236812,
+              6810,
+              236749,
+              236775,
+              107,
+              236829,
+              5213,
+              42541,
+              53121,
+              623,
+              818,
+              14889,
+              529,
+              506,
+              38073,
+              563,
+              236743,
+              236800,
+              236761,
+              236812,
+              6810,
+              236749,
+              236775,
+              106
+            ],
+            "finishReason": "stop",
+            "maxTokens": 96,
+            "temperature": 0,
+            "threads": 2,
+            "floatActivations": true,
+            "stateBefore": "fe7e8d9ab1cbb742783966e9d5fb0252d2a2827f02c3fdff714fc98967f623ab",
+            "stateAfter": "3767efe1df7bc1d493aa5bddc2bbfe6553313e3a2bca68e18a92d09eb178a1ff",
+            "diagnosticSha256": "ec322b39b6f481582b13eeb1efdd4d6de655639236e527fd586077df5cbbbcfd"
+          }
+        },
+        "observedAt": 1794598766679
+      },
+      "comparison": {
+        "format": "lalo/model-source-comparison",
+        "version": 1,
+        "references": {
+          "before": {
+            "sequence": 2,
+            "head": "83f473c3aa947047b129b77cfab18b88880aaf9f31539cb2c7d9ab3e83b3d3b4"
+          },
+          "after": {
+            "sequence": 6,
+            "head": "58705f78cf04138cab428a93272636d175cb8a5a5f67b14a29926dbb50901297"
+          }
+        },
+        "subject": "usgs:synthetic1",
+        "validAt": 1792065600000,
+        "before": {
+          "encounter": "corrected",
+          "answerReceipt": "model:corrected:answer:utterance",
+          "answer": "The magnitude of the earthquake is 3.4.\n",
+          "knownAt": 1794598738406,
+          "premises": [
+            "usgs:synthetic1:1792065604000:magnitude"
+          ]
+        },
+        "after": {
+          "encounter": "unchanged-source",
+          "answerReceipt": "model:unchanged-source:answer:utterance",
+          "answer": "The magnitude of the earthquake is 3.4.\n",
+          "knownAt": 1794598756755,
+          "premises": [
+            "usgs:synthetic1:1792065604000:magnitude"
+          ]
+        },
+        "answersChanged": false,
+        "evidenceChanged": false,
+        "added": [],
+        "removed": [],
+        "independentAdditions": [],
+        "unmatchedRevisions": [],
+        "revisions": []
+      },
+      "sourceRead": {
+        "knownAt": 1794598756755,
+        "items": [
+          {
+            "id": "usgs:synthetic1:1792065601000:magnitude",
+            "subject": "usgs:synthetic1",
+            "predicate": "magnitude",
+            "value": 2.9,
+            "source": "https://earthquake.usgs.gov/earthquakes/eventpage/synthetic1",
+            "validFrom": 1792065600000,
+            "validTo": 1792065600001,
+            "recordedAt": 1792065602000,
+            "supersedes": null
+          },
+          {
+            "id": "usgs:synthetic1:1792065604000:magnitude",
+            "subject": "usgs:synthetic1",
+            "predicate": "magnitude",
+            "value": 3.4,
+            "source": "https://earthquake.usgs.gov/earthquakes/eventpage/synthetic1",
+            "validFrom": 1792065600000,
+            "validTo": 1792065600001,
+            "recordedAt": 1794598738406,
+            "supersedes": "usgs:synthetic1:1792065601000:magnitude"
+          }
+        ],
+        "total": 2,
+        "offset": 0,
+        "nextOffset": null,
+        "complete": true
+      },
+      "expertStateRestored": true,
+      "replay": {
+        "comparison": "match",
+        "answer": "* **Original:** \"The magnitude of the earthquake is 3.4.\\n\"\n* **Later:** \"The magnitude of the earthquake is 3.4.\\n\"",
+        "sourceComparison": {
+          "format": "lalo/model-source-comparison",
+          "version": 1,
+          "references": {
+            "before": {
+              "sequence": 2,
+              "head": "83f473c3aa947047b129b77cfab18b88880aaf9f31539cb2c7d9ab3e83b3d3b4"
+            },
+            "after": {
+              "sequence": 6,
+              "head": "58705f78cf04138cab428a93272636d175cb8a5a5f67b14a29926dbb50901297"
+            }
+          },
+          "subject": "usgs:synthetic1",
+          "validAt": 1792065600000,
+          "before": {
+            "encounter": "corrected",
+            "answerReceipt": "model:corrected:answer:utterance",
+            "answer": "The magnitude of the earthquake is 3.4.\n",
+            "knownAt": 1794598738406,
+            "premises": [
+              "usgs:synthetic1:1792065604000:magnitude"
+            ]
+          },
+          "after": {
+            "encounter": "unchanged-source",
+            "answerReceipt": "model:unchanged-source:answer:utterance",
+            "answer": "The magnitude of the earthquake is 3.4.\n",
+            "knownAt": 1794598756755,
+            "premises": [
+              "usgs:synthetic1:1792065604000:magnitude"
+            ]
+          },
+          "answersChanged": false,
+          "evidenceChanged": false,
+          "added": [],
+          "removed": [],
+          "independentAdditions": [],
+          "unmatchedRevisions": [],
+          "revisions": []
+        }
+      }
+    }
+  ],
+  "controls": [
+    {
+      "syntheticOriginalUtterances": true,
+      "changedSpeech": false,
+      "comparison": {
+        "format": "lalo/model-source-comparison",
+        "version": 1,
+        "references": {
+          "before": {
+            "sequence": 1,
+            "head": "1111111111111111111111111111111111111111111111111111111111111111"
+          },
+          "after": {
+            "sequence": 2,
+            "head": "2222222222222222222222222222222222222222222222222222222222222222"
+          }
+        },
+        "subject": "usgs:fixture",
+        "validAt": 0,
+        "before": {
+          "encounter": "before",
+          "answerReceipt": "model:before:answer:utterance",
+          "answer": "The magnitude is 2.9.",
+          "knownAt": 1,
+          "premises": [
+            "fixture:magnitude"
+          ]
+        },
+        "after": {
+          "encounter": "after",
+          "answerReceipt": "model:after:answer:utterance",
+          "answer": "The magnitude is 2.9.",
+          "knownAt": 2,
+          "premises": [
+            "fixture:magnitude"
+          ]
+        },
+        "answersChanged": false,
+        "evidenceChanged": false,
+        "added": [],
+        "removed": [],
+        "independentAdditions": [],
+        "unmatchedRevisions": [],
+        "revisions": []
+      },
+      "prompt": "Comparison result: no change in either the answer or the source.\nEarlier answer: \"The magnitude is 2.9.\"\nLater answer: \"The magnitude is 2.9.\"\nState that both the answer and the source stayed the same.",
+      "output": {
+        "text": "Yes, both the answer and the source stayed the same.\n",
+        "metadata": {
+          "inputTokens": 61,
+          "outputTokens": 13,
+          "choices": [
+            10784,
+            236764,
+            1800,
+            506,
+            3890,
+            532,
+            506,
+            3738,
+            20246,
+            506,
+            1638,
+            236761,
+            107,
+            106
+          ],
+          "finishReason": "stop",
+          "maxTokens": 96,
+          "temperature": 0,
+          "threads": 2,
+          "floatActivations": true,
+          "stateBefore": null,
+          "stateAfter": null,
+          "diagnosticSha256": "929b706e1544ecfe8614165d2c8be895aab543c0729d0cc0721cd2c81c97857a"
+        }
+      }
+    },
+    {
+      "syntheticOriginalUtterances": true,
+      "changedSpeech": true,
+      "comparison": {
+        "format": "lalo/model-source-comparison",
+        "version": 1,
+        "references": {
+          "before": {
+            "sequence": 1,
+            "head": "1111111111111111111111111111111111111111111111111111111111111111"
+          },
+          "after": {
+            "sequence": 2,
+            "head": "2222222222222222222222222222222222222222222222222222222222222222"
+          }
+        },
+        "subject": "usgs:fixture",
+        "validAt": 0,
+        "before": {
+          "encounter": "before",
+          "answerReceipt": "model:before:answer:utterance",
+          "answer": "The magnitude is 2.9.",
+          "knownAt": 1,
+          "premises": [
+            "fixture:magnitude"
+          ]
+        },
+        "after": {
+          "encounter": "after",
+          "answerReceipt": "model:after:answer:utterance",
+          "answer": "The magnitude is 3.4.",
+          "knownAt": 2,
+          "premises": [
+            "fixture:magnitude"
+          ]
+        },
+        "answersChanged": true,
+        "evidenceChanged": false,
+        "added": [],
+        "removed": [],
+        "independentAdditions": [],
+        "unmatchedRevisions": [],
+        "revisions": []
+      },
+      "prompt": "Comparison result: the answer text changed; the source did not change.\nEarlier answer: \"The magnitude is 2.9.\"\nLater answer: \"The magnitude is 3.4.\"\nSummarize this result in one sentence.",
+      "output": {
+        "text": "The answer text changed, and the source did not change.\n",
+        "metadata": {
+          "inputTokens": 58,
+          "outputTokens": 13,
+          "choices": [
+            818,
+            3890,
+            1816,
+            6692,
+            236764,
+            532,
+            506,
+            3738,
+            1602,
+            711,
+            2352,
+            236761,
+            107,
+            106
+          ],
+          "finishReason": "stop",
+          "maxTokens": 96,
+          "temperature": 0,
+          "threads": 2,
+          "floatActivations": true,
+          "stateBefore": null,
+          "stateAfter": null,
+          "diagnosticSha256": "9699bee4442793ebf77b2c8a69ece46e2bf69c14292aae27964878a8f8c87c69"
+        }
+      }
+    }
+  ],
+  "baselineFailure": [
+    {
+      "changedSpeech": false,
+      "syntheticOriginalUtterances": true,
+      "prompt": "Question: What was the most significant change in the two saved answers?\nDon compared your saved answers and their source receipts:\n{\"earlierAnswer\":\"The magnitude is 2.9.\",\"laterAnswer\":\"The magnitude is 2.9.\",\"earlierMagnitudes\":[2.9],\"laterMagnitudes\":[2.9],\"sourceRevisions\":[],\"newIndependentMagnitudes\":[],\"newlyApplicableRevisedMagnitudes\":[],\"answersChanged\":false,\"evidenceChanged\":false}\nExplain the change using these records in one short sentence.",
+      "output": {
+        "text": "The most significant change was the shift from the earlier answer to the later answer, indicating a change in the source of the information.\n",
+        "metadata": {
+          "inputTokens": 120,
+          "outputTokens": 27,
+          "choices": [
+            818,
+            1346,
+            3629,
+            2352,
+            691,
+            506,
+            8633,
+            699,
+            506,
+            6517,
+            3890,
+            531,
+            506,
+            3209,
+            3890,
+            236764,
+            17674,
+            496,
+            2352,
+            528,
+            506,
+            3738,
+            529,
+            506,
+            1938,
+            236761,
+            107,
+            106
+          ],
+          "finishReason": "stop",
+          "maxTokens": 96,
+          "temperature": 0,
+          "threads": 2,
+          "floatActivations": true,
+          "stateBefore": null,
+          "stateAfter": null,
+          "diagnosticSha256": "d24950a024756eba9f7a40e818f4cbf5ae8d499b594b14682ac5c81dec3f009f"
+        }
+      }
+    },
+    {
+      "changedSpeech": true,
+      "syntheticOriginalUtterances": true,
+      "prompt": "Question: What was the most significant change in the two saved answers?\nDon compared your saved answers and their source receipts:\n{\"earlierAnswer\":\"The magnitude is 2.9.\",\"laterAnswer\":\"The magnitude is 3.4.\",\"earlierMagnitudes\":[2.9],\"laterMagnitudes\":[2.9],\"sourceRevisions\":[],\"newIndependentMagnitudes\":[],\"newlyApplicableRevisedMagnitudes\":[],\"answersChanged\":true,\"evidenceChanged\":false}\nExplain the change using these records in one short sentence.",
+      "output": {
+        "text": "The most significant change was the shift from the earlier answer to the later answer, indicating a change in the source of the information.\n",
+        "metadata": {
+          "inputTokens": 120,
+          "outputTokens": 27,
+          "choices": [
+            818,
+            1346,
+            3629,
+            2352,
+            691,
+            506,
+            8633,
+            699,
+            506,
+            6517,
+            3890,
+            531,
+            506,
+            3209,
+            3890,
+            236764,
+            17674,
+            496,
+            2352,
+            528,
+            506,
+            3738,
+            529,
+            506,
+            1938,
+            236761,
+            107,
+            106
+          ],
+          "finishReason": "stop",
+          "maxTokens": 96,
+          "temperature": 0,
+          "threads": 2,
+          "floatActivations": true,
+          "stateBefore": null,
+          "stateAfter": null,
+          "diagnosticSha256": "3eee6e08da4ceab2fd716d5a804a973fd7603fedb8e0f1eb9ca7508a2f54c4f7"
+        }
+      }
+    }
+  ],
+  "presentationProbes": [
+    {
+      "kind": "same",
+      "prompt": "Don verified that both saved answers are identical and their source receipts are identical.\nBoth answers: \"The magnitude is 2.9.\"\nReport whether anything changed in one short sentence.",
+      "output": {
+        "text": "Yes, the magnitude of the answer is 2.9.\n",
+        "metadata": {
+          "inputTokens": 47,
+          "outputTokens": 14,
+          "choices": [
+            10784,
+            236764,
+            506,
+            14889,
+            529,
+            506,
+            3890,
+            563,
+            236743,
+            236778,
+            236761,
+            236819,
+            236761,
+            107,
+            106
+          ],
+          "finishReason": "stop",
+          "maxTokens": 96,
+          "temperature": 0,
+          "threads": 2,
+          "floatActivations": true,
+          "stateBefore": null,
+          "stateAfter": null,
+          "diagnosticSha256": "1f2f0f6f795318ee783f10190b9aa7b748cc8838c49ce7822f41e16686f6e2a3"
+        }
+      }
+    },
+    {
+      "kind": "different",
+      "prompt": "Don verified that the source receipts are identical. Only the model answer text changed.\nEarlier answer: \"The magnitude is 2.9.\"\nLater answer: \"The magnitude is 3.4.\"\nState what changed and what stayed the same in one sentence.",
+      "output": {
+        "text": "The magnitude of the source receipts was changed to 3.4.\n",
+        "metadata": {
+          "inputTokens": 64,
+          "outputTokens": 15,
+          "choices": [
+            818,
+            14889,
+            529,
+            506,
+            3738,
+            47104,
+            691,
+            6692,
+            531,
+            236743,
+            236800,
+            236761,
+            236812,
+            236761,
+            107,
+            106
+          ],
+          "finishReason": "stop",
+          "maxTokens": 96,
+          "temperature": 0,
+          "threads": 2,
+          "floatActivations": true,
+          "stateBefore": null,
+          "stateAfter": null,
+          "diagnosticSha256": "14e373d431fcb1d11928616fd120f793ebaffada3da9b489f1ac3bbc4d33aa86"
+        }
+      }
+    },
+    {
+      "kind": "same",
+      "prompt": "Comparison result: no change in either the answer or the source.\nEarlier answer: \"The magnitude is 2.9.\"\nLater answer: \"The magnitude is 2.9.\"\nSummarize this result in one sentence.",
+      "output": {
+        "text": "The result is the same, with the magnitude being 2.9.\n",
+        "metadata": {
+          "inputTokens": 57,
+          "outputTokens": 16,
+          "choices": [
+            818,
+            1354,
+            563,
+            506,
+            1638,
+            236764,
+            607,
+            506,
+            14889,
+            1646,
+            236743,
+            236778,
+            236761,
+            236819,
+            236761,
+            107,
+            106
+          ],
+          "finishReason": "stop",
+          "maxTokens": 96,
+          "temperature": 0,
+          "threads": 2,
+          "floatActivations": true,
+          "stateBefore": null,
+          "stateAfter": null,
+          "diagnosticSha256": "1f88bec1fa91106458c150d2d14974d1b4247cd0b90e637187c53fca26b898e9"
+        }
+      }
+    },
+    {
+      "kind": "different",
+      "prompt": "Comparison result: the answer text changed; the source did not change.\nEarlier answer: \"The magnitude is 2.9.\"\nLater answer: \"The magnitude is 3.4.\"\nSummarize this result in one sentence.",
+      "output": {
+        "text": "The answer text changed, and the source did not change.\n",
+        "metadata": {
+          "inputTokens": 58,
+          "outputTokens": 13,
+          "choices": [
+            818,
+            3890,
+            1816,
+            6692,
+            236764,
+            532,
+            506,
+            3738,
+            1602,
+            711,
+            2352,
+            236761,
+            107,
+            106
+          ],
+          "finishReason": "stop",
+          "maxTokens": 96,
+          "temperature": 0,
+          "threads": 2,
+          "floatActivations": true,
+          "stateBefore": null,
+          "stateAfter": null,
+          "diagnosticSha256": "f85b08c49ba777130bceaabf0ad5c17ed3468b8f4f709d9915fcd70c101d6f65"
+        }
+      }
+    },
+    {
+      "kind": "live",
+      "prompt": "Comparison result: no change in either the answer or the source.\nEarlier answer: \"The magnitude of the earthquake is 3.4.\\n\"\nLater answer: \"The magnitude of the earthquake is 3.4.\\n\"\nState that both the answer and the source stayed the same.",
+      "output": {
+        "text": "Yes, both the answer and the source stayed the same.\n",
+        "metadata": {
+          "inputTokens": 71,
+          "outputTokens": 13,
+          "choices": [
+            10784,
+            236764,
+            1800,
+            506,
+            3890,
+            532,
+            506,
+            3738,
+            20246,
+            506,
+            1638,
+            236761,
+            107,
+            106
+          ],
+          "finishReason": "stop",
+          "maxTokens": 96,
+          "temperature": 0,
+          "threads": 2,
+          "floatActivations": true,
+          "stateBefore": null,
+          "stateAfter": null,
+          "diagnosticSha256": "26b5347a8621d053870b94c55607b27536b5aa9b57a9b7331fbcfca0ab16a8b0"
+        }
+      }
+    },
+    {
+      "kind": "live",
+      "prompt": "Comparison result: no change in either the answer or the source.\nEarlier answer: \"The magnitude of the earthquake is 3.4.\\n\"\nLater answer: \"The magnitude of the earthquake is 3.4.\\n\"\nState whether the answer or the source changed.",
+      "output": {
+        "text": "The answer changed.\n",
+        "metadata": {
+          "inputTokens": 68,
+          "outputTokens": 5,
+          "choices": [
+            818,
+            3890,
+            6692,
+            236761,
+            107,
+            106
+          ],
+          "finishReason": "stop",
+          "maxTokens": 96,
+          "temperature": 0,
+          "threads": 2,
+          "floatActivations": true,
+          "stateBefore": null,
+          "stateAfter": null,
+          "diagnosticSha256": "481512111e9d28bc53c721e47d706a81de1468724c1bb60d49d252d8944f20c7"
+        }
+      }
+    },
+    {
+      "kind": "control",
+      "prompt": "Comparison result: no change in either the answer or the source.\nEarlier answer: \"The magnitude is 2.9.\"\nLater answer: \"The magnitude is 2.9.\"\nState that both the answer and the source stayed the same.",
+      "output": {
+        "text": "Yes, both the answer and the source stayed the same.\n",
+        "metadata": {
+          "inputTokens": 61,
+          "outputTokens": 13,
+          "choices": [
+            10784,
+            236764,
+            1800,
+            506,
+            3890,
+            532,
+            506,
+            3738,
+            20246,
+            506,
+            1638,
+            236761,
+            107,
+            106
+          ],
+          "finishReason": "stop",
+          "maxTokens": 96,
+          "temperature": 0,
+          "threads": 2,
+          "floatActivations": true,
+          "stateBefore": null,
+          "stateAfter": null,
+          "diagnosticSha256": "b03a271c49c43a0eaf74dc687778b4496a0ee066967d87dfe1edfdb8d14dd5fe"
+        }
+      }
+    },
+    {
+      "kind": "control",
+      "prompt": "Comparison result: no change in either the answer or the source.\nEarlier answer: \"The magnitude is 2.9.\"\nLater answer: \"The magnitude is 2.9.\"\nState whether the answer or the source changed.",
+      "output": {
+        "text": "The answer changed.\n",
+        "metadata": {
+          "inputTokens": 58,
+          "outputTokens": 5,
+          "choices": [
+            818,
+            3890,
+            6692,
+            236761,
+            107,
+            106
+          ],
+          "finishReason": "stop",
+          "maxTokens": 96,
+          "temperature": 0,
+          "threads": 2,
+          "floatActivations": true,
+          "stateBefore": null,
+          "stateAfter": null,
+          "diagnosticSha256": "4461d796f82a9e3625976e993074aa218d2c43f5f00ed93a86edc048fc9b0cba"
+        }
+      }
+    }
+  ],
+  "integrationFindings": [
+    "First v4 replay omitted sourceComparison; native replay assertion caught it. Fixed and added a direct unit assertion.",
+    "Six expert exchanges yielded another valid comparison paraphrase. v4 stopped with MODEL_QUESTION_UNRESOLVED and saved the question. v5 binds the new wording; native C and AML fields share its examples.",
+    "The expert unchanged result quoted the two identical Original/Later answers. The keyword-only assertion failed. The example now accepts an explicit unchanged result or both exact labeled copies and rejects the observed false source-change wording."
+  ],
+  "legacyV3": {
+    "comparison": "match",
+    "answer": "The old magnitude is 2.9, and the revised magnitude is 3.4."
+  }
+}

@@ -102,6 +102,47 @@ await save('comparison-replay.json', comparisonReplay);
 assert.equal(comparisonReplay.comparison, 'match');
 assert.equal(comparisonReplay.answer, changed.encounter.answer.output.text);
 assert.deepEqual(comparisonReplay.sourceComparison, changed.encounter.comparison);
+// A second real read without any new source receipt is the negative control.
+const stableWorld = await memory.recall({ sequence: changed.memory.sequence, snapshot: true });
+await save('unchanged-world.json', stableWorld.journal);
+await save('unchanged-scope.json', { ...second.encounter.scope, knownAt: Date.now() });
+const repeated = await child([...base, '--journal', join(root, 'unchanged-world.json'),
+  '--scope', join(root, 'unchanged-scope.json'), '--id', 'unchanged-source',
+  ...(mode ? ['--experts-output', join(root, 'unchanged-experts'), '--spore-in', changed.expertState] : [])]);
+await save('unchanged.json', repeated);
+assert.equal(repeated.status, 'executed');
+assert.deepEqual(repeated.encounter.read.result.data.items, second.encounter.read.result.data.items);
+if (mode) assert.equal(repeated.encounter.question.output.metadata.stateBefore,
+  changed.encounter.answer.output.metadata.stateAfter);
+const repeatedWorld = await memory.recall({ sequence: repeated.memory.sequence, snapshot: true });
+await save('stable-comparison-world.json', repeatedWorld.journal);
+await save('stable-comparison-scope.json', { subject: repeated.encounter.scope.subject, knownAt: repeated.encounter.scope.knownAt });
+const stable = await child([...base, '--journal', join(root, 'stable-comparison-world.json'),
+  '--scope', join(root, 'stable-comparison-scope.json'), '--id', 'stable-comparison', '--activity', 'answer-change',
+  '--compare-from', String(second.memory.sequence), '--compare-to', String(repeated.memory.sequence),
+  ...(mode ? ['--experts-output', join(root, 'stable-comparison-experts'), '--spore-in', repeated.expertState] : [])]);
+await save('stable-comparison.json', stable);
+assert.equal(stable.status, 'executed');
+assert.equal(stable.encounter.comparison.evidenceChanged, false);
+assert.deepEqual(stable.encounter.comparison.revisions, []);
+assert.equal(stable.encounter.comparison.answersChanged,
+  second.encounter.answer.output.text !== repeated.encounter.answer.output.text);
+if (stable.encounter.comparison.answersChanged) assert.match(stable.encounter.answer.output.text, /source did not change/i);
+else {
+  const text = stable.encounter.answer.output.text, quote = JSON.stringify(second.encounter.answer.output.text);
+  // Exact Original/Later quotations of the same speech also show no change.
+  const exactPair = /original/i.test(text) && /later/i.test(text) && text.split(quote).length - 1 === 2;
+  assert.ok(/(?:same|unchanged|no change|nothing changed)/i.test(text) || exactPair,
+    'Expected an unchanged result or the exact identical original/later quotations');
+}
+assert.doesNotMatch(stable.encounter.answer.output.text, /source (?:was |has |had )?(?:changed|revised|updated)|change in the source/i);
+if (mode) assert.equal(stable.encounter.question.output.metadata.stateBefore,
+  repeated.encounter.answer.output.metadata.stateAfter);
+const stableReplay = await child(['--memory', memoryPath, '--replay', String(stable.memory.sequence)]);
+await save('stable-comparison-replay.json', stableReplay);
+assert.equal(stableReplay.comparison, 'match');
+assert.equal(stableReplay.answer, stable.encounter.answer.output.text);
+assert.deepEqual(stableReplay.sourceComparison, stable.encounter.comparison);
 const replay = await child(['--memory', memoryPath, '--replay', String(first.memory.sequence)]);
 await save('replay.json', replay);
 assert.equal(replay.comparison, 'match');
@@ -114,6 +155,7 @@ const summary = { syntheticSources: true, liveModel: first.encounter.identity, e
   histories,
   comparison: { question: changed.encounter.question.output.text, answer: changed.encounter.answer.output.text,
     evidence: changed.encounter.comparison, replay: comparisonReplay.comparison },
+  stableComparison: { answer: stable.encounter.answer.output.text, evidence: stable.encounter.comparison, replay: stableReplay.comparison },
   expertStateRestored: mode ? second.encounter.question.output.metadata.stateBefore === first.encounter.answer.output.metadata.stateAfter : null,
   memory: { first: first.memory, second: second.memory } };
 await save('summary.json', summary);

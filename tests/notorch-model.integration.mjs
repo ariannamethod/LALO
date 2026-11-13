@@ -6,6 +6,8 @@ import { join, resolve } from 'node:path';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 import { createNoTorchModel } from '../scripts/notorch-model.mjs';
+import { modelChangePrompt } from '../src/model-comparison.js';
+import { unchangedSourceCase } from './fixtures/model-comparisons.js';
 import { MODEL_QUESTION_PROMPT } from '../src/model-encounter.js';
 
 const model = process.env.LALO_GEMMA_GGUF;
@@ -25,7 +27,7 @@ test('real Gemma crosses the native router and AML restart, with and without exp
       assert.equal(data.liveModel.experts, experts);
       assert.match(data.first.answer, /\b2\.9\b/); assert.match(data.corrected.answer, /\b3\.4\b/);
       const first = JSON.parse(await readFile(join(path, 'first.json'), 'utf8')).encounter;
-      assert.equal(first.binding.version, 4);
+      assert.equal(first.binding.version, 5);
       assert.equal(first.read.request.text, first.question.output.text);
       assert.equal(first.read.route.explanation.winner, 'lalo_facts');
       assert.equal(data.replay.answer, data.first.answer); assert.equal(data.replay.comparison, 'match');
@@ -76,4 +78,29 @@ test('corrupted expert restore fails without overwriting its parent or producing
     assert.deepEqual(await readFile(original.state()), parent);
     await assert.rejects(() => readFile(join(root, 'next', '0001.gguf')), { code: 'ENOENT' });
   } finally { await rm(root, { recursive: true, force: true }); }
+});
+
+test('real Gemma summarizes synthetic unchanged-source controls without inventing a source revision', async () => {
+  const evidence = [];
+  try {
+    for (const changedSpeech of [false, true]) {
+      const { comparison, read } = unchangedSourceCase(changedSpeech);
+      const prompt = modelChangePrompt('What was the most significant change in the two saved answers?', comparison, read);
+      const runtime = await createNoTorchModel({ model });
+      const output = await runtime.generate({ prompt });
+      evidence.push({ syntheticOriginalUtterances: true, changedSpeech, comparison, prompt, output });
+      assert.equal(output.metadata.finishReason, 'stop');
+      if (changedSpeech) {
+        assert.match(output.text, /answer text changed/i);
+        assert.match(output.text, /source did not change/i);
+      } else assert.match(output.text, /(?:same|unchanged|no change|nothing changed)/i);
+      assert.doesNotMatch(output.text, /source (?:was |has |had )?(?:changed|revised)|change in the source/i);
+    }
+  } finally {
+    if (process.env.LALO_MODEL_EVIDENCE_DIR) {
+      const root = resolve(process.env.LALO_MODEL_EVIDENCE_DIR);
+      await mkdir(root, { recursive: true });
+      await writeFile(join(root, 'unchanged-source-controls.json'), JSON.stringify(evidence, null, 2));
+    }
+  }
 });

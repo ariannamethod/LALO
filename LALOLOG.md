@@ -3,6 +3,52 @@
 The engineering record. New entries first. README keeps the pulse; this file
 keeps the measurements, decisions, sources and scars.
 
+## 2026-11-13 — Unchanged sources must survive the model's retelling
+
+Starting at `771a6e0`, probe the negative cases of saved-answer comparison.
+The existing structured comparison correctly reported unchanged evidence, but
+real Gemma returned “indicating a change in the source of the information” for
+both identical speech and changed speech with identical source receipts.
+The original utterances in these two controls are explicitly synthetic; Gemma
+produces the comparison sentence through the native NoTorch adapter.
+
+Presentation v2 now puts the computed finding before the exact answer strings:
+no change in either answer or source, or answer text changed while the source
+did not. The unchanged-answer task explicitly asks to state the verified same
+result. A “state whether” probe instead said “The answer changed” in both tested
+unchanged cases; the general summary task also produced an indirect answer
+listing equal magnitudes. These probes and the baseline failure are recorded.
+
+* Extend the live experiment to seven exchanges in each native mode. After the
+  source correction and its comparison, Gemma reads the same 3.4 receipt again,
+  then compares that answer with the preceding magnitude encounter. The source
+  evidence is identical. Every expert process restores its predecessor's hash;
+  the final comparison reopens from AML with the original speech and evidence.
+* The plain run states that the answer and source stayed the same. The expert
+  run may state that result or quote the exact identical Original/Later answers.
+  The example accepts either explicit sameness or the two exact labeled copies,
+  and rejects the observed false source-revision wording. The initial keyword
+  assertion rejected the correct side-by-side quotation; that test was repaired.
+  Controlled changed-speech input now yields “The answer text changed, and the
+  source did not change.” Those input utterances remain fixtures, never live
+  model observations in AML.
+* After six learning-expert exchanges, Gemma generated “What was the result of
+  the change in the answers?” The initial v4 binding stopped explicitly and
+  saved its observed question. Binding v5 accepts this equivalent focused form;
+  one positive and one negative field example retain all previous 109 decisions.
+  C/AML decisions and evidence agree on 111/111 requests, max score delta 1e-6.
+* New comparisons use encounter v4. Replay uses the original presentation for
+  v3, including its complete saved prompt; old magnitude/history formats stay
+  supported. The first v4 implementation omitted the returned sourceComparison
+  field; the native integration gate caught it. Both replay versions now return
+  it, with a direct regression assertion. An actual saved v3 encounter reopens
+  with comparison=match.
+* Debian 13 x86_64, AMD EPYC 9V45, Node 24.22.1, GCC 14.2.0; unchanged pinned
+  Gemma, NoTorch and AML. Core 148/148; native router, AML memory and JANUS 28/28;
+  five live-model tests including both seven-exchange sequences and the two
+  controlled comparison inputs. The result records are in
+  [unchanged-source-2026-11-13.json](docs/validation/unchanged-source-2026-11-13.json).
+
 ## 2026-11-13 — Which source revision changed the saved answer
 
 Starting at `20d50c9`, add the optional `answer-change` encounter. The host
