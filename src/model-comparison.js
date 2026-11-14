@@ -78,9 +78,18 @@ export function compareModelSources(context, read) {
     unmatchedRevisions: added.filter(f => f.supersedes !== null && !revisions.some(r => r.after === f.id)).map(f => f.id), revisions };
 }
 
-export function modelChangePrompt(question, comparison, read) {
+export function modelChangePrompt(question, comparison, read, version = 2) {
+  if (![1, 2].includes(version)) throw fail('Unsupported comparison presentation');
   if (comparison?.format !== 'lalo/model-source-comparison' || comparison.version !== 1)
     throw fail('Answer generation requires a source comparison');
+  if (version === 2 && comparison.evidenceChanged === false) {
+    const finding = comparison.answersChanged
+      ? 'the answer text changed; the source did not change.'
+      : 'no change in either the answer or the source.';
+    const task = comparison.answersChanged ? 'Summarize this result in one sentence.'
+      : 'State that both the answer and the source stayed the same.';
+    return `Comparison result: ${finding}\nEarlier answer: ${JSON.stringify(comparison.before.answer)}\nLater answer: ${JSON.stringify(comparison.after.answer)}\n${task}`;
+  }
   const revisions = comparison.revisions;
   if (revisions.length && comparison.added.length === revisions.length
     && comparison.removed.length === new Set(revisions.map(r => r.before)).size) {

@@ -21,8 +21,8 @@ function checkedScope(scope, activity = 'magnitude') {
 
 // An intentionally small first language contract. Match the whole question:
 // a different date, location, second question or constraint cannot disappear.
-export function bindModelQuestion(question, scope, version = 4) {
-  if (![1, 2, 3, 4].includes(version)) throw fail('MODEL_BINDING', 'Unsupported question binding');
+export function bindModelQuestion(question, scope, version = 5) {
+  if (![1, 2, 3, 4, 5].includes(version)) throw fail('MODEL_BINDING', 'Unsupported question binding');
   if (!text(question, 2047)) throw fail('MODEL_QUESTION', 'Question must fit the routing text budget');
   let normalized = question.trim().replace(/\s+/g, ' ').toLowerCase();
   normalized = normalized.replace(/^(?:don(?: eduardo)?[,!:]?\s+)/, '');
@@ -34,7 +34,8 @@ export function bindModelQuestion(question, scope, version = 4) {
   ];
   if (version >= 2) forms.push(/^how strong (?:is|was) (?:this|the) earthquake\?$/);
   let activity = 'magnitude', rule = 'focused-quake-magnitude', predicate = 'magnitude';
-  if (version >= 4 && /^(?:why did my answer change|why has my answer changed|what caused my answer to change|what was the (?:most significant )?change in the two saved answers)\?$/.test(normalized)) {
+  if (version >= 4 && /^(?:why did my answer change|why has my answer changed|what caused my answer to change|what was the (?:most significant )?change in the two saved answers)\?$/.test(normalized)
+    || version >= 5 && /^what was the result of the change in the answers\?$/.test(normalized)) {
     activity = 'answer-change'; rule = 'saved-answer-change';
   } else if (version >= 3 && /^(?:what did i say(?: to you)? earlier(?: about my previous statements)?\?|(?:please )?(?:show|read) my (?:earlier|previous) (?:statements|utterances)[.!?]?)$/.test(normalized)) {
     activity = 'self-history'; rule = 'own-utterance-history'; predicate = 'utterance';
@@ -61,12 +62,12 @@ const questionPrompts = {
   'quake-history': 'You want to know how the reported earthquake magnitude changed. Ask Don Eduardo for the magnitude history. Write only a question.',
 };
 
-export function modelAnswerPrompt(question, read, activity = 'magnitude', comparison) {
+export function modelAnswerPrompt(question, read, activity = 'magnitude', comparison, comparisonPresentation = 2) {
   if (!Object.hasOwn(questionPrompts, activity)) throw fail('MODEL_ACTIVITY', 'Unknown model activity');
   const tool = activity === 'magnitude' ? 'lalo_facts' : 'lalo_history';
   if (read?.status !== 'executed' || read.call?.name !== tool || !read.result?.ok
     || !read.result.data?.complete) throw fail('MODEL_EVIDENCE', 'Answer needs a complete successful facts read');
-  if (activity === 'answer-change') return modelChangePrompt(question, comparison, read);
+  if (activity === 'answer-change') return modelChangePrompt(question, comparison, read, comparisonPresentation);
   if (activity !== 'magnitude') {
     // The complete source rows remain in read. Present their ordered values
     // without clock/identifier digits competing with magnitude values.
@@ -134,7 +135,7 @@ export async function runModelEncounter({ journal, id, agent, scope, model, rout
     last = now; return now;
   };
   let world = await createBackground(snapshot);
-  const result = { format: 'lalo/model-encounter', version: activity === 'answer-change' ? 3 : 2, id, agent, scope, activity, identity,
+  const result = { format: 'lalo/model-encounter', version: activity === 'answer-change' ? 4 : 2, id, agent, scope, activity, identity,
     ...(activity === 'answer-change' ? { comparisonContext, comparison: null } : {}),
     startedAt: tick(), question: null, binding: null, read: null, answer: null, receipts: [], error: null };
   const action = { format: 'lalo/action', version: 1, status: 'model_error',
@@ -175,30 +176,30 @@ export async function runModelEncounter({ journal, id, agent, scope, model, rout
 // recovered verbatim from memory; no generation or expert learning runs here.
 export async function replayModelEncounter(journal, action) {
   if (action?.format !== 'lalo/action' || action.version !== 1 || action.request?.kind !== 'model-encounter'
-    || action.result?.format !== 'lalo/model-encounter' || ![1, 2, 3].includes(action.result.version))
+    || action.result?.format !== 'lalo/model-encounter' || ![1, 2, 3, 4].includes(action.result.version))
     throw fail('MODEL_REPLAY', 'Expected a saved model encounter');
   const saved = copy(action), data = saved.result, world = decodeJournal(journal);
   if (data.error || saved.status !== 'executed' || !data.question || !data.answer || !data.read)
     throw fail('MODEL_REPLAY', 'This encounter did not complete both directions');
   const activity = data.version === 1 ? 'magnitude' : data.activity;
   checkedScope(data.scope, activity);
-  if (data.version === 3) {
-    if (activity !== 'answer-change') throw fail('MODEL_REPLAY', 'Version 3 requires a saved answer comparison');
+  if (data.version >= 3) {
+    if (activity !== 'answer-change') throw fail('MODEL_REPLAY', 'Comparison versions require a saved answer comparison');
     const context = await validateModelComparison(journal, data.comparisonContext, data.agent, data.identity, replayModelEncounter);
     const comparison = compareModelSources(context, data.read);
     if (!sameToolResult(comparison, data.comparison)) throw fail('MODEL_REPLAY', 'Saved source comparison differs');
-  } else if (activity === 'answer-change') throw fail('MODEL_REPLAY', 'Answer comparison requires encounter version 3');
+  } else if (activity === 'answer-change') throw fail('MODEL_REPLAY', 'Answer comparison requires encounter version 3 or 4');
   if (activity === 'self-history' && data.scope.subject !== data.agent)
     throw fail('MODEL_REPLAY', 'Saved self-history names another agent');
   if (!Object.hasOwn(questionPrompts, activity) || data.question.prompt !== questionPrompts[activity]
     || !sameToolResult(saved.request, { kind: 'model-encounter', id: data.id, agent: data.agent, scope: data.scope,
       ...(data.version >= 2 ? { activity } : {}),
-      ...(data.version === 3 ? { comparison: comparisonReferences(data.comparisonContext) } : {}) }))
+      ...(data.version >= 3 ? { comparison: comparisonReferences(data.comparisonContext) } : {}) }))
     throw fail('MODEL_REPLAY', 'Saved encounter identity or scope differs');
   const bound = bindModelQuestion(data.question.output.text, data.scope, data.binding?.version);
   if (!sameToolResult(bound, data.binding) || !sameToolResult(bound.request, data.read.request)
     || data.binding.version >= 3 && data.binding.activity !== activity
-    || data.answer.prompt !== modelAnswerPrompt(data.question.output.text, data.read, activity, data.comparison))
+    || data.answer.prompt !== modelAnswerPrompt(data.question.output.text, data.read, activity, data.comparison, data.version === 3 ? 1 : 2))
     throw fail('MODEL_REPLAY', 'Saved question, scope, read or answer input differs');
   const receipts = [];
   for (const phase of ['question', 'answer']) {
@@ -214,5 +215,5 @@ export async function replayModelEncounter(journal, action) {
   return { format: 'lalo/model-replay', version: 1, comparison: read.comparison,
     question: data.question.output.text, answer: data.answer.output.text, binding: data.binding,
     read, identity: data.identity, receipts: data.receipts,
-    ...(data.version === 3 ? { sourceComparison: data.comparison } : {}) };
+    ...(data.version >= 3 ? { sourceComparison: data.comparison } : {}) };
 }

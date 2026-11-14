@@ -107,3 +107,5 @@
 {"text":"What was the most significant change in the two saved answers?","status":"call","tool":"lalo_history"}
 {"text":"What was the change in the two saved answers?","status":"call","tool":"lalo_history"}
 {"text":"Do not compare the two saved answers.","status":"no_call","tool":null}
+{"text":"What was the result of the change in the answers?","status":"call","tool":"lalo_history"}
+{"text":"Do not show the result of the change in the answers.","status":"no_call","tool":null}

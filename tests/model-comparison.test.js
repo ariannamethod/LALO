@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { compareModelSources, modelChangePrompt } from '../src/model-comparison.js';
+import { unchangedSourceCase } from './fixtures/model-comparisons.js';
 import { createBackground } from '../src/background.js';
 import { decodeJournal, encodeJournal } from '../src/journal.js';
 import { runModelEncounter, replayModelEncounter, bindModelQuestion } from '../src/model-encounter.js';
@@ -145,6 +146,9 @@ test('an incomplete revision history retains its question and never generates an
 test('whole comparison questions preserve constraints, and existing v3 bindings still replay', async () => {
   const scope = { subject: 'usgs:synthetic1', knownAt: T + 5000 };
   assert.equal(bindModelQuestion('Why did my answer change?', scope).tool, 'lalo_history');
+  const paraphrase = 'What was the result of the change in the answers?';
+  assert.equal(bindModelQuestion(paraphrase, scope).tool, 'lalo_history');
+  assert.throws(() => bindModelQuestion(paraphrase, scope, 4), { code: 'MODEL_QUESTION_UNRESOLVED' });
   for (const question of ['Why did your answer change?', 'Why did my answer change yesterday?',
     'Why did my answer change? Also read my location.'])
     assert.throws(() => bindModelQuestion(question, scope), { code: 'MODEL_QUESTION_UNRESOLVED' });
@@ -165,4 +169,32 @@ test('a revised event moving into the world-time scope is not classified as an i
   assert.deepEqual(c.unmatchedRevisions, c.added);
   assert.equal(c.unmatchedRevisions.length, 1);
   assert.equal((await replayModelEncounter(out.journal, out.action)).comparison, 'match');
+});
+
+test('unchanged-source presentations explicitly separate unchanged and changed speech', () => {
+  for (const changedSpeech of [false, true]) {
+    const { comparison, read } = unchangedSourceCase(changedSpeech);
+    const prompt = modelChangePrompt('Why did my answer change?', comparison, read);
+    assert.ok(prompt.startsWith(changedSpeech
+      ? 'Comparison result: the answer text changed; the source did not change.'
+      : 'Comparison result: no change in either the answer or the source.'));
+    assert.ok(prompt.includes(JSON.stringify(comparison.before.answer)));
+    assert.ok(prompt.includes(JSON.stringify(comparison.after.answer)));
+    assert.throws(() => modelChangePrompt('Why?', comparison, read, 99), { code: 'MODEL_COMPARISON' });
+  }
+});
+
+test('v3 comparisons retain their original prompts while v4 verifies the revised presentation', async () => {
+  const out = await runModelEncounter(await fixture({ kind: 'same' }));
+  assert.equal(out.action.result.version, 4);
+  const replay = await replayModelEncounter(out.journal, out.action);
+  assert.equal(replay.comparison, 'match');
+  assert.deepEqual(replay.sourceComparison, out.action.result.comparison);
+  const old = structuredClone(out.action), data = old.result;
+  data.version = 3;
+  data.answer.prompt = modelChangePrompt(data.question.output.text, data.comparison, data.read, 1);
+  assert.match(data.answer.prompt, /Don compared your saved answers and their source receipts/);
+  assert.equal((await replayModelEncounter(out.journal, old)).comparison, 'match');
+  data.version = 4;
+  await assert.rejects(replayModelEncounter(out.journal, old), { code: 'MODEL_REPLAY' });
 });

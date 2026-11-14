@@ -30,7 +30,7 @@ async function fixture() {
 test('a focused natural question has explicit scope provenance; extra constraints never disappear', () => {
   const bound = bindModelQuestion(question, scope);
   assert.equal(bound.request.text, question);
-  assert.equal(bound.version, 4);
+  assert.equal(bound.version, 5);
   assert.equal(bindModelQuestion('How strong was this earthquake?', scope).request.arguments.predicate, 'magnitude');
   assert.deepEqual(bound.request.arguments, { ...scope, predicate: 'magnitude' });
   assert.equal(bound.argumentSources.knownAt, 'scope.knownAt');
